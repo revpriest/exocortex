@@ -144,30 +144,157 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     };
   }, [loading, days, db, loadDays]);
 
-  // Calculate event position and width
-  const calculateEventStyle = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number) => {
-    const eventDate = new Date(event.endTime);
-    const startOfDay = new Date(eventDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    let startTime: number;
+  // Helper function to calculate the actual start time of an event
+  const getEventStartTime = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): number => {
     if (index === 0) {
-      // First event starts at midnight
-      startTime = startOfDay.getTime();
+      // For the first event, we need to calculate based on when it actually started
+      // This is a heuristic - we'll estimate based on typical event durations
+      // For sleep events, we know they typically start 7-8 hours before they end
+      if (event.category === 'Sleep') {
+        const estimatedDuration = 7.5 * 60 * 60 * 1000; // 7.5 hours average
+        return event.endTime - estimatedDuration;
+      }
+
+      // For other events, estimate 2 hours duration as a default
+      const estimatedDuration = 2 * 60 * 60 * 1000;
+      return event.endTime - estimatedDuration;
     } else {
       // Start time is the end time of the previous event
-      startTime = dayEvents[index - 1].endTime;
+      return dayEvents[index - 1].endTime;
+    }
+  };
+
+  // Calculate event position and width for a specific day portion
+  const calculateEventPortionStyle = (
+    event: ExocortexEvent,
+    dayDate: string,
+    dayEvents: ExocortexEvent[],
+    eventIndex: number,
+    portion: 'start' | 'middle' | 'end' | 'full'
+  ) => {
+    const eventEndTime = new Date(event.endTime);
+    const eventStartTime = new Date(getEventStartTime(event, dayEvents, eventIndex));
+    const dayStart = new Date(dayDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    let portionStartTime: Date;
+    let portionEndTime: Date;
+
+    switch (portion) {
+      case 'start':
+        // First day portion: from actual start time to midnight
+        portionStartTime = new Date(Math.max(eventStartTime.getTime(), dayStart.getTime()));
+        portionEndTime = new Date(dayEnd);
+        break;
+      case 'end':
+        // Last day portion: from midnight to actual end time
+        portionStartTime = new Date(dayStart);
+        portionEndTime = new Date(Math.min(eventEndTime.getTime(), dayEnd.getTime()));
+        break;
+      case 'middle':
+        // Middle day portion: full day
+        portionStartTime = new Date(dayStart);
+        portionEndTime = new Date(dayEnd);
+        break;
+      case 'full':
+      default:
+        // Single day event: from actual start to actual end (clamped to day boundaries)
+        portionStartTime = new Date(Math.max(eventStartTime.getTime(), dayStart.getTime()));
+        portionEndTime = new Date(Math.min(eventEndTime.getTime(), dayEnd.getTime()));
+        break;
     }
 
-    const duration = event.endTime - startTime;
-    const startHour = (startTime - startOfDay.getTime()) / (1000 * 60 * 60);
-    const durationHours = duration / (1000 * 60 * 60);
+    const startHour = (portionStartTime.getTime() - dayStart.getTime()) / (1000 * 60 * 60);
+    const durationHours = (portionEndTime.getTime() - portionStartTime.getTime()) / (1000 * 60 * 60);
 
     return {
       left: `calc(${startHour} * var(--hour-width))`,
       width: `calc(${durationHours} * var(--hour-width))`,
       backgroundColor: getEventColor(event),
     };
+  };
+
+  // Check if an event spans multiple days
+  const doesEventSpanMultipleDays = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): boolean => {
+    const eventEndTime = new Date(event.endTime);
+    const eventStartTime = new Date(getEventStartTime(event, dayEvents, index));
+
+    const startDay = eventStartTime.toISOString().split('T')[0];
+    const endDay = eventEndTime.toISOString().split('T')[0];
+
+    return startDay !== endDay;
+  };
+
+  // Get the portion type for an event on a specific day
+  const getEventPortionType = (event: ExocortexEvent, dayDate: string, dayEvents: ExocortexEvent[], index: number): 'start' | 'middle' | 'end' | 'full' => {
+    const eventEndTime = new Date(event.endTime);
+    const eventStartTime = new Date(getEventStartTime(event, dayEvents, index));
+
+    const startDay = eventStartTime.toISOString().split('T')[0];
+    const endDay = eventEndTime.toISOString().split('T')[0];
+
+    if (startDay === endDay) {
+      return 'full';
+    }
+
+    if (dayDate === startDay) {
+      return 'start';
+    }
+
+    if (dayDate === endDay) {
+      return 'end';
+    }
+
+    return 'middle';
+  };
+
+  // Get all events that should be displayed on a specific day
+  const getEventsForDay = (targetDay: DayEvents, allDays: DayEvents[]): ExocortexEvent[] => {
+    const eventsForDay: ExocortexEvent[] = [];
+
+    // Add events that end on this day (original events)
+    eventsForDay.push(...targetDay.events);
+
+    // Check other days for events that might span into this day
+    allDays.forEach(day => {
+      if (day.date === targetDay.date) return; // Skip the same day
+
+      day.events.forEach(event => {
+        const eventEndTime = new Date(event.endTime);
+        const eventStartTime = new Date(getEventStartTime(event, day.events, day.events.indexOf(event)));
+
+        const startDay = eventStartTime.toISOString().split('T')[0];
+        const endDay = eventEndTime.toISOString().split('T')[0];
+
+        // If this event spans multiple days and includes the target day
+        if (startDay !== endDay) {
+          const targetDayDate = new Date(targetDay.date);
+          const targetDayStart = new Date(targetDayDate);
+          targetDayStart.setHours(0, 0, 0, 0);
+          const targetDayEnd = new Date(targetDayDate);
+          targetDayEnd.setHours(23, 59, 59, 999);
+
+          // Check if the event overlaps with the target day
+          if (eventStartTime <= targetDayEnd && eventEndTime >= targetDayStart) {
+            // This event spans into the target day, add it
+            eventsForDay.push({
+              ...event,
+              // Add a unique identifier to distinguish this from the original event
+              id: `${event.id}-span-${targetDay.date}`
+            });
+          }
+        }
+      });
+    });
+
+    return eventsForDay;
+  };
+
+  // Legacy function for backward compatibility (used for single-day events)
+  const calculateEventStyle = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number) => {
+    return calculateEventPortionStyle(event, new Date(event.endTime).toISOString().split('T')[0], dayEvents, index, 'full');
   };
 
   // Calculate text color based on background brightness
@@ -705,26 +832,59 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
               {/* Events - mobile optimized */}
               <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-                {day.events.map((event, eventIndex) => (
-                  <div
-                    key={event.id}
-                    className="absolute top-2 h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
-                    style={calculateEventStyle(event, day.events, eventIndex)}
-                    onClick={() => handleEventClick(event)}
-                  >
-                    <div className="p-2 h-full flex flex-col items-center justify-center text-center">
-                      <div className="text-xs font-medium truncate w-full mb-1" style={{ color: getTextColor(event) }}>
-                        {event.category}
+                {getEventsForDay(day, days).map((event, eventIndex) => {
+                  // For span events, we need to find the original event in its day's events array
+                  const originalEventId = event.id.replace(/-span-.*$/, '');
+                  const originalDay = days.find(d => d.events.some(e => e.id === originalEventId));
+                  const originalEvents = originalDay?.events || [];
+                  const originalEventIndex = originalEvents.findIndex(e => e.id === originalEventId);
+
+                  const portionType = getEventPortionType(
+                    { ...event, id: originalEventId }, // Use original ID for portion calculation
+                    day.date,
+                    originalEvents,
+                    originalEventIndex
+                  );
+
+                  // Only render the event portion if it's relevant for this day
+                  if (portionType === 'middle') {
+                    // Skip middle portions for now to avoid visual clutter
+                    // We could show them with a different style if needed
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      key={`${event.id}-${day.date}`}
+                      className="absolute top-2 h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
+                      style={calculateEventPortionStyle(
+                        { ...event, id: originalEventId }, // Use original ID for style calculation
+                        day.date,
+                        originalEvents,
+                        originalEventIndex,
+                        portionType
+                      )}
+                      onClick={() => handleEventClick({ ...event, id: originalEventId })} // Use original event for click handler
+                    >
+                      <div className="p-2 h-full flex flex-col items-center justify-center text-center">
+                        <div className="text-xs font-medium truncate w-full mb-1" style={{ color: getTextColor(event) }}>
+                          {event.category}
+                          {portionType !== 'full' && (
+                            <span className="ml-1 opacity-70">
+                              ({portionType === 'start' ? '→' : portionType === 'end' ? '←' : '↔'})
+                            </span>
+                          )}
+                        </div>
+                        <SmileyFace
+                          health={event.health}
+                          wakefulness={event.wakefulness}
+                          happiness={event.happiness}
+                          size={20}
+                        />
                       </div>
-                      <SmileyFace
-                        health={event.health}
-                        wakefulness={event.wakefulness}
-                        happiness={event.happiness}
-                        size={20}
-                      />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
