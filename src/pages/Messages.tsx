@@ -1,5 +1,6 @@
 import { useSeoMeta } from '@unhead/react';
 import { DMMessagingInterface } from '@/components/dm/DMMessagingInterface';
+import { OfflineSupport } from '@/components/OfflineSupport';
 
 const Messages = () => {
   useSeoMeta({
@@ -16,6 +17,11 @@ const Messages = () => {
         </div>
 
         <DMMessagingInterface className="flex-1" />
+
+        {/* Offline support component */}
+        <div className="fixed bottom-4 right-4 z-50">
+          <OfflineSupport />
+        </div>
       </div>
     </div>
   );
