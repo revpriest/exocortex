@@ -336,14 +336,21 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       let currentTime = new Date(endDate);
       currentTime.setHours(23, 59, 59, 999); // Start from end of yesterday
 
-      // Generate 5-15 events per day
+      // Generate events for each day, ensuring good coverage
       while (currentTime >= startDate) {
-        const eventsToday = Math.floor(Math.random() * 11) + 5; // 5-15 events
         const dayEvents: Omit<ExocortexEvent, 'id'>[] = [];
+        let remainingTimeInDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-        for (let i = 0; i < eventsToday; i++) {
-          // Random duration between 15 minutes and 4 hours
-          const durationMs = (Math.random() * (4 * 60 - 15) + 15) * 60 * 1000;
+        // Start from end of day (11:59:59 PM) and work backwards
+        let eventTime = new Date(currentTime);
+
+        // Generate events until we've filled the day reasonably well
+        while (remainingTimeInDay > 4 * 60 * 60 * 1000) { // Stop when less than 4 hours remaining
+          // Random duration between 30 minutes and 3 hours
+          const durationMs = (Math.random() * (3 * 60 - 30) + 30) * 60 * 1000;
+
+          // Ensure we don't exceed remaining time
+          const actualDuration = Math.min(durationMs, remainingTimeInDay);
 
           // Random category
           const category = categories[Math.floor(Math.random() * categories.length)];
@@ -354,7 +361,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
           const health = Math.random() * 0.4 + 0.6; // 0.6-1.0
 
           const event = {
-            endTime: currentTime.getTime(),
+            endTime: eventTime.getTime(),
             category,
             happiness,
             wakefulness,
@@ -362,7 +369,28 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
           };
 
           dayEvents.push(event);
-          currentTime = new Date(currentTime.getTime() - durationMs);
+
+          // Move time backwards for next event
+          eventTime = new Date(eventTime.getTime() - actualDuration);
+          remainingTimeInDay -= actualDuration;
+        }
+
+        // If we still have significant time left, add one more event to fill the gap
+        if (remainingTimeInDay > 60 * 60 * 1000) { // More than 1 hour left
+          const category = categories[Math.floor(Math.random() * categories.length)];
+          const happiness = Math.random() * 0.6 + 0.4;
+          const wakefulness = Math.random() * 0.5 + 0.4;
+          const health = Math.random() * 0.4 + 0.6;
+
+          const event = {
+            endTime: eventTime.getTime(),
+            category,
+            happiness,
+            wakefulness,
+            health,
+          };
+
+          dayEvents.push(event);
         }
 
         // Reverse events for the day so they're in chronological order
@@ -380,20 +408,25 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         await db.addEvent(event);
       }
 
-      // Refresh the grid to show test data
+      // Refresh the grid to show test data - reload past 30 days
+      const testEndDate = new Date();
+      testEndDate.setDate(testEndDate.getDate() - 1); // Yesterday
+      const testStartDate = new Date();
+      testStartDate.setDate(testStartDate.getDate() - 30); // 30 days ago
+
+      const daysWithEvents = await db.getEventsByDateRange(
+        testStartDate.toISOString().split('T')[0],
+        testEndDate.toISOString().split('T')[0]
+      );
+
+      // Also get today's events (should be empty)
       const today = new Date().toISOString().split('T')[0];
       const todayEvents = await db.getEventsByDate(today);
 
-      setDays(prev => {
-        const newDays = [...prev];
-        const todayIndex = newDays.findIndex(day => day.date === today);
-        if (todayIndex !== -1) {
-          newDays[todayIndex] = { date: today, events: todayEvents };
-        } else {
-          newDays.unshift({ date: today, events: todayEvents });
-        }
-        return newDays;
-      });
+      // Combine all days and reverse to show most recent first
+      const allDays = [...daysWithEvents.reverse(), { date: today, events: todayEvents }];
+
+      setDays(allDays);
 
       setError(`Successfully generated ${events.length} test events for the past 30 days`);
 
