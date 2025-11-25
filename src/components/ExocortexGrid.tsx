@@ -1213,14 +1213,14 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         {/* Inject responsive styles */}
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
-        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
-          <div className="hour-header-row flex">
+        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700" style={{ width: `${isMobile ? HOURS_IN_DAY * MOBILE_HOUR_WIDTH : HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+          <div className="flex" style={{ width: `${isMobile ? HOURS_IN_DAY * MOBILE_HOUR_WIDTH : HOURS_IN_DAY * HOUR_WIDTH}px` }}>
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
                 className="text-xs md:text-sm text-gray-400 border-r border-gray-700 px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
                 style={{
-                  width: `var(--hour-width)`,
+                  width: `${isMobile ? MOBILE_HOUR_WIDTH : HOUR_WIDTH}px`,
                 }}
               >
                 {hour}
