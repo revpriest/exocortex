@@ -203,15 +203,13 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
       console.log('Categories loaded:', uniqueCategories);
 
-      // If no categories found, add some default ones for testing
-      if (uniqueCategories.length === 0) {
-        const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
-        setRecentCategories(defaultCategories);
-        console.log('Using default categories:', defaultCategories);
-      } else {
-        setRecentCategories(uniqueCategories);
-        console.log('Using existing categories:', uniqueCategories);
-      }
+      // Always include default categories along with existing ones
+      const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
+      const combinedCategories = [...uniqueCategories, ...defaultCategories];
+      const finalCategories = [...new Set(combinedCategories)].slice(0, 12); // Remove duplicates and limit to 12
+
+      setRecentCategories(finalCategories);
+      console.log('Combined categories (existing + defaults):', finalCategories);
     } catch (error) {
       console.error('Failed to load recent categories:', error);
       // Add default categories even if there's an error
@@ -347,7 +345,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 id="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                onFocus={() => setShowDropdown(true)}
                 placeholder="e.g., Work, Sleep, Exercise"
                 className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10"
               />
