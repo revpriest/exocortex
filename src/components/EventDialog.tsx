@@ -111,6 +111,44 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   const [recentCategories, setRecentCategories] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  // Inject Firefox-specific CSS
+  useEffect(() => {
+    if (isMobile && open) {
+      const style = document.createElement('style');
+      style.textContent = `
+        @-moz-document url-prefix() {
+          .fixed[data-state="open"] {
+            width: 240px !important;
+            max-width: 240px !important;
+            max-height: 350px !important;
+            padding: 6px !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .fixed[data-state="open"] button {
+            min-height: 20px !important;
+            font-size: 10px !important;
+            padding: 2px 4px !important;
+          }
+          .fixed[data-state="open"] input {
+            font-size: 10px !important;
+            padding: 2px 4px !important;
+            height: 24px !important;
+          }
+          .fixed[data-state="open"] label {
+            font-size: 10px !important;
+            margin-bottom: 0 !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, [isMobile, open]);
+
   // Reset form when dialog opens or editEvent changes
   useEffect(() => {
     if (open) {
@@ -299,7 +337,18 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={`${isMobile ? '!w-[60vw] !max-w-[60vw] !max-w-[280px] !max-h-[60vh] !max-h-[400px] !overflow-y-auto !p-2 !gap-1' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}>
+        <DialogContent
+          className={`${isMobile ? '!w-[50vw] !max-w-[50vw] !max-w-[240px] !max-h-[50vh] !max-h-[350px] !overflow-y-auto !p-1.5 !gap-0' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}
+          style={isMobile ? {
+            width: '50vw !important',
+            maxWidth: '240px !important',
+            maxHeight: '350px !important',
+            padding: '6px !important',
+            margin: '0 !important',
+            boxSizing: 'border-box !important',
+            transform: 'translate(-50%, -50%) !important'
+          } : undefined}
+        >
           <DialogHeader className={isMobile ? '!pb-0 !space-y-0 !m-0' : ''}>
             <DialogTitle className={isMobile ? '!text-xs !m-0 !p-0' : ''}>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           </DialogHeader>
@@ -316,14 +365,14 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           <div className={`flex justify-center ${isMobile ? '!py-0 !my-0' : 'py-2'}`}>
             <div className="relative">
               <div
-                className={`${isMobile ? '!w-10 !h-10' : 'w-32 h-32'} rounded-full border-2 border-gray-600`}
+                className={`${isMobile ? '!w-8 !h-8' : 'w-32 h-32'} rounded-full border-2 border-gray-600`}
                 style={{ backgroundColor: getColorPreview() }}
               />
               <canvas
                 ref={canvasRef}
-                width={isMobile ? "40" : "128"}
-                height={isMobile ? "40" : "128"}
-                className={`absolute top-0 left-0 ${isMobile ? '!w-10 !h-10' : 'w-32 h-32'}`}
+                width={isMobile ? "32" : "128"}
+                height={isMobile ? "32" : "128"}
+                className={`absolute top-0 left-0 ${isMobile ? '!w-8 !h-8' : 'w-32 h-32'}`}
               />
             </div>
           </div>
@@ -338,7 +387,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g., Work, Sleep, Exercise"
-                className={`${isMobile ? '!text-xs !py-1 !h-7' : ''} bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10`}
+                className={`${isMobile ? '!text-[10px] !py-0.5 !h-6 !leading-none' : ''} bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10`}
               />
               <Button
                 type="button"
@@ -393,12 +442,12 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               </span>
             </div>
 
-            <div className={`${isMobile ? 'grid grid-cols-2 gap-0.5' : 'flex items-center space-x-2'}`}>
+            <div className={`${isMobile ? 'grid grid-cols-2 gap-0' : 'flex items-center space-x-2'}`}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(-60)}
-                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-[10px] !py-0 !h-5 !leading-none' : ''} bg-gray-700 border-gray-600`}
               >
                 <ChevronLeft className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
                 -1h
@@ -408,7 +457,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(-15)}
-                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-[10px] !py-0 !h-5 !leading-none' : ''} bg-gray-700 border-gray-600`}
               >
                 <ChevronLeft className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
                 -15m
@@ -418,7 +467,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(15)}
-                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-[10px] !py-0 !h-5 !leading-none' : ''} bg-gray-700 border-gray-600`}
               >
                 +15m
                 <ChevronRight className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
@@ -428,7 +477,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(60)}
-                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-[10px] !py-0 !h-5 !leading-none' : ''} bg-gray-700 border-gray-600`}
               >
                 +1h
                 <ChevronRight className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
@@ -481,21 +530,21 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteConfirm(true)}
-                className={`bg-red-600 hover:bg-red-700 ${isMobile ? 'w-full' : ''}`}
+                className={`${isMobile ? '!text-[10px] !py-0.5 !h-6 w-full' : ''} bg-red-600 hover:bg-red-700`}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'} mr-1`} />
                 Delete
               </Button>
             )}
-            <div className={`${isMobile ? 'flex space-x-2 w-full' : 'flex justify-end space-x-2 ml-auto'}`}>
+            <div className={`${isMobile ? 'flex space-x-1 w-full' : 'flex justify-end space-x-2 ml-auto'}`}>
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className={`bg-gray-700 border-gray-600 ${isMobile ? 'flex-1' : ''}`}
+                className={`${isMobile ? '!text-[10px] !py-0.5 !h-6 flex-1' : ''} bg-gray-700 border-gray-600`}
               >
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} className={`bg-blue-600 hover:bg-blue-700 ${isMobile ? 'flex-1' : ''}`}>
+              <Button onClick={handleSubmit} className={`${isMobile ? '!text-[10px] !py-0.5 !h-6 flex-1' : ''} bg-blue-600 hover:bg-blue-700`}>
                 {editEvent ? 'Update Event' : 'Add Event'}
               </Button>
             </div>
@@ -506,7 +555,17 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className={`${isMobile ? '!w-[55vw] !max-w-[55vw] !max-w-[260px] !p-2 !gap-1' : 'sm:max-w-sm'} bg-gray-800 border-gray-700 text-white`}>
+        <DialogContent
+          className={`${isMobile ? '!w-[45vw] !max-w-[45vw] !max-w-[220px] !p-1.5 !gap-0' : 'sm:max-w-sm'} bg-gray-800 border-gray-700 text-white`}
+          style={isMobile ? {
+            width: '45vw !important',
+            maxWidth: '220px !important',
+            padding: '6px !important',
+            margin: '0 !important',
+            boxSizing: 'border-box !important',
+            transform: 'translate(-50%, -50%) !important'
+          } : undefined}
+        >
           <DialogHeader className={isMobile ? '!pb-0 !space-y-0 !m-0' : ''}>
             <DialogTitle className={isMobile ? '!text-xs !m-0 !p-0' : ''}>Delete Event</DialogTitle>
           </DialogHeader>
@@ -515,18 +574,18 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               Are you sure you want to delete this event? This action cannot be undone.
             </p>
           </div>
-          <div className={`${isMobile ? 'flex-col space-y-2' : 'flex justify-end space-x-2'}`}>
+          <div className={`${isMobile ? 'flex-col space-y-0' : 'flex justify-end space-x-2'}`}>
             <Button
               variant="outline"
               onClick={cancelDelete}
-              className={`bg-gray-700 border-gray-600 ${isMobile ? 'w-full' : ''}`}
+              className={`${isMobile ? '!text-[10px] !py-0.5 !h-6 w-full' : ''} bg-gray-700 border-gray-600`}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              className={`bg-red-600 hover:bg-red-700 ${isMobile ? 'w-full' : ''}`}
+              className={`${isMobile ? '!text-[10px] !py-0.5 !h-6 w-full' : ''} bg-red-600 hover:bg-red-700`}
             >
               Delete
             </Button>
