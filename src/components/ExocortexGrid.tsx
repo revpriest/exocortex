@@ -12,6 +12,7 @@ interface ExocortexGridProps {
 
 const HOURS_IN_DAY = 24;
 const HOUR_WIDTH = 60; // pixels per hour
+const MOBILE_HOUR_WIDTH = 40; // pixels per hour on mobile
 const ROW_HEIGHT = 80; // pixels per day row - balanced for mobile and desktop
 
 export function ExocortexGrid({ className }: ExocortexGridProps) {
@@ -581,8 +582,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         ref={gridRef}
         className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg"
         style={{
-          maxHeight: 'calc(100vh - 120px)', // Reduced empty space
-          minHeight: '400px', // Minimum height for usability
+          height: 'calc(100vh - 140px)', // Even more space for mobile - button should be visible
           minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`
         }}
       >
@@ -674,18 +674,20 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       </div>
 
       {/* Floating add button - mobile optimized */}
-      <Button
-        size="lg"
-        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-14 h-14 md:w-14 md:h-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 z-50 touch-manipulation flex items-center justify-center"
+      <button
         onClick={handleOpenAddDialog}
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-14 h-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 z-50 touch-manipulation"
         style={{
           // Ensure button stays within safe areas on mobile
           paddingBottom: 'env(safe-area-inset-bottom, 1rem)',
           paddingRight: 'env(safe-area-inset-right, 1rem)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <Plus className="h-6 w-6" />
-      </Button>
+      </button>
 
       {/* Event dialog */}
       <EventDialog

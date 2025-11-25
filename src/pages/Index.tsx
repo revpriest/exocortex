@@ -8,7 +8,7 @@ const Index = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-900 p-2 md:p-4 pb-20 md:pb-24"> {/* Extra bottom padding for floating button */}
+    <div className="min-h-screen bg-gray-900 p-2 md:p-4 pb-16 md:pb-20"> {/* Reduced bottom padding */}
       <div className="max-w-7xl mx-auto">
         {/* Main grid */}
         <ExocortexGrid className="w-full" />
