@@ -171,7 +171,31 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         return estimatedStartTime.getTime();
       }
 
-      // FIX: For regular events, assume they start at midnight (00:00) if they're the first event
+      // EDGE CASE FIX: Check if there's a previous day with events that this should connect to
+      const currentDayDate = new Date(event.endTime).toISOString().split('T')[0];
+      const previousDay = new Date(currentDayDate);
+      previousDay.setDate(previousDay.getDate() - 1);
+      const previousDayDate = previousDay.toISOString().split('T')[0];
+
+      // Find the previous day in our days array
+      const previousDayData = days.find(day => day.date === previousDayDate);
+
+      if (previousDayData && previousDayData.events.length > 0) {
+        // Get the last event from the previous day
+        const lastEventOfPreviousDay = previousDayData.events[previousDayData.events.length - 1];
+        const lastEventEndTime = lastEventOfPreviousDay.endTime;
+
+        // If the last event of previous day ended before midnight, start this event right after it
+        const midnightOfCurrentDay = new Date(currentDayDate);
+        midnightOfCurrentDay.setHours(0, 0, 0, 0);
+
+        if (lastEventEndTime < midnightOfCurrentDay.getTime()) {
+          // Start right after the previous day's last event ended
+          return lastEventEndTime;
+        }
+      }
+
+      // Default: For regular events, assume they start at midnight (00:00) if they're the first event
       // This makes more sense since the day starts at midnight, not 7:00 AM
       const eventEndTime = new Date(event.endTime);
       const eventDate = new Date(eventEndTime);
@@ -404,18 +428,35 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     try {
       await db.addEvent(eventData);
 
-      // Refresh today's events
-      const today = new Date().toISOString().split('T')[0];
-      const todayEvents = await db.getEventsByDate(today);
+      // Get the event date and previous date
+      const eventDate = new Date(eventData.endTime).toISOString().split('T')[0];
+      const previousDate = new Date(eventDate);
+      previousDate.setDate(previousDate.getDate() - 1);
+      const previousDateStr = previousDate.toISOString().split('T')[0];
+
+      // Refresh both the event's day and the previous day (for spanning events)
+      const [eventDayEvents, previousDayEvents] = await Promise.all([
+        db.getEventsByDate(eventDate),
+        db.getEventsByDate(previousDateStr)
+      ]);
 
       setDays(prev => {
         const newDays = [...prev];
-        const todayIndex = newDays.findIndex(day => day.date === today);
-        if (todayIndex !== -1) {
-          newDays[todayIndex] = { date: today, events: todayEvents };
+
+        // Update the event's day
+        const eventDayIndex = newDays.findIndex(day => day.date === eventDate);
+        if (eventDayIndex !== -1) {
+          newDays[eventDayIndex] = { date: eventDate, events: eventDayEvents };
         } else {
-          newDays.unshift({ date: today, events: todayEvents });
+          newDays.unshift({ date: eventDate, events: eventDayEvents });
         }
+
+        // Update the previous day (if it exists in our display)
+        const previousDayIndex = newDays.findIndex(day => day.date === previousDateStr);
+        if (previousDayIndex !== -1) {
+          newDays[previousDayIndex] = { date: previousDateStr, events: previousDayEvents };
+        }
+
         return newDays;
       });
 
@@ -450,16 +491,33 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     try {
       await db.updateEvent(id, eventData);
 
-      // Find and update the event in the corresponding day
+      // Get the event date and previous date
       const eventDate = new Date(eventData.endTime).toISOString().split('T')[0];
-      const dayEvents = await db.getEventsByDate(eventDate);
+      const previousDate = new Date(eventDate);
+      previousDate.setDate(previousDate.getDate() - 1);
+      const previousDateStr = previousDate.toISOString().split('T')[0];
+
+      // Refresh both the event's day and the previous day (for spanning events)
+      const [eventDayEvents, previousDayEvents] = await Promise.all([
+        db.getEventsByDate(eventDate),
+        db.getEventsByDate(previousDateStr)
+      ]);
 
       setDays(prev => {
         const newDays = [...prev];
-        const dayIndex = newDays.findIndex(day => day.date === eventDate);
-        if (dayIndex !== -1) {
-          newDays[dayIndex] = { date: eventDate, events: dayEvents };
+
+        // Update the event's day
+        const eventDayIndex = newDays.findIndex(day => day.date === eventDate);
+        if (eventDayIndex !== -1) {
+          newDays[eventDayIndex] = { date: eventDate, events: eventDayEvents };
         }
+
+        // Update the previous day (if it exists in our display)
+        const previousDayIndex = newDays.findIndex(day => day.date === previousDateStr);
+        if (previousDayIndex !== -1) {
+          newDays[previousDayIndex] = { date: previousDateStr, events: previousDayEvents };
+        }
+
         return newDays;
       });
 
