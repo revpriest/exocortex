@@ -61,12 +61,34 @@ const MOBILE_HOUR_WIDTH = 30; // Width of each hour block on mobile (30 pixels, 
 const responsiveStyles = `
   .exocortex {
     --hour-width: ${HOUR_WIDTH}px;
+    --total-width: ${HOURS_IN_DAY * HOUR_WIDTH}px;
   }
 
   @media (max-width: 768px) {
     .exocortex {
       --hour-width: ${MOBILE_HOUR_WIDTH}px;
+      --total-width: ${HOURS_IN_DAY * MOBILE_HOUR_WIDTH}px;
     }
+  }
+
+  .exocortex .hour-header-row {
+    min-width: var(--total-width);
+    width: var(--total-width);
+  }
+
+  .exocortex .day-row {
+    min-width: var(--total-width);
+    width: var(--total-width);
+  }
+
+  .exocortex .grid-lines {
+    min-width: var(--total-width);
+    width: var(--total-width);
+  }
+
+  .exocortex .events-container {
+    min-width: var(--total-width);
+    width: var(--total-width);
   }
 `;
 
@@ -1192,7 +1214,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
-          <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`, width: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+          <div className="hour-header-row flex">
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
@@ -1208,7 +1230,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         </div>
 
         {/* Day rows */}
-        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+        <div className="day-row relative">
           {days.map((day, dayIndex) => (
             <div
               key={day.date}
@@ -1228,7 +1250,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               </div>
 
               {/* Grid lines */}
-              <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+              <div className="grid-lines absolute inset-0 flex">
                 {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
                   <div
                     key={hourIndex}
@@ -1241,7 +1263,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               </div>
 
               {/* Events - mobile optimized */}
-              <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+              <div className="events-container absolute inset-0">
                 {getEventsForDay(day, days).map((event, eventIndex) => {
                   // For span events, we need to find the original event in its day's events array
                   const originalEventId = event.id.replace(/-span-.*$/, '');
