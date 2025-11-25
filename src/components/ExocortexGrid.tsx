@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
 import { Button } from '@/components/ui/button';
-import { Plus, Download, Upload } from 'lucide-react';
+import { Plus, Download, Upload, Database, Trash2, AlertCircle } from 'lucide-react';
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
@@ -316,6 +316,116 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     input.click();
   };
 
+  const handleGenerateTestData = async () => {
+    if (!db) return;
+
+    try {
+      // Clear existing data first
+      await db.clearAllEvents();
+
+      // Default categories for test data
+      const categories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
+
+      // Generate events for the past 30 days (excluding today)
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - 1); // Yesterday
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30); // 30 days ago
+
+      const events: Omit<ExocortexEvent, 'id'>[] = [];
+      let currentTime = new Date(endDate);
+      currentTime.setHours(23, 59, 59, 999); // Start from end of yesterday
+
+      // Generate 5-15 events per day
+      while (currentTime >= startDate) {
+        const eventsToday = Math.floor(Math.random() * 11) + 5; // 5-15 events
+        const dayEvents: Omit<ExocortexEvent, 'id'>[] = [];
+
+        for (let i = 0; i < eventsToday; i++) {
+          // Random duration between 15 minutes and 4 hours
+          const durationMs = (Math.random() * (4 * 60 - 15) + 15) * 60 * 1000;
+
+          // Random category
+          const category = categories[Math.floor(Math.random() * categories.length)];
+
+          // Random mood values (weighted towards positive values)
+          const happiness = Math.random() * 0.6 + 0.4; // 0.4-1.0
+          const wakefulness = Math.random() * 0.5 + 0.4; // 0.4-0.9
+          const health = Math.random() * 0.4 + 0.6; // 0.6-1.0
+
+          const event = {
+            endTime: currentTime.getTime(),
+            category,
+            happiness,
+            wakefulness,
+            health,
+          };
+
+          dayEvents.push(event);
+          currentTime = new Date(currentTime.getTime() - durationMs);
+        }
+
+        // Reverse events for the day so they're in chronological order
+        events.push(...dayEvents.reverse());
+
+        // Move to previous day
+        const previousDay = new Date(currentTime);
+        previousDay.setDate(previousDay.getDate() - 1);
+        currentTime = new Date(previousDay);
+        currentTime.setHours(23, 59, 59, 999);
+      }
+
+      // Add all events to database
+      for (const event of events) {
+        await db.addEvent(event);
+      }
+
+      // Refresh the grid to show test data
+      const today = new Date().toISOString().split('T')[0];
+      const todayEvents = await db.getEventsByDate(today);
+
+      setDays(prev => {
+        const newDays = [...prev];
+        const todayIndex = newDays.findIndex(day => day.date === today);
+        if (todayIndex !== -1) {
+          newDays[todayIndex] = { date: today, events: todayEvents };
+        } else {
+          newDays.unshift({ date: today, events: todayEvents });
+        }
+        return newDays;
+      });
+
+      setError(`Successfully generated ${events.length} test events for the past 30 days`);
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setError(null), 5000);
+    } catch (error) {
+      console.error('Failed to generate test data:', error);
+      setError('Failed to generate test data. Please try again.');
+    }
+  };
+
+  const handleClearAllData = async () => {
+    if (!db) return;
+
+    try {
+      // Clear all events from database
+      await db.clearAllEvents();
+
+      // Clear the grid display
+      const today = new Date().toISOString().split('T')[0];
+      setDays([{ date: today, events: [] }]);
+
+      setError('All data has been cleared successfully');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setError(null), 3000);
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+      setError('Failed to clear data. Please try again.');
+    }
+  };
+
   if (loading && days.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -356,6 +466,28 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
             >
               <Upload className="h-4 w-4 mr-2" />
               Import
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateTestData}
+              className="bg-blue-700 border-blue-600 text-white"
+              disabled={!db}
+              title="Generate random test data for the past 30 days"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              Test Data
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearAllData}
+              className="bg-red-700 border-red-600 text-white"
+              disabled={!db}
+              title="Clear all events from the database"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear
             </Button>
           </div>
         </div>
