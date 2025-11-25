@@ -884,7 +884,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             'Deep sleep cycle felt good'
           ][Math.floor(Math.random() * 5)] : undefined,
           happiness: 0.8, // Generally happy during sleep
-          wakefulness: 0.1, // Very low wakefulness during sleep
+          wakefulness: Math.random() * 0.02, // 0-2% wakefulness during sleep (extremely low)
           health: 0.9, // Good for health
         };
 
