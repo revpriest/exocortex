@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { ExocortexEvent } from '@/lib/exocortex';
+import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
 import { Clock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 interface EventDialogProps {
@@ -102,11 +102,17 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   };
 
   const getColorPreview = () => {
-    const hue = Math.abs(category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 360;
-    const saturation = Math.round(happiness[0] * 100);
-    const value = Math.round(wakefulness[0] * 100);
+    // Create a temporary event object to use the same color calculation as the grid
+    const tempEvent: ExocortexEvent = {
+      id: 'preview',
+      endTime: endTime.getTime(),
+      category: category || 'preview',
+      happiness: happiness[0],
+      wakefulness: wakefulness[0],
+      health: health[0],
+    };
 
-    return `hsl(${hue}, ${saturation}%, ${value}%)`;
+    return getEventColor(tempEvent);
   };
 
   return (
