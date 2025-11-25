@@ -466,22 +466,20 @@ export function StatsView({ className }: StatsViewProps) {
             <ResponsiveContainer width="100%" height={400}>
               <BarChart
                 data={categoryData}
-                layout="horizontal"
-                margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis
-                  type="number"
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF' }}
-                  label={{ value: 'Hours', position: 'insideBottom', offset: -5, fill: '#9CA3AF' }}
-                />
-                <YAxis
                   type="category"
                   dataKey="category"
                   stroke="#9CA3AF"
+                  tick={{ fill: '#9CA3AF', angle: -45, textAnchor: 'end', height: 100 }}
+                />
+                <YAxis
+                  type="number"
+                  stroke="#9CA3AF"
                   tick={{ fill: '#9CA3AF' }}
-                  width={90}
+                  label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
                 />
                 <Tooltip
                   contentStyle={{
@@ -498,7 +496,7 @@ export function StatsView({ className }: StatsViewProps) {
                 <Bar
                   dataKey="hours"
                   name="Hours"
-                  radius={[0, 4, 4, 0]}
+                  radius={[4, 4, 0, 0]}
                 >
                   {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
