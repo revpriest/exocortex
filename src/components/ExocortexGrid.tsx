@@ -84,9 +84,9 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               const oldestDay = days[days.length - 1];
               const oldestDate = new Date(oldestDay.date);
 
-              // Don't load data from more than 2 years ago
-              const twoYearsAgo = new Date();
-              twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+              // Don't load data from more than 10 years ago
+              const tenYearsAgo = new Date();
+              tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
 
               if (oldestDate < twoYearsAgo) {
                 setHasReachedHistoricalLimit(true);
@@ -608,7 +608,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                 {new Date(day.date).toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
-                  day: 'numeric'
+                  day: 'numeric',
+                  year: 'numeric'
                 })}
               </div>
 
@@ -656,7 +657,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
             )}
             {hasReachedHistoricalLimit && !loading && (
               <div className="text-muted-foreground text-sm">
-                Reached historical limit (2 years)
+                Reached historical limit (10 years)
               </div>
             )}
           </div>
