@@ -74,9 +74,10 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     const currentHappiness = happiness[0];
 
     // Calculate face color (yellow to green based on health)
+    // Yellow: RGB(255, 255, 0), Green: RGB(0, 255, 0)
     const red = Math.round(255 * currentHealth);
     const green = 255;
-    const blue = Math.round(255 * (1 - currentHealth));
+    const blue = 0;
     const faceColor = `rgb(${red}, ${green}, ${blue})`;
 
     // Draw face circle
@@ -88,9 +89,9 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Draw eyes based on wakefulness
-    const eyeWidth = radius * 0.15;
-    const eyeHeight = radius * 0.15 * (1 - currentWakefulness); // Eyes close as wakefulness decreases
+    // Draw eyes based on wakefulness (fixed: 0% = closed, 100% = open)
+    const eyeWidth = radius * 0.2; // Bigger eyes
+    const eyeHeight = radius * 0.2 * currentWakefulness; // Eyes open as wakefulness increases
     const eyeYOffset = radius * 0.3;
     const eyeXOffset = radius * 0.3;
 
@@ -106,26 +107,21 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     ctx.fillStyle = '#333';
     ctx.fill();
 
-    // Draw mouth based on happiness
+    // Draw mouth based on happiness (smooth curve)
     const mouthWidth = radius * 0.6;
-    const mouthHeight = radius * 0.3;
     const mouthY = centerY + radius * 0.1;
+
+    // Calculate mouth curve height based on happiness
+    // -0.3 to 0.3 range: negative = sad, positive = happy
+    const mouthCurveHeight = (currentHappiness - 0.5) * 0.6 * radius;
 
     ctx.beginPath();
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 3;
 
-    if (currentHappiness < 0.33) {
-      // Sad face (n shape)
-      ctx.arc(centerX, mouthY + mouthHeight, mouthWidth, Math.PI * 0.8, Math.PI * 2.2);
-    } else if (currentHappiness > 0.66) {
-      // Happy face (u shape)
-      ctx.arc(centerX, mouthY - mouthHeight, mouthWidth, Math.PI * 0.8, Math.PI * 2.2, true);
-    } else {
-      // Neutral face (straight line)
-      ctx.moveTo(centerX - mouthWidth, mouthY);
-      ctx.lineTo(centerX + mouthWidth, mouthY);
-    }
+    // Use quadratic curve for smooth mouth
+    ctx.moveTo(centerX - mouthWidth, mouthY);
+    ctx.quadraticCurveTo(centerX, mouthY + mouthCurveHeight, centerX + mouthWidth, mouthY);
     ctx.stroke();
   };
 
