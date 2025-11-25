@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Download, Upload } from 'lucide-react';
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
+import { SmileyFace } from './SmileyFace';
 
 interface ExocortexGridProps {
   className?: string;
@@ -423,12 +424,22 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                     style={calculateEventStyle(event, day.events, eventIndex)}
                     onClick={() => handleEventClick(event)}
                   >
-                    <div className="p-2 h-full flex flex-col justify-between">
-                      <div className="text-xs font-medium text-white truncate">
-                        {event.category}
+                    <div className="p-2 h-full flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-white truncate">
+                          {event.category}
+                        </div>
+                        <div className="text-xs text-gray-200">
+                          {formatTime(event.endTime)}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-200">
-                        {formatTime(event.endTime)}
+                      <div className="flex-shrink-0 ml-2">
+                        <SmileyFace
+                          health={event.health}
+                          wakefulness={event.wakefulness}
+                          happiness={event.happiness}
+                          size={24}
+                        />
                       </div>
                     </div>
                   </div>
