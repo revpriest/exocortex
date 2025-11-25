@@ -68,11 +68,15 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Get current mood values
+    const currentHealth = health[0];
+    const currentWakefulness = wakefulness[0];
+    const currentHappiness = happiness[0];
+
     // Calculate face color (yellow to green based on health)
-    const health = health[0];
-    const red = Math.round(255 * health);
+    const red = Math.round(255 * currentHealth);
     const green = 255;
-    const blue = Math.round(255 * (1 - health));
+    const blue = Math.round(255 * (1 - currentHealth));
     const faceColor = `rgb(${red}, ${green}, ${blue})`;
 
     // Draw face circle
@@ -85,9 +89,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     ctx.stroke();
 
     // Draw eyes based on wakefulness
-    const wakefulness = wakefulness[0];
     const eyeWidth = radius * 0.15;
-    const eyeHeight = radius * 0.15 * (1 - wakefulness); // Eyes close as wakefulness decreases
+    const eyeHeight = radius * 0.15 * (1 - currentWakefulness); // Eyes close as wakefulness decreases
     const eyeYOffset = radius * 0.3;
     const eyeXOffset = radius * 0.3;
 
@@ -104,7 +107,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     ctx.fill();
 
     // Draw mouth based on happiness
-    const happiness = happiness[0];
     const mouthWidth = radius * 0.6;
     const mouthHeight = radius * 0.3;
     const mouthY = centerY + radius * 0.1;
@@ -113,10 +115,10 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 3;
 
-    if (happiness < 0.33) {
+    if (currentHappiness < 0.33) {
       // Sad face (n shape)
       ctx.arc(centerX, mouthY + mouthHeight, mouthWidth, Math.PI * 0.8, Math.PI * 2.2);
-    } else if (happiness > 0.66) {
+    } else if (currentHappiness > 0.66) {
       // Happy face (u shape)
       ctx.arc(centerX, mouthY - mouthHeight, mouthWidth, Math.PI * 0.8, Math.PI * 2.2, true);
     } else {
