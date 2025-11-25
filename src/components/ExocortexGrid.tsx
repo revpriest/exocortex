@@ -1192,7 +1192,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
-          <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+          <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`, width: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
