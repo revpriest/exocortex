@@ -92,7 +92,8 @@ export function StatsView({ className }: StatsViewProps) {
         setEndDate(today);
 
         // Load events for the default range
-        await loadEventsForRange(database, lastWeek, today);
+        console.log('Loading range:', twoDaysAgo.toISOString(), 'to', today.toISOString());
+        await loadEventsForRange(database, twoDaysAgo, today);
       } catch (err) {
         console.error('Failed to initialize database:', err);
         setError('Failed to load statistics data');
