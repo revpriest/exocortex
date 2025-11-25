@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
-import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle, ChevronDown } from 'lucide-react';
+import { ExocortexDB } from '@/lib/exocortex';
 
 // Helper function to draw smiley face
 function drawSmileyFaceOnCanvas(
@@ -105,6 +106,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   const [healthState, setHealthState] = useState([defaultValues?.health || 0.9]);
   const [endTime, setEndTime] = useState(new Date());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [recentCategories, setRecentCategories] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Reset form when dialog opens or editEvent changes
   useEffect(() => {
@@ -142,6 +145,64 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   useEffect(() => {
     drawSmileyFace();
   }, []);
+
+  // Load recent categories when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadRecentCategories();
+    }
+  }, [open]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.relative')) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Load recent unique categories from database
+  const loadRecentCategories = async () => {
+    try {
+      const db = new ExocortexDB();
+      await db.init();
+
+      // Get events from the last 30 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const days = await db.getEventsByDateRange(
+        startDate.toISOString().split('T')[0],
+        endDate.toISOString().split('T')[0]
+      );
+
+      // Extract all categories and get unique ones, keeping most recent first
+      const allCategories = days.flatMap(day => day.events.map(event => event.category));
+      const uniqueCategories = [...new Set(allCategories.reverse())].slice(0, 12);
+
+      setRecentCategories(uniqueCategories);
+    } catch (error) {
+      console.error('Failed to load recent categories:', error);
+      setRecentCategories([]);
+    }
+  };
+
+  // Handle category selection from dropdown
+  const handleCategorySelect = (selectedCategory: string) => {
+    setCategory(selectedCategory);
+    setShowDropdown(false);
+  };
 
   const handleSubmit = () => {
     if (!category.trim()) {
@@ -256,16 +317,44 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
         <div className="space-y-4">
-          {/* Category input */}
+          {/* Category input with dropdown */}
           <div className="space-y-1">
             <Label htmlFor="category" className="text-sm">Category</Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g., Work, Sleep, Exercise"
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-            />
+            <div className="relative">
+              <Input
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="e.g., Work, Sleep, Exercise"
+                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-600"
+              >
+                <ChevronDown className="h-4 w-4 text-gray-400" />
+              </Button>
+
+              {/* Dropdown menu */}
+              {showDropdown && recentCategories.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
+                  {recentCategories.map((cat, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleCategorySelect(cat)}
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-600 focus:bg-gray-600 focus:outline-none transition-colors"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Time selection */}
