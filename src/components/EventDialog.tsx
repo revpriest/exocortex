@@ -5,32 +5,42 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ExocortexEvent } from '@/lib/exocortex';
-import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 interface EventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (event: Omit<ExocortexEvent, 'id'>) => void;
+  onUpdate?: (id: string, event: Omit<ExocortexEvent, 'id'>) => void;
+  onDelete?: (id: string) => void;
+  editEvent?: ExocortexEvent | null;
 }
 
-export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) {
+export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, editEvent }: EventDialogProps) {
   const [category, setCategory] = useState('');
   const [happiness, setHappiness] = useState([0.7]);
   const [wakefulness, setWakefulness] = useState([0.8]);
   const [health, setHealth] = useState([0.9]);
   const [endTime, setEndTime] = useState(new Date());
-  const [isTimeScrolling, setIsTimeScrolling] = useState(false);
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens or editEvent changes
   useEffect(() => {
     if (open) {
-      setCategory('');
-      setHappiness([0.7]);
-      setWakefulness([0.8]);
-      setHealth([0.9]);
-      setEndTime(new Date());
+      if (editEvent) {
+        setCategory(editEvent.category);
+        setHappiness([editEvent.happiness]);
+        setWakefulness([editEvent.wakefulness]);
+        setHealth([editEvent.health]);
+        setEndTime(new Date(editEvent.endTime));
+      } else {
+        setCategory('');
+        setHappiness([0.7]);
+        setWakefulness([0.8]);
+        setHealth([0.9]);
+        setEndTime(new Date());
+      }
     }
-  }, [open]);
+  }, [open, editEvent]);
 
   const handleSubmit = () => {
     if (!category.trim()) {
@@ -39,16 +49,34 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
     }
 
     try {
-      onSubmit({
+      const eventData = {
         endTime: endTime.getTime(),
         category: category.trim(),
         happiness: happiness[0],
         wakefulness: wakefulness[0],
         health: health[0],
-      });
+      };
+
+      if (editEvent && onUpdate) {
+        onUpdate(editEvent.id, eventData);
+      } else {
+        onSubmit(eventData);
+      }
     } catch (error) {
-      console.error('Error submitting event:', error);
-      alert('Failed to add event. Please try again.');
+      console.error('Error saving event:', error);
+      alert('Failed to save event. Please try again.');
+    }
+  };
+
+  const handleDelete = () => {
+    if (editEvent && onDelete && confirm('Are you sure you want to delete this event?')) {
+      try {
+        onDelete(editEvent.id);
+        onOpenChange(false);
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        alert('Failed to delete event. Please try again.');
+      }
     }
   };
 
@@ -85,7 +113,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700 text-white">
         <DialogHeader>
-          <DialogTitle>Add New Event</DialogTitle>
+          <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -203,17 +231,29 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="bg-gray-700 border-gray-600"
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
-              Add Event
-            </Button>
+          <div className="flex justify-between items-center">
+            {editEvent && onDelete && (
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            )}
+            <div className="flex justify-end space-x-2 ml-auto">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="bg-gray-700 border-gray-600"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
+                {editEvent ? 'Update Event' : 'Add Event'}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

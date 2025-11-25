@@ -17,6 +17,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -138,6 +139,62 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     }
   };
 
+  const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
+    if (!db) return;
+
+    try {
+      await db.updateEvent(id, eventData);
+
+      // Find and update the event in the corresponding day
+      const eventDate = new Date(eventData.endTime).toISOString().split('T')[0];
+      const dayEvents = await db.getEventsByDate(eventDate);
+
+      setDays(prev => {
+        const newDays = [...prev];
+        const dayIndex = newDays.findIndex(day => day.date === eventDate);
+        if (dayIndex !== -1) {
+          newDays[dayIndex] = { date: eventDate, events: dayEvents };
+        }
+        return newDays;
+      });
+
+      setIsDialogOpen(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Failed to update event:', error);
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (!db) return;
+
+    try {
+      await db.deleteEvent(id);
+
+      // Remove the event from the corresponding day
+      setDays(prev => {
+        const newDays = prev.map(day => ({
+          ...day,
+          events: day.events.filter(event => event.id !== id)
+        })).filter(day => day.events.length > 0 || day.date === new Date().toISOString().split('T')[0]);
+
+        return newDays;
+      });
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+    }
+  };
+
+  const handleEventClick = (event: ExocortexEvent) => {
+    setEditingEvent(event);
+    setIsDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    setEditingEvent(null);
+  };
+
   if (loading && days.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -208,8 +265,9 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                 {day.events.map((event, eventIndex) => (
                   <div
                     key={event.id}
-                    className="absolute top-2 h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden"
+                    className="absolute top-2 h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                     style={calculateEventStyle(event, day.events, eventIndex)}
+                    onClick={() => handleEventClick(event)}
                   >
                     <div className="p-2 h-full flex flex-col justify-between">
                       <div className="text-xs font-medium text-white truncate">
@@ -246,8 +304,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       {/* Event dialog */}
       <EventDialog
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={handleDialogClose}
         onSubmit={handleAddEvent}
+        onUpdate={handleUpdateEvent}
+        onDelete={handleDeleteEvent}
+        editEvent={editingEvent}
       />
     </div>
   );

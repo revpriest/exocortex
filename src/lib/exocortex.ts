@@ -33,7 +33,7 @@ export class ExocortexDB {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
           store.createIndex('endTime', 'endTime', { unique: false });
@@ -45,16 +45,16 @@ export class ExocortexDB {
 
   async addEvent(event: Omit<ExocortexEvent, 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     const id = crypto.randomUUID();
     const fullEvent: ExocortexEvent = { id, ...event };
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      
+
       const request = store.add(fullEvent);
-      
+
       request.onsuccess = () => resolve(id);
       request.onerror = () => reject(request.error);
     });
@@ -62,25 +62,25 @@ export class ExocortexDB {
 
   async getEventsByDate(date: string): Promise<ExocortexEvent[]> {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
-      
+
       const request = index.openCursor(IDBKeyRange.bound(
         startOfDay.getTime(),
         endOfDay.getTime()
       ));
-      
+
       const events: ExocortexEvent[] = [];
-      
+
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor) {
@@ -90,7 +90,7 @@ export class ExocortexDB {
           resolve(events);
         }
       };
-      
+
       request.onerror = () => reject(request.error);
     });
   }
@@ -99,32 +99,62 @@ export class ExocortexDB {
     const days: DayEvents[] = [];
     const current = new Date(startDate);
     const end = new Date(endDate);
-    
+
     while (current <= end) {
       const dateStr = current.toISOString().split('T')[0];
       const events = await this.getEventsByDate(dateStr);
       days.push({ date: dateStr, events });
       current.setDate(current.getDate() + 1);
     }
-    
+
     return days;
   }
 
   async getLatestEvent(): Promise<ExocortexEvent | null> {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
-      
+
       const request = index.openCursor(null, 'prev');
-      
+
       request.onsuccess = () => {
         const cursor = request.result;
         resolve(cursor ? cursor.value : null);
       };
-      
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async updateEvent(id: string, updates: Omit<ExocortexEvent, 'id'>): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const updatedEvent: ExocortexEvent = { id, ...updates };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+
+      const request = store.put(updatedEvent);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async deleteEvent(id: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+
+      const request = store.delete(id);
+
+      request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }
@@ -145,14 +175,14 @@ export function getEventColor(event: ExocortexEvent): string {
   const hue = (hashString(event.category) % 360);
   const saturation = Math.round(event.happiness * 100);
   const value = Math.round(event.wakefulness * 100);
-  
+
   return `hsl(${hue}, ${saturation}%, ${value}%)`;
 }
 
 export function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
