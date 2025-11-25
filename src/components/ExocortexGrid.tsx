@@ -11,8 +11,8 @@ interface ExocortexGridProps {
 }
 
 const HOURS_IN_DAY = 24;
-const HOUR_WIDTH = 60; // pixels per hour
-const MOBILE_HOUR_WIDTH = 40; // pixels per hour on mobile
+const HOUR_WIDTH = 60; // pixels per hour on desktop
+const MOBILE_HOUR_WIDTH = 30; // pixels per hour on mobile - smaller to fit screen
 const ROW_HEIGHT = 80; // pixels per day row - balanced for mobile and desktop
 
 export function ExocortexGrid({ className }: ExocortexGridProps) {
@@ -150,9 +150,13 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     const startHour = (startTime - startOfDay.getTime()) / (1000 * 60 * 60);
     const durationHours = duration / (1000 * 60 * 60);
 
+    // Use responsive hour width
+    const isMobile = window.innerWidth < 768;
+    const hourWidth = isMobile ? MOBILE_HOUR_WIDTH : HOUR_WIDTH;
+
     return {
-      left: `${startHour * HOUR_WIDTH}px`,
-      width: `${durationHours * HOUR_WIDTH}px`,
+      left: `${startHour * hourWidth}px`,
+      width: `${durationHours * hourWidth}px`,
       backgroundColor: getEventColor(event),
     };
   };
@@ -582,18 +586,23 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         ref={gridRef}
         className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg"
         style={{
-          height: 'calc(100vh - 140px)', // Even more space for mobile - button should be visible
-          minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`
+          height: 'calc(100vh - 100px)', // More space - button should be immediately visible
+          width: '100%',
         }}
       >
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
-          <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+          <div className="flex">
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
                 className="text-xs md:text-sm text-gray-400 border-r border-gray-700 px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
-                style={{ width: `${HOUR_WIDTH}px` }}
+                style={{
+                  width: `${HOUR_WIDTH}px`,
+                  '@media (max-width: 768px)': {
+                    width: `${MOBILE_HOUR_WIDTH}px`,
+                  }
+                }}
               >
                 {hour}
               </div>
@@ -602,14 +611,13 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         </div>
 
         {/* Day rows */}
-        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+        <div className="relative">
           {days.map((day, dayIndex) => (
             <div
               key={day.date}
               className="relative border-b border-gray-800"
               style={{
                 height: `${ROW_HEIGHT}px`,
-                minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`
               }}
             >
               {/* Date label - mobile optimized */}
@@ -623,18 +631,23 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               </div>
 
               {/* Grid lines */}
-              <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+              <div className="absolute inset-0 flex">
                 {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
                   <div
                     key={hourIndex}
                     className="border-r border-gray-800 flex-shrink-0"
-                    style={{ width: `${HOUR_WIDTH}px` }}
+                    style={{
+                      width: `${HOUR_WIDTH}px`,
+                      '@media (max-width: 768px)': {
+                        width: `${MOBILE_HOUR_WIDTH}px`,
+                      }
+                    }}
                   />
                 ))}
               </div>
 
               {/* Events - mobile optimized */}
-              <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+              <div className="absolute inset-0">
                 {day.events.map((event, eventIndex) => (
                   <div
                     key={event.id}
