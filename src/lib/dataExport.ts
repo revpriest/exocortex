@@ -154,6 +154,7 @@ export class DataExporter {
           await db.addEvent({
             endTime: event.endTime,
             category: event.category,
+            notes: event.notes,
             happiness: event.happiness,
             wakefulness: event.wakefulness,
             health: event.health

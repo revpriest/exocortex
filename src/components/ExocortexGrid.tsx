@@ -773,6 +773,63 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     input.click();
   };
 
+  const generateCategoryNotes = (category: string): string => {
+    const notesByCategory: Record<string, string[]> = {
+      'Work': [
+        'Productive morning session',
+        'Good meetings with the team',
+        'Made good progress on the project',
+        'Challenging but rewarding work',
+        'Focus was high today'
+      ],
+      'Exercise': [
+        'Great workout! Feeling energized',
+        'Pushed myself harder than usual',
+        'Nice and relaxing session',
+        'Cardio felt good today',
+        'Strength training was productive'
+      ],
+      'Meal': [
+        'Delicious and satisfying',
+        'Healthy choice, feeling good',
+        'Quick bite between tasks',
+        'Enjoyed this meal',
+        'Felt nourished and ready'
+      ],
+      'Break': [
+        'Needed this rest',
+        'Quick recharge session',
+        'Nice coffee break',
+        'Mindful moment of peace',
+        'Good time to reflect'
+      ],
+      'Study': [
+        'Learned something new',
+        'Deep focus achieved',
+        'Interesting material today',
+        'Productive study session',
+        'Challenging concepts clicked'
+      ],
+      'Slack': [
+        'Good conversation with colleagues',
+        'Team discussion was helpful',
+        'Quick catch-up with friends',
+        'Interesting threads today',
+        'Social time well spent'
+      ]
+    };
+
+    const categoryNotes = notesByCategory[category] || [
+      'Interesting activity',
+      'Good use of time',
+      'Felt productive',
+      'Nice moment today',
+      'Time well spent'
+    ];
+
+    return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
+  };
+
   const handleGenerateTestData = async () => {
     if (!db) return;
 
@@ -819,6 +876,13 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         const sleepEvent = {
           endTime: sleepEnd.getTime(),
           category: 'Sleep' as const,
+          notes: Math.random() > 0.7 ? [
+            'Had some interesting dreams',
+            'Woke up feeling refreshed',
+            'Slept through the night',
+            'A bit restless but okay',
+            'Deep sleep cycle felt good'
+          ][Math.floor(Math.random() * 5)] : undefined,
           happiness: 0.8, // Generally happy during sleep
           wakefulness: 0.1, // Very low wakefulness during sleep
           health: 0.9, // Good for health
@@ -859,6 +923,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           const event = {
             endTime: eventEndTime.getTime(),
             category,
+            notes: Math.random() > 0.6 ? generateCategoryNotes(category) : undefined,
             happiness,
             wakefulness,
             health,
@@ -911,6 +976,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             const event = {
               endTime: eventEndTime.getTime(),
               category,
+              notes: Math.random() > 0.6 ? generateCategoryNotes(category) : undefined,
               happiness,
               wakefulness,
               health,

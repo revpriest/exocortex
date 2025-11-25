@@ -32,6 +32,8 @@ export interface ExocortexEvent {
   endTime: number;
   /** Category or type of activity (e.g., "Work", "Sleep", "Exercise") */
   category: string;
+  /** Optional diary notes about the event */
+  notes?: string;
   /** Happiness level during event (0.0 = very sad, 1.0 = very happy) */
   happiness: number;
   /** Wakefulness level during event (0.0 = asleep, 1.0 = fully awake) */

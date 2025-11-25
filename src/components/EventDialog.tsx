@@ -145,6 +145,7 @@ interface EventDialogProps {
 export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, editEvent, defaultValues }: EventDialogProps) {
   const isMobile = useIsMobile();
   const [category, setCategory] = useState('');
+  const [notes, setNotes] = useState('');
   const [happinessState, setHappinessState] = useState([defaultValues?.happiness || 0.7]);
   const [wakefulnessState, setWakefulnessState] = useState([defaultValues?.wakefulness || 0.8]);
   const [healthState, setHealthState] = useState([defaultValues?.health || 0.9]);
@@ -152,22 +153,27 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [recentCategories, setRecentCategories] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
 
   // Reset form when dialog opens or editEvent changes
   useEffect(() => {
     if (open) {
       if (editEvent) {
         setCategory(editEvent.category);
+        setNotes(editEvent.notes || '');
         setHappinessState([editEvent.happiness]);
         setWakefulnessState([editEvent.wakefulness]);
         setHealthState([editEvent.health]);
         setEndTime(new Date(editEvent.endTime));
+        calculateStartTime(new Date(editEvent.endTime));
       } else {
         setCategory('');
+        setNotes('');
         setHappinessState([defaultValues?.happiness || 0.7]);
         setWakefulnessState([defaultValues?.wakefulness || 0.8]);
         setHealthState([defaultValues?.health || 0.9]);
         setEndTime(new Date());
+        calculateStartTime(new Date());
       }
     }
   }, [open, editEvent, defaultValues]);
@@ -215,6 +221,50 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDropdown]);
+
+  // Calculate start time from previous event
+  const calculateStartTime = async (currentEndTime: Date) => {
+    try {
+      const db = new ExocortexDB();
+      await db.init();
+
+      // Get all events from the same day and previous day to find the previous event
+      const currentDay = currentEndTime.toISOString().split('T')[0];
+      const previousDay = new Date(currentEndTime);
+      previousDay.setDate(previousDay.getDate() - 1);
+      const previousDayStr = previousDay.toISOString().split('T')[0];
+
+      const [currentDayEvents, previousDayEvents] = await Promise.all([
+        db.getEventsByDate(currentDay),
+        db.getEventsByDate(previousDayStr)
+      ]);
+
+      // Combine events from both days and sort by end time
+      const allEvents = [...previousDayEvents, ...currentDayEvents].sort((a, b) => a.endTime - b.endTime);
+
+      // Find the previous event (the one that ends just before this event)
+      const currentTime = currentEndTime.getTime();
+      const previousEvent = allEvents
+        .filter(event => event.endTime < currentTime)
+        .sort((a, b) => b.endTime - a.endTime)[0]; // Get the latest event before current time
+
+      if (previousEvent) {
+        setStartTime(new Date(previousEvent.endTime));
+      } else {
+        setStartTime(null);
+      }
+    } catch (error) {
+      console.error('Failed to calculate start time:', error);
+      setStartTime(null);
+    }
+  };
+
+  // Recalculate start time when end time changes
+  useEffect(() => {
+    if (open) {
+      calculateStartTime(endTime);
+    }
+  }, [endTime, open]);
 
   // Load recent unique categories from database
   const loadRecentCategories = async () => {
@@ -270,6 +320,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const eventData = {
         endTime: endTime.getTime(),
         category: category.trim(),
+        notes: notes.trim() || undefined,
         happiness: happinessState[0],
         wakefulness: wakefulnessState[0],
         health: healthState[0],
@@ -348,6 +399,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       id: 'preview',
       endTime: endTime.getTime(),
       category: category || 'preview',
+      notes: notes.trim() || undefined,
       happiness: happinessState[0],
       wakefulness: wakefulnessState[0],
       health: healthState[0],
@@ -443,8 +495,26 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
             </div>
           </div>
 
+          {/* Notes textarea */}
+          <div className={`${isMobile ? '!space-y-0' : 'space-y-1'}`}>
+            <Label htmlFor="notes" className={`${isMobile ? '!text-xs' : 'text-sm'}`}>Diary Notes</Label>
+            <textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add your thoughts, reflections, or details about this event..."
+              className={`w-full ${isMobile ? 'text-sm min-h-[60px]' : 'min-h-[80px]'} bg-gray-700 border-gray-600 text-white placeholder-gray-400 rounded-md p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              rows={isMobile ? 3 : 4}
+            />
+          </div>
+
           {/* Time selection */}
           <div className={`${isMobile ? '!space-y-0' : 'space-y-1'}`}>
+            {startTime && (
+              <div className="flex items-center space-x-2 mb-2 text-xs text-gray-400">
+                <span>Start time: {startTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} at {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            )}
             <Label className={`${isMobile ? '!text-xs' : 'text-sm'}`}>End Time</Label>
             <div className="flex items-center space-x-2">
               <Clock className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'} text-gray-400`} />
