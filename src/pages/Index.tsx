@@ -1,6 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
-import { OfflineSupport } from '@/components/OfflineSupport';
 
 const Index = () => {
   useSeoMeta({
@@ -13,11 +12,6 @@ const Index = () => {
       <div className="max-w-7xl mx-auto">
         {/* Main grid */}
         <ExocortexGrid className="w-full" />
-
-        {/* Offline support component */}
-        <div className="fixed bottom-4 right-4 z-50">
-          <OfflineSupport />
-        </div>
       </div>
     </div>
   );
