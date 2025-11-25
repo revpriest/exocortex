@@ -173,11 +173,11 @@ export function StatsView({ className }: StatsViewProps) {
     const startDate = startOfDay(new Date(firstEvent.endTime));
     const endDate = endOfDay(new Date(lastEvent.endTime));
 
-    // Create 3-hour intervals for detailed but not overwhelming visualization
+    // Create 1-hour intervals for maximum detail
     const current = new Date(startDate);
     while (current <= endDate) {
       const nextInterval = new Date(current);
-      nextInterval.setHours(nextInterval.getHours() + 3);
+      nextInterval.setHours(nextInterval.getHours() + 1);
 
       // Find events active during this 3-hour period
       const activeEvents = sortedEvents.filter(event => {
@@ -383,7 +383,7 @@ export function StatsView({ className }: StatsViewProps) {
         </CardHeader>
         <CardContent>
           {moodData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={400}>
               <LineChart data={moodData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis
@@ -423,7 +423,7 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="#EF4444"
                   strokeWidth={2}
                   name="Happiness"
-                  dot={{ fill: '#EF4444', r: 3 }}
+                  dot={{ fill: '#EF4444', r: 1 }}
                   connectNulls={false}
                 />
                 <Line
@@ -432,7 +432,7 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="#3B82F6"
                   strokeWidth={2}
                   name="Wakefulness"
-                  dot={{ fill: '#3B82F6', r: 3 }}
+                  dot={{ fill: '#3B82F6', r: 1 }}
                   connectNulls={false}
                 />
                 <Line
@@ -441,7 +441,7 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="#10B981"
                   strokeWidth={2}
                   name="Health"
-                  dot={{ fill: '#10B981', r: 3 }}
+                  dot={{ fill: '#10B981', r: 1 }}
                   connectNulls={false}
                 />
               </LineChart>
