@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Download, Upload } from 'lucide-react';
 import { EventDialog } from './EventDialog';
+import { DataExporter } from '@/lib/dataExport';
 
 interface ExocortexGridProps {
   className?: string;
@@ -23,6 +24,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     wakefulness: 0.8,
     health: 0.9,
   });
+  const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -231,6 +233,68 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     setIsDialogOpen(true);
   };
 
+  const handleExportDatabase = async () => {
+    if (!db) return;
+
+    try {
+      await DataExporter.exportDatabase(db);
+      setError(null); // Clear any previous errors
+    } catch (error) {
+      console.error('Export failed:', error);
+      setError('Failed to export database. Please try again.');
+    }
+  };
+
+  const handleImportDatabase = async () => {
+    if (!db) return;
+
+    // Create file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        // Validate file before importing
+        const isValid = await DataExporter.validateExportFile(file);
+        if (!isValid) {
+          setError('Invalid export file. Please select a valid exocortex export file.');
+          return;
+        }
+
+        await DataExporter.importDatabase(db, file);
+
+        // Refresh the grid to show imported events
+        const today = new Date().toISOString().split('T')[0];
+        const todayEvents = await db.getEventsByDate(today);
+
+        setDays(prev => {
+          const newDays = [...prev];
+          const todayIndex = newDays.findIndex(day => day.date === today);
+          if (todayIndex !== -1) {
+            newDays[todayIndex] = { date: today, events: todayEvents };
+          } else {
+            newDays.unshift({ date: today, events: todayEvents });
+          }
+          return newDays;
+        });
+
+        setError(`Successfully imported events from ${file.name}`);
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setError(null), 3000);
+      } catch (error) {
+        console.error('Import failed:', error);
+        setError(error instanceof Error ? error.message : 'Failed to import database. Please try again.');
+      }
+    };
+
+    input.click();
+  };
+
   if (loading && days.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -241,6 +305,55 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   return (
     <div className={`relative ${className}`}>
+      {/* Header with import/export */}
+      <div className="mb-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-1">
+              Time Tracking Grid
+            </h2>
+            <p className="text-gray-400 text-sm">
+              Click events to edit • Scroll to load more days
+            </p>
+          </div>
+
+          {/* Import/Export buttons */}
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportDatabase}
+              className="bg-gray-700 border-gray-600 text-white"
+              disabled={!db}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleImportDatabase}
+              className="bg-gray-700 border-gray-600 text-white"
+              disabled={!db}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+          </div>
+        </div>
+
+        {/* Error/Success messages */}
+        {error && (
+          <div className={`mt-3 px-3 py-2 rounded-md text-sm ${
+            error.includes('Successfully')
+              ? 'bg-green-900/20 border border-green-600 text-green-400'
+              : 'bg-red-900/20 border border-red-600 text-red-400'
+          }`}>
+            {error}
+          </div>
+        )}
+      </div>
+
       {/* Grid container */}
       <div
         ref={gridRef}
