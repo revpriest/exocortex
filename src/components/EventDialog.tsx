@@ -1,10 +1,32 @@
+/**
+ * EventDialog.tsx - Event Creation and Editing Dialog
+ *
+ * This component provides the interface for adding new events and editing existing ones.
+ * It includes:
+ * - Category input with dropdown suggestions
+ * - Time adjustment controls
+ * - Mood sliders (happiness, wakefulness, health)
+ * - Live smiley face preview that changes based on mood values
+ * - Form validation and error handling
+ * - Responsive design for mobile and desktop
+ *
+ * The dialog can be opened in two modes:
+ * 1. Add mode: Create a new event with default values
+ * 2. Edit mode: Modify an existing event with its current values
+ */
+
+// React hooks for state management and lifecycle
 import React, { useState, useEffect, useRef } from 'react';
+
+// Import UI components from our component library
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Import types and utilities
 import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
 import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle, ChevronDown, X, Save, Plus } from 'lucide-react';
 import { ExocortexDB } from '@/lib/exocortex';
@@ -86,13 +108,33 @@ function drawSmileyFaceOnCanvas(
   ctx.stroke();
 }
 
+/**
+ * EventDialog Component Props Interface
+ *
+ * This TypeScript interface defines what props the EventDialog component accepts:
+ *
+ * open: Controls whether dialog is visible
+ * onOpenChange: Callback when dialog should open/close
+ * onSubmit: Callback when user submits a new event
+ * onUpdate: Callback when user updates an existing event
+ * onDelete: Callback when user deletes an event
+ * editEvent: The event being edited (null for new event mode)
+ * defaultValues: Default mood values for new events
+ */
 interface EventDialogProps {
+  /** Controls dialog visibility (true = open, false = closed) */
   open: boolean;
+  /** Callback function called when dialog should open/close */
   onOpenChange: (open: boolean) => void;
+  /** Callback function called when user submits a new event */
   onSubmit: (event: Omit<ExocortexEvent, 'id'>) => void;
+  /** Callback function called when user updates an existing event */
   onUpdate?: (id: string, event: Omit<ExocortexEvent, 'id'>) => void;
+  /** Callback function called when user deletes an event */
   onDelete?: (id: string) => void;
+  /** The event being edited (null = adding new event) */
   editEvent?: ExocortexEvent | null;
+  /** Default values for mood sliders (happiness, wakefulness, health) */
   defaultValues?: {
     happiness: number;
     wakefulness: number;

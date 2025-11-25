@@ -1,5 +1,29 @@
+/**
+ * ExocortexGrid.tsx - Main Time Tracking Grid Component
+ *
+ * This is the core component of the time tracking application.
+ * It displays events in a visual grid where:
+ * - X-axis represents hours of the day (24 hours)
+ * - Y-axis represents different days (today at top, past days below)
+ * - Colored blocks represent events with different categories
+ * - Smiley faces show mood during each event
+ *
+ * Features handled by this component:
+ * - Display events in a responsive grid layout
+ * - Add, edit, and delete events
+ * - Infinite scroll to load historical data
+ * - Import/export functionality
+ * - Test data generation
+ * - Mobile-responsive design
+ */
+
+// React hooks for managing state and lifecycle
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+// Import our data types and utilities
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
+
+// Import UI components
 import { Button } from '@/components/ui/button';
 import { Plus, Download, Upload, Database, Trash2, AlertCircle } from 'lucide-react';
 import { EventDialog } from './EventDialog';
@@ -7,15 +31,33 @@ import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+/**
+ * Component Props Interface
+ *
+ * TypeScript interface that defines what props this component accepts.
+ * Currently only accepts optional className for additional styling.
+ */
 interface ExocortexGridProps {
   className?: string;
 }
 
-const HOURS_IN_DAY = 24;
-const HOUR_WIDTH = 60; // pixels per hour on desktop
-const MOBILE_HOUR_WIDTH = 30; // pixels per hour on mobile - smaller to fit screen
+/**
+ * Grid Layout Constants
+ *
+ * These values define the visual structure of our time grid:
+ */
 
-// CSS custom properties for responsive hour width
+const HOURS_IN_DAY = 24; // Total hours in a day (24-hour format)
+const HOUR_WIDTH = 60; // Width of each hour block on desktop (60 pixels)
+const MOBILE_HOUR_WIDTH = 30; // Width of each hour block on mobile (30 pixels, smaller to fit screen)
+
+/**
+ * Responsive CSS Styles
+ *
+ * We use CSS custom properties (CSS variables) to make grid responsive.
+ * This allows us to change the hour width based on screen size
+ * without recalculating everything in JavaScript.
+ */
 const responsiveStyles = `
   .exocortex {
     --hour-width: ${HOUR_WIDTH}px;
@@ -27,49 +69,135 @@ const responsiveStyles = `
     }
   }
 `;
-const ROW_HEIGHT = 80; // pixels per day row - balanced for mobile and desktop
 
+const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both mobile and desktop visibility
+
+/**
+ * Main ExocortexGrid Component
+ *
+ * This is the main component function that renders our time tracking grid.
+ * It manages all state related to events, database operations, and UI interactions.
+ */
 export function ExocortexGrid({ className }: ExocortexGridProps) {
+  /**
+   * Component State Variables
+   *
+   * These state variables manage all the data and UI state for the grid:
+   *
+   * days: Array of day data with events for each day
+   * db: Instance of our IndexedDB database for data persistence
+   * loading: Shows loading indicator while fetching data
+   * isDialogOpen: Controls visibility of add/edit event dialog
+   * editingEvent: Stores the event being edited (null when adding new)
+   * defaultValues: Default mood values for new events based on last event
+   * error: Error message to display to user (null = no error)
+   * currentDate: Current date reference for calculations
+   * hasReachedHistoricalLimit: Prevents infinite scroll when we have all historical data
+   * showClearConfirm: Controls confirmation dialog for clearing all data
+   */
+
+  // Array containing events grouped by day
   const [days, setDays] = useState<DayEvents[]>([]);
+
+  // Database instance for storing and retrieving events
   const [db, setDb] = useState<ExocortexDB | null>(null);
+
+  // Loading state for showing loading indicators during data operations
   const [loading, setLoading] = useState(true);
+
+  // Controls whether the add/edit event dialog is visible
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Event being edited (null when adding a new event)
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
+
+  // Default mood values (happiness, wakefulness, health) for new events
   const [defaultValues, setDefaultValues] = useState({
     happiness: 0.7,
     wakefulness: 0.8,
     health: 0.9,
   });
+
+  // Error message to display to user (null when no error)
   const [error, setError] = useState<string | null>(null);
+
+  // Current date reference for various calculations
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Flag to stop infinite scroll when we've loaded all available historical data
   const [hasReachedHistoricalLimit, setHasReachedHistoricalLimit] = useState(false);
+
+  // Controls visibility of the "clear all data" confirmation dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  /**
+   * React Refs
+   *
+   * Refs provide direct access to DOM elements and persist values
+   * without triggering re-renders when they change.
+   */
+
+  // Reference to the main grid container (for scrolling and measurements)
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Intersection observer for infinite scroll functionality
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Reference to the loading trigger element at bottom of grid
   const loadingRef = useRef<HTMLDivElement>(null);
 
-  // Initialize database
-  useEffect(() => {
+  /**
+ * Database Initialization Effect
+ *
+ * This useEffect runs only once when component mounts (empty dependency array []).
+ * It sets up the database and loads initial data.
+ */
+useEffect(() => {
     const initDb = async () => {
+      // Create new instance of our IndexedDB database
       const database = new ExocortexDB();
+
+      // Initialize database (creates tables and indexes if they don't exist)
       await database.init();
+
+      // Store database instance in state so other functions can use it
       setDb(database);
 
-      // Load initial days (today and past few days)
+      // Load initial data for display (today + past 7 days)
+      // This gives users immediate content to see
       await loadDays(database, new Date(), 7);
+
+      // Hide loading indicator once data is loaded
       setLoading(false);
     };
 
+    // Execute initialization and handle any errors
     initDb().catch((error) => {
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, []);
+  }, []); // Empty dependency array means this runs only once on mount
 
-  // Load days for the grid
-  const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number) => {
-    // Calculate the correct date range: fromDate is the newest date, we want to load count days before it
+/**
+ * Load Days Function
+ *
+ * This function loads a range of days from the database.
+ * It's a callback (wrapped in useCallback) to optimize performance.
+ *
+ * @param database - The ExocortexDB instance to query
+ * @param fromDate - The newest date to load (going backwards from here)
+ * @param count - Number of days to load before fromDate
+ */
+const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number) => {
+    /**
+     * Date Range Calculation
+     *
+     * We need to calculate the date range for our database query.
+     * Since we show newest days at top, we load backwards in time:
+     * - fromDate = newest date (top of visible list)
+     * - endDate = oldest date (bottom of loaded range)
+     * - count = how many days to load
+     */
     const endDate = new Date(fromDate);
     endDate.setDate(endDate.getDate() - count + 1); // This becomes the oldest date in the range
 

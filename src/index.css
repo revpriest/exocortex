@@ -1,3 +1,29 @@
+/**
+ * index.css - Global Styles and Theme Configuration
+ *
+ * This file contains all the global CSS for the application.
+ * It uses Tailwind CSS framework and defines our custom theme system.
+ *
+ * CSS Approach:
+ * - Tailwind: Utility-first CSS framework for rapid styling
+ * - CSS Variables: Dynamic theming and consistent colors
+ * - CSS Layers: Organized and predictable style application
+ *
+ * The styling system ensures:
+ * - Consistent colors throughout the app
+ * - Easy theme switching with CSS variables
+ * - Responsive design with Tailwind utilities
+ * - Accessible color contrast and focus states
+ */
+
+/**
+ * Tailwind CSS Directives
+ *
+ * These directives import Tailwind's utility classes:
+ * - @tailwind base: Base HTML element styles
+ * - @tailwind components: Component-specific styles
+ * - @tailwind utilities: Utility classes for rapid development
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

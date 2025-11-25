@@ -1,19 +1,67 @@
+/**
+ * AppRouter.tsx - Application Router Configuration
+ *
+ * This file defines all URL routes for the application.
+ * It uses React Router to handle client-side navigation (no page reloads).
+ *
+ * When users visit different URLs, React Router shows different components
+ * without reloading the entire page.
+ */
+
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+
+// Import custom components
 import { ScrollToTop } from "./components/ScrollToTop";
 
+// Import page components
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
+/**
+ * AppRouter Component
+ *
+ * This is the main routing component that sets up URL handling:
+ *
+ * - BrowserRouter: Enables client-side routing with history API
+ * - ScrollToTop: Custom component that scrolls to top when route changes
+ * - Routes: Container for all route definitions
+ * - Route: Individual URL pattern and component mapping
+ */
 export function AppRouter() {
   return (
     <BrowserRouter>
+      {/*
+        ScrollToTop component ensures that when users navigate to a new page,
+        they start at the top of the page instead of staying at their current scroll position.
+        This provides better user experience.
+      */}
       <ScrollToTop />
+
+      {/*
+        Routes component contains all our URL route definitions.
+        React Router will match the current URL against these routes in order
+        and render the matching component.
+      */}
       <Routes>
+        {/*
+          Index route: Matches the root URL ("/")
+          This shows the main time tracking interface
+        */}
         <Route path="/" element={<Index />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+        {/*
+          IMPORTANT: Add all custom routes ABOVE this catch-all route.
+          The "*" route matches any URL that doesn't match the routes above.
+        */}
+
+        {/*
+          404 Not Found route: Matches any unrecognized URL
+          Shows a friendly "page not found" message instead of blank screen.
+        */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
 }
+
 export default AppRouter;
