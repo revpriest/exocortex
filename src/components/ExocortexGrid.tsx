@@ -125,7 +125,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Mobile responsiveness hook
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile() || false;
 
   // Current date reference for various calculations
   const [currentDate, setCurrentDate] = useState(new Date());
