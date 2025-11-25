@@ -10,7 +10,6 @@
 
 import React, { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
-import { useNavigate } from 'react-router-dom';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
 import { Button } from '@/components/ui/button';
@@ -21,24 +20,20 @@ import { Grid3X3, BarChart3, HelpCircle } from 'lucide-react';
  *
  * This is the main page component that:
  * 1. Sets SEO metadata for search engines and browser tabs
- * 2. Provides navigation between grid and stats views
+ * 2. Provides navigation between grid, stats, and help views
  * 3. Renders the appropriate view based on user selection
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
-  /**
-   * Navigation hook for routing to other pages
-   */
-  const navigate = useNavigate();
-
   /**
    * State Management
    *
    * currentView: Controls which interface is displayed
    * - 'grid': Shows the time tracking grid
    * - 'stats': Shows the statistics and analytics
+   * - 'help': Shows the help/about information
    */
-  const [currentView, setCurrentView] = useState<'grid' | 'stats'>('grid');
+  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'help'>('grid');
 
   /**
    * Set SEO (Search Engine Optimization) metadata
@@ -69,7 +64,7 @@ const Index = () => {
   };
 
   const handleHelpClick = () => {
-    navigate('/help');
+    setCurrentView('help');
   };
 
   /**
@@ -125,10 +120,14 @@ const Index = () => {
                 Stats
               </Button>
               <Button
-                variant="outline"
+                variant={currentView === 'help' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleHelpClick}
-                className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                className={
+                  currentView === 'help'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
+                }
               >
                 <HelpCircle className="h-4 w-4 mr-2" />
                 Help
@@ -139,13 +138,44 @@ const Index = () => {
 
         {/* Main Content Area */}
         {/*
-          Conditionally render either the grid or stats view based on currentView state.
+          Conditionally render the grid, stats, or help view based on currentView state.
           The className="w-full" ensures the component takes full width of container.
         */}
         {currentView === 'grid' ? (
           <ExocortexGrid className="w-full" />
-        ) : (
+        ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
+        ) : (
+          <div className="bg-gray-800 rounded-lg p-6 md:p-8">
+            <div className="prose prose-invert max-w-none">
+              <p className="text-gray-300 text-base md:text-lg leading-relaxed">
+                Exocortex was vibe-coded by{' '}
+                <a
+                  href="https://dalliance.net/"
+                  className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  pre
+                </a>
+                {' '}using{' '}
+                <a
+                  href="https://shakespeare.diy/"
+                  className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  shakespeare
+                </a>
+              </p>
+
+              <div className="mt-6 pt-6 border-t border-gray-700">
+                <p className="text-yellow-400 text-base md:text-lg leading-relaxed">
+                  You should probably back up with the export button often, no guarantees.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
