@@ -129,6 +129,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   // Controls visibility of the "clear all data" confirmation dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showTestConfirm, setShowTestConfirm] = useState(false);
 
   /**
    * React Refs
@@ -830,6 +831,15 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
   };
 
+  const confirmGenerateTestData = async () => {
+    await handleGenerateTestData();
+    setShowTestConfirm(false);
+  };
+
+  const cancelGenerateTestData = () => {
+    setShowTestConfirm(false);
+  };
+
   const handleGenerateTestData = async () => {
     if (!db) return;
 
@@ -1135,7 +1145,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             <Button
               variant="outline"
               size="sm"
-              onClick={handleGenerateTestData}
+              onClick={() => setShowTestConfirm(true)}
               className="bg-blue-700 border-blue-600 text-white"
               disabled={!db}
               title="Generate random test data for the past 30 days"
@@ -1390,6 +1400,35 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Test Data Confirmation Dialog */}
+      <Dialog open={showTestConfirm} onOpenChange={setShowTestConfirm}>
+        <DialogContent className="sm:max-w-sm bg-gray-800 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Generate Test Data</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-300">
+              This will create 30 days of random test data with various activities and diary notes. This will replace any existing data.
+            </p>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={cancelGenerateTestData}
+              className="bg-gray-700 border-gray-600"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmGenerateTestData}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Generate
             </Button>
           </div>
         </DialogContent>
