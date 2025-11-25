@@ -264,7 +264,25 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
   const adjustTime = (minutes: number) => {
     const newTime = new Date(endTime.getTime() + minutes * 60000);
-    setEndTime(newTime);
+
+    // Round to nearest 5 minutes
+    const roundedTime = new Date(newTime);
+    const currentMinutes = roundedTime.getMinutes();
+    const roundedMinutes = Math.round(currentMinutes / 5) * 5;
+
+    // Handle the case where rounding goes to 60 minutes
+    if (roundedMinutes === 60) {
+      roundedTime.setHours(roundedTime.getHours() + 1);
+      roundedTime.setMinutes(0);
+    } else {
+      roundedTime.setMinutes(roundedMinutes);
+    }
+
+    // Reset seconds and milliseconds to ensure clean 5-minute intervals
+    roundedTime.setSeconds(0);
+    roundedTime.setMilliseconds(0);
+
+    setEndTime(roundedTime);
   };
 
   const formatDate = (date: Date) => {
@@ -407,20 +425,20 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => adjustTime(-15)}
+                onClick={() => adjustTime(-5)}
                 className="bg-gray-700 border-gray-600"
               >
                 <ChevronLeft className="h-4 w-4" />
-                -15m
+                -5m
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => adjustTime(15)}
+                onClick={() => adjustTime(5)}
                 className="bg-gray-700 border-gray-600"
               >
-                +15m
+                +5m
                 <ChevronRight className="h-4 w-4" />
               </Button>
 
