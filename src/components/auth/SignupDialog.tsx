@@ -300,6 +300,9 @@ const SignupDialog: React.FC<SignupDialogProps> = ({ isOpen, onClose, onComplete
           <DialogTitle className={cn('font-semibold text-center text-lg')}>
             {getTitle()}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Create your Nostr account with secret key generation and profile setup
+          </DialogDescription>
         </DialogHeader>
         <div className='px-6 pt-2 pb-4 space-y-4 overflow-y-scroll flex-1'>
           {/* Welcome Step - New engaging introduction */}

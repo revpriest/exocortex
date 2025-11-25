@@ -10,13 +10,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-900 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white">
-            Exocortex
-          </h1>
-        </div>
-
         {/* Main grid */}
         <ExocortexGrid className="w-full" />
       </div>

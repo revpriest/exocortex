@@ -328,7 +328,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     <div className={`relative ${className}`}>
       {/* Header with import/export */}
       <div className="mb-4">
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-white">
+            Exocortex
+          </h1>
+
           {/* Import/Export buttons */}
           <div className="flex space-x-2">
             <Button
