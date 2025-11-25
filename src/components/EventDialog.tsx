@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,91 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   }, [open, editEvent, defaultValues]);
 
   const [error, setError] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Draw smiley face based on current mood values
+  const drawSmileyFace = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(canvas.width, canvas.height) * 0.35;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate face color (yellow to green based on health)
+    const health = health[0];
+    const red = Math.round(255 * health);
+    const green = 255;
+    const blue = Math.round(255 * (1 - health));
+    const faceColor = `rgb(${red}, ${green}, ${blue})`;
+
+    // Draw face circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = faceColor;
+    ctx.fill();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw eyes based on wakefulness
+    const wakefulness = wakefulness[0];
+    const eyeWidth = radius * 0.15;
+    const eyeHeight = radius * 0.15 * (1 - wakefulness); // Eyes close as wakefulness decreases
+    const eyeYOffset = radius * 0.3;
+    const eyeXOffset = radius * 0.3;
+
+    // Left eye
+    ctx.beginPath();
+    ctx.ellipse(centerX - eyeXOffset, centerY - eyeYOffset, eyeWidth, eyeHeight, 0, 0, 2 * Math.PI);
+    ctx.fillStyle = '#333';
+    ctx.fill();
+
+    // Right eye
+    ctx.beginPath();
+    ctx.ellipse(centerX + eyeXOffset, centerY - eyeYOffset, eyeWidth, eyeHeight, 0, 0, 2 * Math.PI);
+    ctx.fillStyle = '#333';
+    ctx.fill();
+
+    // Draw mouth based on happiness
+    const happiness = happiness[0];
+    const mouthWidth = radius * 0.6;
+    const mouthHeight = radius * 0.3;
+    const mouthY = centerY + radius * 0.1;
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 3;
+
+    if (happiness < 0.33) {
+      // Sad face (n shape)
+      ctx.arc(centerX, mouthY + mouthHeight, mouthWidth, Math.PI * 0.8, Math.PI * 2.2);
+    } else if (happiness > 0.66) {
+      // Happy face (u shape)
+      ctx.arc(centerX, mouthY - mouthHeight, mouthWidth, Math.PI * 0.8, Math.PI * 2.2, true);
+    } else {
+      // Neutral face (straight line)
+      ctx.moveTo(centerX - mouthWidth, mouthY);
+      ctx.lineTo(centerX + mouthWidth, mouthY);
+    }
+    ctx.stroke();
+  };
+
+  // Update canvas when mood values change
+  useEffect(() => {
+    drawSmileyFace();
+  }, [happiness, wakefulness, health]);
+
+  // Initial draw when component mounts
+  useEffect(() => {
+    drawSmileyFace();
+  }, []);
 
   const handleSubmit = () => {
     if (!category.trim()) {
@@ -142,7 +227,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700 text-white" style={{ minWidth: '400px' }}>
           <DialogHeader>
             <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           </DialogHeader>
@@ -155,10 +240,20 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
             </Alert>
           )}
 
-        <div className="space-y-6">
+          {/* Smiley face canvas */}
+          <div className="flex justify-center py-2">
+            <canvas
+              ref={canvasRef}
+              width="120"
+              height="120"
+              className="border border-gray-600 rounded-full bg-gray-700"
+            />
+          </div>
+
+        <div className="space-y-4">
           {/* Category input */}
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+          <div className="space-y-1">
+            <Label htmlFor="category" className="text-sm">Category</Label>
             <Input
               id="category"
               value={category}
@@ -169,8 +264,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Time selection */}
-          <div className="space-y-2">
-            <Label>End Time</Label>
+          <div className="space-y-1">
+            <Label className="text-sm">End Time</Label>
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-gray-400" />
               <span className="text-sm">
@@ -222,8 +317,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Happiness slider */}
-          <div className="space-y-2">
-            <Label>Happiness: {Math.round(happiness[0] * 100)}%</Label>
+          <div className="space-y-1">
+            <Label className="text-sm">Happiness: {Math.round(happiness[0] * 100)}%</Label>
             <Slider
               value={happiness}
               onValueChange={setHappiness}
@@ -235,8 +330,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Wakefulness slider */}
-          <div className="space-y-2">
-            <Label>Wakefulness: {Math.round(wakefulness[0] * 100)}%</Label>
+          <div className="space-y-1">
+            <Label className="text-sm">Wakefulness: {Math.round(wakefulness[0] * 100)}%</Label>
             <Slider
               value={wakefulness}
               onValueChange={setWakefulness}
@@ -248,8 +343,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Health slider */}
-          <div className="space-y-2">
-            <Label>Health: {Math.round(health[0] * 100)}%</Label>
+          <div className="space-y-1">
+            <Label className="text-sm">Health: {Math.round(health[0] * 100)}%</Label>
             <Slider
               value={health}
               onValueChange={setHealth}
@@ -261,10 +356,10 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Color preview */}
-          <div className="space-y-2">
-            <Label>Event Color Preview</Label>
+          <div className="space-y-1">
+            <Label className="text-sm">Event Color Preview</Label>
             <div
-              className="w-full h-12 rounded-md border border-gray-600"
+              className="w-full h-8 rounded-md border border-gray-600"
               style={{ backgroundColor: getColorPreview() }}
             />
           </div>
