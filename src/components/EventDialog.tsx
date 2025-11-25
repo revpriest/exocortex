@@ -299,9 +299,9 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={`${isMobile ? '!w-[70vw] !max-w-[70vw] !max-h-[65vh] !overflow-y-auto !p-3 !gap-1' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}>
-          <DialogHeader className={isMobile ? '!pb-0 !space-y-0' : ''}>
-            <DialogTitle className={isMobile ? '!text-xs' : ''}>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
+        <DialogContent className={`${isMobile ? '!w-[60vw] !max-w-[60vw] !max-w-[280px] !max-h-[60vh] !max-h-[400px] !overflow-y-auto !p-2 !gap-1' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}>
+          <DialogHeader className={isMobile ? '!pb-0 !space-y-0 !m-0' : ''}>
+            <DialogTitle className={isMobile ? '!text-xs !m-0 !p-0' : ''}>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           </DialogHeader>
 
           {/* Error display */}
@@ -313,22 +313,22 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           )}
 
           {/* Smiley face canvas with color preview background */}
-          <div className={`flex justify-center ${isMobile ? '!py-0' : 'py-2'}`}>
+          <div className={`flex justify-center ${isMobile ? '!py-0 !my-0' : 'py-2'}`}>
             <div className="relative">
               <div
-                className={`${isMobile ? '!w-12 !h-12' : 'w-32 h-32'} rounded-full border-2 border-gray-600`}
+                className={`${isMobile ? '!w-10 !h-10' : 'w-32 h-32'} rounded-full border-2 border-gray-600`}
                 style={{ backgroundColor: getColorPreview() }}
               />
               <canvas
                 ref={canvasRef}
-                width={isMobile ? "48" : "128"}
-                height={isMobile ? "48" : "128"}
-                className={`absolute top-0 left-0 ${isMobile ? '!w-12 !h-12' : 'w-32 h-32'}`}
+                width={isMobile ? "40" : "128"}
+                height={isMobile ? "40" : "128"}
+                className={`absolute top-0 left-0 ${isMobile ? '!w-10 !h-10' : 'w-32 h-32'}`}
               />
             </div>
           </div>
 
-        <div className={`${isMobile ? '!space-y-0.5' : 'space-y-4'}`}>
+        <div className={`${isMobile ? '!space-y-0' : 'space-y-4'}`}>
           {/* Category input with dropdown */}
           <div className={`${isMobile ? '!space-y-0' : 'space-y-1'}`}>
             <Label htmlFor="category" className={`${isMobile ? '!text-xs' : 'text-sm'}`}>Category</Label>
@@ -338,7 +338,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g., Work, Sleep, Exercise"
-                className={`${isMobile ? '!text-sm !py-1.5 !h-8' : ''} bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10`}
+                className={`${isMobile ? '!text-xs !py-1 !h-7' : ''} bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10`}
               />
               <Button
                 type="button"
@@ -393,14 +393,14 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               </span>
             </div>
 
-            <div className={`${isMobile ? 'grid grid-cols-2 gap-1' : 'flex items-center space-x-2'}`}>
+            <div className={`${isMobile ? 'grid grid-cols-2 gap-0.5' : 'flex items-center space-x-2'}`}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(-60)}
-                className={`${isMobile ? '!text-xs !py-1 !h-7' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
               >
-                <ChevronLeft className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'}`} />
+                <ChevronLeft className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
                 -1h
               </Button>
 
@@ -408,9 +408,9 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(-15)}
-                className={`${isMobile ? '!text-xs !py-1 !h-7' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
               >
-                <ChevronLeft className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'}`} />
+                <ChevronLeft className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
                 -15m
               </Button>
 
@@ -418,27 +418,27 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(15)}
-                className={`${isMobile ? '!text-xs !py-1 !h-7' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
               >
                 +15m
-                <ChevronRight className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'}`} />
+                <ChevronRight className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(60)}
-                className={`${isMobile ? '!text-xs !py-1 !h-7' : ''} bg-gray-700 border-gray-600`}
+                className={`${isMobile ? '!text-xs !py-0.5 !h-6' : ''} bg-gray-700 border-gray-600`}
               >
                 +1h
-                <ChevronRight className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'}`} />
+                <ChevronRight className={`${isMobile ? '!h-2 !w-2' : 'h-4 w-4'}`} />
               </Button>
             </div>
           </div>
 
           {/* Happiness slider */}
-          <div className={`${isMobile ? '!space-y-0' : 'space-y-1'}`}>
-            <Label className={`${isMobile ? '!text-xs' : 'text-sm'}`}>Happiness: {Math.round(happinessState[0] * 100)}%</Label>
+          <div className={`${isMobile ? '!space-y-0 !my-0' : 'space-y-1'}`}>
+            <Label className={`${isMobile ? '!text-xs !mb-0' : 'text-sm'}`}>Happiness: {Math.round(happinessState[0] * 100)}%</Label>
             <Slider
               value={happinessState}
               onValueChange={setHappinessState}
@@ -450,8 +450,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Wakefulness slider */}
-          <div className={`${isMobile ? '!space-y-0' : 'space-y-1'}`}>
-            <Label className={`${isMobile ? '!text-xs' : 'text-sm'}`}>Wakefulness: {Math.round(wakefulnessState[0] * 100)}%</Label>
+          <div className={`${isMobile ? '!space-y-0 !my-0' : 'space-y-1'}`}>
+            <Label className={`${isMobile ? '!text-xs !mb-0' : 'text-sm'}`}>Wakefulness: {Math.round(wakefulnessState[0] * 100)}%</Label>
             <Slider
               value={wakefulnessState}
               onValueChange={setWakefulnessState}
@@ -463,8 +463,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Health slider */}
-          <div className={`${isMobile ? '!space-y-0' : 'space-y-1'}`}>
-            <Label className={`${isMobile ? '!text-xs' : 'text-sm'}`}>Health: {Math.round(healthState[0] * 100)}%</Label>
+          <div className={`${isMobile ? '!space-y-0 !my-0' : 'space-y-1'}`}>
+            <Label className={`${isMobile ? '!text-xs !mb-0' : 'text-sm'}`}>Health: {Math.round(healthState[0] * 100)}%</Label>
             <Slider
               value={healthState}
               onValueChange={setHealthState}
@@ -476,7 +476,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Action buttons */}
-          <div className={`${isMobile ? 'flex-col space-y-0.5 pt-1' : 'flex justify-between items-center'} ${isMobile ? '!pt-1' : ''}`}>
+          <div className={`${isMobile ? 'flex-col space-y-0 pt-0' : 'flex justify-between items-center'} ${isMobile ? '!pt-0 !mt-0' : ''}`}>
             {editEvent && onDelete && (
               <Button
                 variant="destructive"
@@ -506,9 +506,9 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className={`${isMobile ? '!w-[65vw] !max-w-[65vw] !p-3 !gap-1' : 'sm:max-w-sm'} bg-gray-800 border-gray-700 text-white`}>
-          <DialogHeader className={isMobile ? '!pb-0 !space-y-0' : ''}>
-            <DialogTitle className={isMobile ? '!text-xs' : ''}>Delete Event</DialogTitle>
+        <DialogContent className={`${isMobile ? '!w-[55vw] !max-w-[55vw] !max-w-[260px] !p-2 !gap-1' : 'sm:max-w-sm'} bg-gray-800 border-gray-700 text-white`}>
+          <DialogHeader className={isMobile ? '!pb-0 !space-y-0 !m-0' : ''}>
+            <DialogTitle className={isMobile ? '!text-xs !m-0 !p-0' : ''}>Delete Event</DialogTitle>
           </DialogHeader>
           <div className={isMobile ? '!py-0.5' : 'py-4'}>
             <p className="text-sm text-gray-300">
