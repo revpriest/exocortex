@@ -32,10 +32,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
     }
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  const handleSubmit = () => {
     if (!category.trim()) {
       alert('Please enter a category');
       return;
@@ -91,7 +88,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
           <DialogTitle>Add New Event</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} action="#" className="space-y-6">
+        <div className="space-y-6">
           {/* Category input */}
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
@@ -101,7 +98,6 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
               onChange={(e) => setCategory(e.target.value)}
               placeholder="e.g., Work, Sleep, Exercise"
               className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-              required
             />
           </div>
 
@@ -117,7 +113,6 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
 
             <div className="flex items-center space-x-2">
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(-60)}
@@ -128,7 +123,6 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
               </Button>
 
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(-15)}
@@ -139,7 +133,6 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
               </Button>
 
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(15)}
@@ -150,7 +143,6 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
               </Button>
 
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => adjustTime(60)}
@@ -210,21 +202,20 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
             />
           </div>
 
-          {/* Submit button */}
+          {/* Action buttons */}
           <div className="flex justify-end space-x-2">
             <Button
-              type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="bg-gray-700 border-gray-600"
             >
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
               Add Event
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
