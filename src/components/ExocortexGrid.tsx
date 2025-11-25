@@ -314,11 +314,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-xl font-semibold text-white mb-1">
-              Time Tracking Grid
+              exocortex
             </h2>
-            <p className="text-gray-400 text-sm">
-              Click events to edit • Scroll to load more days
-            </p>
           </div>
 
           {/* Import/Export buttons */}
@@ -424,22 +421,18 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                     style={calculateEventStyle(event, day.events, eventIndex)}
                     onClick={() => handleEventClick(event)}
                   >
-                    <div className="p-2 h-full flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-white truncate">
-                          {event.category}
-                        </div>
-                        <div className="text-xs text-gray-200">
-                          {formatTime(event.endTime)}
-                        </div>
+                    <div className="p-2 h-full flex flex-col items-center justify-center text-center">
+                      <div className="text-xs font-medium text-white truncate w-full mb-1">
+                        {event.category}
                       </div>
-                      <div className="flex-shrink-0 ml-2">
-                        <SmileyFace
-                          health={event.health}
-                          wakefulness={event.wakefulness}
-                          happiness={event.happiness}
-                          size={24}
-                        />
+                      <SmileyFace
+                        health={event.health}
+                        wakefulness={event.wakefulness}
+                        happiness={event.happiness}
+                        size={20}
+                      />
+                      <div className="text-xs text-gray-200 mt-1">
+                        {formatTime(event.endTime)}
                       </div>
                     </div>
                   </div>
