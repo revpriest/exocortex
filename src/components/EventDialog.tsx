@@ -91,7 +91,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
     // Draw eyes based on wakefulness (fixed: 0% = closed, 100% = open)
     const eyeWidth = radius * 0.2; // Bigger eyes
-    const eyeHeight = radius * 0.2 * currentWakefulness; // Eyes open as wakefulness increases
+    const eyeHeight = Math.max(radius * 0.02, radius * 0.2 * currentWakefulness); // Minimum height for closed eyes
     const eyeYOffset = radius * 0.3;
     const eyeXOffset = radius * 0.3;
 
@@ -109,7 +109,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
     // Draw mouth based on happiness (smooth curve)
     const mouthWidth = radius * 0.6;
-    const mouthY = centerY + radius * 0.1;
+    const mouthY = centerY + radius * 0.2; // Lower position
 
     // Calculate mouth curve height based on happiness
     // -0.3 to 0.3 range: negative = sad, positive = happy
