@@ -191,10 +191,21 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const allCategories = days.flatMap(day => day.events.map(event => event.category));
       const uniqueCategories = [...new Set(allCategories.reverse())].slice(0, 12);
 
-      setRecentCategories(uniqueCategories);
+      console.log('Categories loaded:', uniqueCategories);
+
+      // If no categories found, add some default ones for testing
+      if (uniqueCategories.length === 0) {
+        const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study'];
+        setRecentCategories(defaultCategories);
+        console.log('Using default categories:', defaultCategories);
+      } else {
+        setRecentCategories(uniqueCategories);
+      }
     } catch (error) {
       console.error('Failed to load recent categories:', error);
-      setRecentCategories([]);
+      // Add default categories even if there's an error
+      const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study'];
+      setRecentCategories(defaultCategories);
     }
   };
 
@@ -336,6 +347,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  console.log('Dropdown button clicked, current state:', showDropdown);
+                  console.log('Recent categories:', recentCategories);
                   setShowDropdown(!showDropdown);
                 }}
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-600"
@@ -353,6 +366,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        console.log('Category clicked:', cat);
                         handleCategorySelect(cat);
                       }}
                       className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-600 focus:bg-gray-600 focus:outline-none transition-colors"
@@ -360,6 +374,13 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                       {cat}
                     </button>
                   ))}
+                </div>
+              )}
+              {showDropdown && recentCategories.length === 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50">
+                  <div className="px-3 py-2 text-sm text-gray-400">
+                    No recent categories found
+                  </div>
                 </div>
               )}
             </div>
