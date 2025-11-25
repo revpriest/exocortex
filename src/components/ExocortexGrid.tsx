@@ -27,6 +27,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   });
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [hasReachedHistoricalLimit, setHasReachedHistoricalLimit] = useState(false);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -49,15 +50,21 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   // Load days for the grid
   const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number) => {
+    // Calculate the correct date range: fromDate is the newest date, we want to load count days before it
     const endDate = new Date(fromDate);
-    endDate.setDate(endDate.getDate() - count + 1);
+    endDate.setDate(endDate.getDate() - count + 1); // This becomes the oldest date in the range
 
     const newDays = await database.getEventsByDateRange(
-      endDate.toISOString().split('T')[0],
-      fromDate.toISOString().split('T')[0]
+      endDate.toISOString().split('T')[0], // Oldest date (start of range)
+      fromDate.toISOString().split('T')[0]   // Newest date (end of range)
     );
 
-    setDays(prev => [...prev, ...newDays.reverse()]);
+    // Only add new days if we actually got data
+    if (newDays.length > 0) {
+      setDays(prev => [...prev, ...newDays.reverse()]);
+      return true; // Indicate successful load
+    }
+    return false; // Indicate no more data available
   }, []);
 
   // Setup infinite scroll
@@ -70,10 +77,33 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
           const oldestDay = days[days.length - 1];
           if (oldestDay) {
             const loadMoreDays = async () => {
+              // Don't load if we've reached the historical limit
+              if (hasReachedHistoricalLimit) return;
+
               setLoading(true);
+              const oldestDay = days[days.length - 1];
+              const oldestDate = new Date(oldestDay.date);
+
+              // Don't load data from more than 2 years ago
+              const twoYearsAgo = new Date();
+              twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+
+              if (oldestDate < twoYearsAgo) {
+                setHasReachedHistoricalLimit(true);
+                setLoading(false);
+                return;
+              }
+
               const fromDate = new Date(oldestDay.date);
-              fromDate.setDate(fromDate.getDate() - 1);
-              await loadDays(db, fromDate, 7);
+              fromDate.setDate(fromDate.getDate() - 7); // Load 7 days before the oldest day
+              const success = await loadDays(db, fromDate, 7);
+
+              if (!success) {
+                // No more data available, we can stop observing or show a message
+                setHasReachedHistoricalLimit(true);
+                console.log('No more historical data available');
+              }
+
               setLoading(false);
             };
             loadMoreDays();
@@ -448,6 +478,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       // Clear the grid display
       const today = new Date().toISOString().split('T')[0];
       setDays([{ date: today, events: [] }]);
+      setHasReachedHistoricalLimit(false);
 
       setError('All data has been cleared successfully');
 
@@ -622,6 +653,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
           <div ref={loadingRef} className="h-20 flex items-center justify-center">
             {loading && (
               <div className="text-muted-foreground">Loading more days...</div>
+            )}
+            {hasReachedHistoricalLimit && !loading && (
+              <div className="text-muted-foreground text-sm">
+                Reached historical limit (2 years)
+              </div>
             )}
           </div>
         </div>
