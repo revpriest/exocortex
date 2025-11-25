@@ -185,6 +185,64 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     }
   };
 
+  // Calculate event position and width for a specific day portion with explicit start time
+  const calculateEventPortionWithStartTime = (
+    event: ExocortexEvent,
+    dayDate: string,
+    startTime: number,
+    endTime: number,
+    portion: 'start' | 'middle' | 'end' | 'full'
+  ) => {
+    const eventEndTime = new Date(endTime);
+    const eventStartTime = new Date(startTime);
+    const dayStart = new Date(dayDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    let portionStartTime: Date;
+    let portionEndTime: Date;
+
+    switch (portion) {
+      case 'start':
+        // First day portion: from actual start time to midnight
+        portionStartTime = new Date(Math.max(eventStartTime.getTime(), dayStart.getTime()));
+        portionEndTime = new Date(dayEnd);
+        break;
+      case 'end':
+        // Last day portion: from midnight to actual end time
+        portionStartTime = new Date(dayStart);
+        portionEndTime = new Date(Math.min(eventEndTime.getTime(), dayEnd.getTime()));
+        break;
+      case 'middle':
+        // Middle day portion: full day
+        portionStartTime = new Date(dayStart);
+        portionEndTime = new Date(dayEnd);
+        break;
+      case 'full':
+      default:
+        // Single day event: from actual start to actual end (clamped to day boundaries)
+        portionStartTime = new Date(Math.max(eventStartTime.getTime(), dayStart.getTime()));
+        portionEndTime = new Date(Math.min(eventEndTime.getTime(), dayEnd.getTime()));
+        break;
+    }
+
+    // Ensure we have positive duration
+    if (portionEndTime.getTime() <= portionStartTime.getTime()) {
+      // Fallback: make it at least 1 hour long
+      portionEndTime = new Date(portionStartTime.getTime() + 60 * 60 * 1000);
+    }
+
+    const startHour = (portionStartTime.getTime() - dayStart.getTime()) / (1000 * 60 * 60);
+    const durationHours = (portionEndTime.getTime() - portionStartTime.getTime()) / (1000 * 60 * 60);
+
+    return {
+      left: `calc(${startHour} * var(--hour-width))`,
+      width: `calc(${durationHours} * var(--hour-width))`,
+      backgroundColor: getEventColor(event),
+    };
+  };
+
   // Calculate event position and width for a specific day portion
   const calculateEventPortionStyle = (
     event: ExocortexEvent,
@@ -914,31 +972,21 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                   const originalEvents = originalDay?.events || [];
                   const originalEventIndex = originalEvents.findIndex(e => e.id === originalEventId);
 
-                  // For proper event chaining, we need to consider the previous event in the display
-                  const isSpanEvent = event.id.includes('-span-');
-                  let adjustedEvent = { ...event };
+                  // Get all events for this day for proper timing calculation
+                  const dayEvents = getEventsForDay(day, days);
 
-                  // If this is not the first event and not a span event, ensure it starts at the previous event's end
-                  if (eventIndex > 0 && !isSpanEvent) {
-                    const previousEvent = getEventsForDay(day, days)[eventIndex - 1];
-                    if (previousEvent) {
-                      // Calculate the actual start time based on the previous event's end
-                      const previousEventEndTime = previousEvent.endTime;
-                      const currentEventEndTime = event.endTime;
-
-                      // If there's a gap, adjust the start time to be the previous event's end time
-                      if (currentEventEndTime - previousEventEndTime > 0) {
-                        // This ensures no gaps between events
-                        const estimatedDuration = currentEventEndTime - previousEventEndTime;
-                        if (estimatedDuration > 0 && estimatedDuration < 12 * 60 * 60 * 1000) { // Reasonable duration
-                          // The start time should be the previous event's end time
-                          adjustedEvent = {
-                            ...event,
-                            // We'll handle this in the style calculation
-                          };
-                        }
-                      }
-                    }
+                  // Calculate the actual start time for this event
+                  let eventStartTime: number;
+                  if (eventIndex === 0) {
+                    // First event of the day - use the calculated start time
+                    eventStartTime = getEventStartTime(
+                      { ...event, id: originalEventId },
+                      originalEvents,
+                      originalEventIndex
+                    );
+                  } else {
+                    // Subsequent events - start immediately after the previous event ends
+                    eventStartTime = dayEvents[eventIndex - 1].endTime;
                   }
 
                   const portionType = getEventPortionType(
@@ -955,17 +1003,20 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                     return null;
                   }
 
+                  // Calculate the style with the proper start time
+                  const eventStyle = calculateEventPortionWithStartTime(
+                    { ...event, id: originalEventId },
+                    day.date,
+                    eventStartTime,
+                    event.endTime,
+                    portionType
+                  );
+
                   return (
                     <div
                       key={`${event.id}-${day.date}`}
                       className="absolute top-2 h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
-                      style={calculateEventPortionStyle(
-                        { ...event, id: originalEventId }, // Use original ID for style calculation
-                        day.date,
-                        originalEvents,
-                        originalEventIndex,
-                        portionType
-                      )}
+                      style={eventStyle}
                       onClick={() => handleEventClick({ ...event, id: originalEventId })} // Use original event for click handler
                     >
                       <div className="p-2 h-full flex flex-col items-center justify-center text-center">
