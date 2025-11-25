@@ -23,6 +23,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Import our data types and utilities
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
 
+// Import hooks
+import { useIsMobile } from '@/hooks/useIsMobile';
+
 // Import UI components
 import { Button } from '@/components/ui/button';
 import { Plus, Download, Upload, Database, Trash2, AlertCircle } from 'lucide-react';
@@ -120,6 +123,9 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   // Error message to display to user (null when no error)
   const [error, setError] = useState<string | null>(null);
+
+  // Mobile responsiveness hook
+  const isMobile = useIsMobile();
 
   // Current date reference for various calculations
   const [currentDate, setCurrentDate] = useState(new Date());
