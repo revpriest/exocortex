@@ -174,7 +174,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   // Load recent unique categories from database
   const loadRecentCategories = async () => {
     try {
-      console.log('Loading recent categories...');
       const db = new ExocortexDB();
       await db.init();
 
@@ -192,7 +191,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const allCategories = days.flatMap(day => day.events.map(event => event.category));
       const uniqueCategories = [...new Set(allCategories.reverse())].slice(0, 12);
 
-      console.log('Loaded categories:', uniqueCategories);
       setRecentCategories(uniqueCategories);
     } catch (error) {
       console.error('Failed to load recent categories:', error);
@@ -202,7 +200,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
   // Handle category selection from dropdown
   const handleCategorySelect = (selectedCategory: string) => {
-    console.log('Category selected:', selectedCategory);
     setCategory(selectedCategory);
     setShowDropdown(false);
   };
@@ -339,7 +336,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Dropdown button clicked, current state:', showDropdown);
                   setShowDropdown(!showDropdown);
                 }}
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-600"
@@ -357,7 +353,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Category button clicked:', cat);
                         handleCategorySelect(cat);
                       }}
                       className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-600 focus:bg-gray-600 focus:outline-none transition-colors"
