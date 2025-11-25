@@ -1286,8 +1286,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                       style={eventStyle}
                       onClick={() => handleEventClick({ ...event, id: originalEventId })} // Use original event for click handler
                     >
-                      <div className="p-2 h-full flex flex-col items-center justify-center text-center">
-                        <div className="text-xs font-medium truncate w-full mb-1" style={{ color: getTextColor(event) }}>
+                      <div className="p-1 h-full flex flex-col items-center justify-center text-center">
+                        <div className="text-xs font-medium truncate w-full mb-0.5" style={{ color: getTextColor(event) }}>
                           {event.category}
                           {portionType !== 'full' && (
                             <span className="ml-1 opacity-70">
@@ -1299,8 +1299,17 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                           health={event.health}
                           wakefulness={event.wakefulness}
                           happiness={event.happiness}
-                          size={20}
+                          size={18}
                         />
+                        {event.notes && (
+                          <div
+                            className="text-xs truncate w-full mt-0.5 leading-tight"
+                            style={{ color: getTextColor(event), opacity: 0.9 }}
+                            title={event.notes}
+                          >
+                            {event.notes.length > 20 ? `${event.notes.slice(0, 20)}…` : event.notes}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
