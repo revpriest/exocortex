@@ -411,7 +411,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               </span>
             </div>
 
-            <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex flex-col space-y-2'}`}>
+            <div className="flex flex-col space-y-2">
               {/* Hour adjustment row */}
               <div className="flex items-center space-x-2">
                 <Button
