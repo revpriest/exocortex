@@ -411,46 +411,52 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               </span>
             </div>
 
-            <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex items-center space-x-2'}`}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => adjustTime(-60)}
-                className="bg-gray-700 border-gray-600"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                -1h
-              </Button>
+            <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex flex-col space-y-2'}`}>
+              {/* Hour adjustment row */}
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => adjustTime(-60)}
+                  className="bg-gray-700 border-gray-600"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  -1h
+                </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => adjustTime(-5)}
-                className="bg-gray-700 border-gray-600"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                -5m
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => adjustTime(60)}
+                  className="bg-gray-700 border-gray-600"
+                >
+                  +1h
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => adjustTime(5)}
-                className="bg-gray-700 border-gray-600"
-              >
-                +5m
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              {/* Minute adjustment row */}
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => adjustTime(-5)}
+                  className="bg-gray-700 border-gray-600"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  -5m
+                </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => adjustTime(60)}
-                className="bg-gray-700 border-gray-600"
-              >
-                +1h
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => adjustTime(5)}
+                  className="bg-gray-700 border-gray-600"
+                >
+                  +5m
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
