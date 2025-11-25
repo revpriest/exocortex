@@ -520,7 +520,7 @@ export function StatsView({ className }: StatsViewProps) {
       </Card>
 
       {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -539,12 +539,32 @@ export function StatsView({ className }: StatsViewProps) {
           <CardContent className="pt-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-400">
-                {moodData.length > 0
-                  ? (moodData.reduce((sum, d) => sum + d.wakefulness, 0) / moodData.length).toFixed(2)
-                  : '0.00'
-                }
+                {(() => {
+                  const sleepEvents = events.filter(e => e.category.toLowerCase() === 'sleep');
+                  if (sleepEvents.length === 0) return '0.00';
+                  const avgSleep = sleepEvents.reduce((sum, e) => sum + e.wakefulness, 0) / sleepEvents.length;
+                  return avgSleep.toFixed(2);
+                })()}
               </div>
-              <div className="text-sm text-gray-400 mt-1">Average Wakefulness</div>
+              <div className="text-sm text-gray-400 mt-1">Wakefulness (Sleep)</div>
+              <div className="text-xs text-gray-500 mt-1">During sleep periods</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-400">
+                {(() => {
+                  const awakeEvents = events.filter(e => e.category.toLowerCase() !== 'sleep');
+                  if (awakeEvents.length === 0) return '0.00';
+                  const avgAwake = awakeEvents.reduce((sum, e) => sum + e.wakefulness, 0) / awakeEvents.length;
+                  return avgAwake.toFixed(2);
+                })()}
+              </div>
+              <div className="text-sm text-gray-400 mt-1">Wakefulness (Awake)</div>
+              <div className="text-xs text-gray-500 mt-1">During awake periods</div>
             </div>
           </CardContent>
         </Card>
