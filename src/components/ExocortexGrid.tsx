@@ -375,8 +375,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       // Clear existing data first
       await db.clearAllEvents();
 
-      // Default categories for test data
-      const categories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
+      // Categories for test data (excluding Sleep - we'll handle that specially)
+      const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
 
       // Generate events for the past 30 days (excluding today)
       const endDate = new Date();
@@ -385,35 +385,112 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       startDate.setDate(startDate.getDate() - 30); // 30 days ago
 
       const events: Omit<ExocortexEvent, 'id'>[] = [];
-      let currentTime = new Date(endDate);
-      currentTime.setHours(23, 59, 59, 999); // Start from end of yesterday
 
-      // Generate events for each day, ensuring good coverage
-      while (currentTime >= startDate) {
+      // Generate events for each day
+      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
         const dayEvents: Omit<ExocortexEvent, 'id'>[] = [];
-        let remainingTimeInDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-        // Start from end of day (11:59:59 PM) and work backwards
-        let eventTime = new Date(currentTime);
+        // Create sleep event that starts around 22:00 and lasts 7-8 hours
+        const sleepStartHour = 20 + Math.floor(Math.random() * 3); // 20:00, 21:00, or 22:00
+        const sleepStartMinute = Math.floor(Math.random() * 60);
+        const sleepDurationHours = 7 + Math.random(); // 7-8 hours
 
-        // Generate events until we've filled the day reasonably well
-        while (remainingTimeInDay > 4 * 60 * 60 * 1000) { // Stop when less than 4 hours remaining
+        const sleepStart = new Date(currentDate);
+        sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
+        const sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
+
+        // Sleep event with typical sleep values
+        const sleepEvent = {
+          endTime: sleepEnd.getTime(),
+          category: 'Sleep' as const,
+          happiness: 0.8, // Generally happy during sleep
+          wakefulness: 0.1, // Very low wakefulness during sleep
+          health: 0.9, // Good for health
+        };
+
+        dayEvents.push(sleepEvent);
+
+        // Fill the rest of the day with other activities
+        // We'll work around the sleep period
+
+        // Morning activities (before sleep starts)
+        const morningEnd = sleepStart.getTime();
+        let currentTime = new Date(currentDate);
+        currentTime.setHours(7, 0, 0, 0); // Start at 7:00 AM
+
+        while (currentTime < sleepStart) {
+          const timeUntilSleep = sleepStart.getTime() - currentTime.getTime();
+
+          // Don't create events too close to sleep time
+          if (timeUntilSleep < 30 * 60 * 1000) break; // Less than 30 minutes before sleep
+
+          // Random duration between 30 minutes and 3 hours, but don't exceed time until sleep
+          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
+          if (maxDuration <= 0) break;
+
+          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
+          const actualDuration = Math.min(durationMs, maxDuration);
+
+          const category = categories[Math.floor(Math.random() * categories.length)];
+
+          // Morning mood values (generally good)
+          const happiness = Math.random() * 0.4 + 0.5; // 0.5-0.9
+          const wakefulness = Math.random() * 0.4 + 0.5; // 0.5-0.9
+          const health = Math.random() * 0.3 + 0.6; // 0.6-0.9
+
+          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
+
+          const event = {
+            endTime: eventEndTime.getTime(),
+            category,
+            happiness,
+            wakefulness,
+            health,
+          };
+
+          dayEvents.push(event);
+
+          // Move to next event time with some gap
+          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
+        }
+
+        // Evening activities (after sleep ends, on the next day)
+        const nextDay = new Date(currentDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const eveningStart = new Date(Math.max(sleepEnd.getTime(), new Date(nextDay).setHours(7, 0, 0, 0)));
+        const endOfDay = new Date(nextDay);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        currentTime = new Date(eveningStart);
+
+        while (currentTime < endOfDay) {
+          const timeUntilEnd = endOfDay.getTime() - currentTime.getTime();
+
+          // Don't create events too close to next sleep time
+          const nextSleepStart = new Date(nextDay);
+          nextSleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
+          const timeUntilNextSleep = nextSleepStart.getTime() - currentTime.getTime();
+
+          if (timeUntilNextSleep < 60 * 60 * 1000) break; // Less than 1 hour before next sleep
+
           // Random duration between 30 minutes and 3 hours
-          const durationMs = (Math.random() * (3 * 60 - 30) + 30) * 60 * 1000;
+          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilEnd, timeUntilNextSleep - 30 * 60 * 1000);
+          if (maxDuration <= 0) break;
 
-          // Ensure we don't exceed remaining time
-          const actualDuration = Math.min(durationMs, remainingTimeInDay);
+          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
+          const actualDuration = Math.min(durationMs, maxDuration);
 
-          // Random category
           const category = categories[Math.floor(Math.random() * categories.length)];
 
-          // Random mood values (weighted towards positive values)
-          const happiness = Math.random() * 0.6 + 0.4; // 0.4-1.0
-          const wakefulness = Math.random() * 0.5 + 0.4; // 0.4-0.9
-          const health = Math.random() * 0.4 + 0.6; // 0.6-1.0
+          // Evening mood values (can be more variable)
+          const happiness = Math.random() * 0.6 + 0.3; // 0.3-0.9
+          const wakefulness = Math.random() * 0.5 + 0.3; // 0.3-0.8 (getting tired)
+          const health = Math.random() * 0.4 + 0.5; // 0.5-0.9
+
+          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
 
           const event = {
-            endTime: eventTime.getTime(),
+            endTime: eventEndTime.getTime(),
             category,
             happiness,
             wakefulness,
@@ -422,37 +499,12 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
           dayEvents.push(event);
 
-          // Move time backwards for next event
-          eventTime = new Date(eventTime.getTime() - actualDuration);
-          remainingTimeInDay -= actualDuration;
+          // Move to next event time with some gap
+          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
         }
 
-        // If we still have significant time left, add one more event to fill the gap
-        if (remainingTimeInDay > 60 * 60 * 1000) { // More than 1 hour left
-          const category = categories[Math.floor(Math.random() * categories.length)];
-          const happiness = Math.random() * 0.6 + 0.4;
-          const wakefulness = Math.random() * 0.5 + 0.4;
-          const health = Math.random() * 0.4 + 0.6;
-
-          const event = {
-            endTime: eventTime.getTime(),
-            category,
-            happiness,
-            wakefulness,
-            health,
-          };
-
-          dayEvents.push(event);
-        }
-
-        // Reverse events for the day so they're in chronological order
-        events.push(...dayEvents.reverse());
-
-        // Move to previous day
-        const previousDay = new Date(currentTime);
-        previousDay.setDate(previousDay.getDate() - 1);
-        currentTime = new Date(previousDay);
-        currentTime.setHours(23, 59, 59, 999);
+        // Add all events for this day
+        events.push(...dayEvents);
       }
 
       // Add all events to database
@@ -480,7 +532,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
       setDays(allDays);
 
-      setError(`Successfully generated ${events.length} test events for the past 30 days`);
+      setError(`Successfully generated ${events.length} test events for the past 30 days with realistic sleep patterns`);
 
       // Clear success message after 5 seconds
       setTimeout(() => setError(null), 5000);
@@ -603,7 +655,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
-          <div className="flex">
+          <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
@@ -619,7 +671,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         </div>
 
         {/* Day rows */}
-        <div className="relative">
+        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
           {days.map((day, dayIndex) => (
             <div
               key={day.date}
@@ -639,7 +691,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               </div>
 
               {/* Grid lines */}
-              <div className="absolute inset-0 flex">
+              <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
                 {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
                   <div
                     key={hourIndex}
@@ -652,7 +704,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               </div>
 
               {/* Events - mobile optimized */}
-              <div className="absolute inset-0">
+              <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
                 {day.events.map((event, eventIndex) => (
                   <div
                     key={event.id}
