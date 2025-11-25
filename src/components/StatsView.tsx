@@ -161,32 +161,80 @@ export function StatsView({ className }: StatsViewProps) {
   const moodData = useMemo(() => {
     const dataPoints: MoodDataPoint[] = [];
 
-    // Group events by date and calculate average mood values
-    const eventsByDate = events.reduce((acc, event) => {
-      const date = format(new Date(event.endTime), 'MMM dd');
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(event);
-      return acc;
-    }, {} as Record<string, ExocortexEvent[]>);
+    // Create hourly sampling across the date range for better visualization
+    if (events.length === 0) return dataPoints;
 
-    // Calculate daily averages
-    Object.entries(eventsByDate).forEach(([date, dayEvents]) => {
-      const avgHappiness = dayEvents.reduce((sum, e) => sum + e.happiness, 0) / dayEvents.length;
-      const avgWakefulness = dayEvents.reduce((sum, e) => sum + e.wakefulness, 0) / dayEvents.length;
-      const avgHealth = dayEvents.reduce((sum, e) => sum + e.health, 0) / dayEvents.length;
+    // Sort events by end time
+    const sortedEvents = [...events].sort((a, b) => a.endTime - b.endTime);
 
-      dataPoints.push({
-        date,
-        time: format(new Date(dayEvents[0].endTime), 'HH:mm'),
-        happiness: Number(avgHappiness.toFixed(2)),
-        wakefulness: Number(avgWakefulness.toFixed(2)),
-        health: Number(avgHealth.toFixed(2)),
+    // Get the date range
+    const firstEvent = sortedEvents[0];
+    const lastEvent = sortedEvents[sortedEvents.length - 1];
+    const startDate = startOfDay(new Date(firstEvent.endTime));
+    const endDate = endOfDay(new Date(lastEvent.endTime));
+
+    // Create 3-hour intervals for detailed but not overwhelming visualization
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      const nextInterval = new Date(current);
+      nextInterval.setHours(nextInterval.getHours() + 3);
+
+      // Find events active during this 3-hour period
+      const activeEvents = sortedEvents.filter(event => {
+        const eventEnd = new Date(event.endTime);
+        // Estimate start time (simplified - assumes 1 hour duration)
+        const eventStart = new Date(eventEnd.getTime() - (60 * 60 * 1000));
+
+        // Check if event overlaps with current interval
+        return (
+          (eventStart >= current && eventStart < nextInterval) ||
+          (eventEnd >= current && eventEnd < nextInterval) ||
+          (eventStart < current && eventEnd > current)
+        );
       });
-    });
 
-    return dataPoints.sort((a, b) => a.date.localeCompare(b.date));
+      if (activeEvents.length > 0) {
+        // Calculate weighted average based on event duration
+        let totalWeight = 0;
+        let weightedHappiness = 0;
+        let weightedWakefulness = 0;
+        let weightedHealth = 0;
+
+        activeEvents.forEach(event => {
+          // Estimate duration (simplified calculation)
+          let duration = 60; // Default 1 hour
+          const eventIndex = sortedEvents.findIndex(e => e.id === event.id);
+          if (eventIndex > 0) {
+            const prevEvent = sortedEvents[eventIndex - 1];
+            duration = Math.max(15, (event.endTime - prevEvent.endTime) / (1000 * 60));
+          }
+
+          const weight = duration;
+          totalWeight += weight;
+          weightedHappiness += event.happiness * weight;
+          weightedWakefulness += event.wakefulness * weight;
+          weightedHealth += event.health * weight;
+        });
+
+        // Create weighted averages
+        const avgHappiness = weightedHappiness / totalWeight;
+        const avgWakefulness = weightedWakefulness / totalWeight;
+        const avgHealth = weightedHealth / totalWeight;
+
+        dataPoints.push({
+          date: format(current, 'MMM dd'),
+          time: format(current, 'HH:mm'),
+          happiness: Number(avgHappiness.toFixed(2)),
+          wakefulness: Number(avgWakefulness.toFixed(2)),
+          health: Number(avgHealth.toFixed(2)),
+        });
+      }
+
+      // Move to next interval
+      current.setTime(nextInterval.getTime());
+    }
+
+    return dataPoints;
   }, [events]);
 
   const categoryData = useMemo(() => {
@@ -339,7 +387,7 @@ export function StatsView({ className }: StatsViewProps) {
               <LineChart data={moodData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis
-                  dataKey="date"
+                  dataKey="time"
                   stroke="#9CA3AF"
                   tick={{ fill: '#9CA3AF' }}
                 />
@@ -355,6 +403,16 @@ export function StatsView({ className }: StatsViewProps) {
                     borderRadius: '8px'
                   }}
                   labelStyle={{ color: '#F3F4F6' }}
+                  formatter={(value: number, name: string) => [
+                    `${(value * 100).toFixed(0)}%`,
+                    name
+                  ]}
+                  labelFormatter={(label, payload) => {
+                    if (payload && payload[0]) {
+                      return `${payload[0].payload.date} ${label}`;
+                    }
+                    return label;
+                  }}
                 />
                 <Legend
                   wrapperStyle={{ color: '#F3F4F6' }}
@@ -365,7 +423,8 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="#EF4444"
                   strokeWidth={2}
                   name="Happiness"
-                  dot={{ fill: '#EF4444', r: 4 }}
+                  dot={{ fill: '#EF4444', r: 3 }}
+                  connectNulls={false}
                 />
                 <Line
                   type="monotone"
@@ -373,7 +432,8 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="#3B82F6"
                   strokeWidth={2}
                   name="Wakefulness"
-                  dot={{ fill: '#3B82F6', r: 4 }}
+                  dot={{ fill: '#3B82F6', r: 3 }}
+                  connectNulls={false}
                 />
                 <Line
                   type="monotone"
@@ -381,7 +441,8 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="#10B981"
                   strokeWidth={2}
                   name="Health"
-                  dot={{ fill: '#10B981', r: 4 }}
+                  dot={{ fill: '#10B981', r: 3 }}
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
