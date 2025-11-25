@@ -1303,13 +1303,17 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                             size={27}
                           />
                         </div>
-                        {event.notes && (
+                        {event.notes ? (
                           <div
                             className="text-xs truncate w-full mt-0.5 leading-tight"
                             style={{ color: getTextColor(event), opacity: 0.9 }}
                             title={event.notes}
                           >
                             {event.notes.length > 20 ? `${event.notes.slice(0, 20)}…` : event.notes}
+                          </div>
+                        ) : (
+                          <div className="text-xs truncate w-full mt-0.5 leading-tight">
+                            &nbsp;
                           </div>
                         )}
                       </div>
