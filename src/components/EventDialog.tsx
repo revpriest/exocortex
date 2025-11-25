@@ -494,14 +494,14 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Action buttons */}
-          <div className={`${isMobile ? 'flex-col space-y-2 pt-4' : 'flex justify-end items-center gap-4'}`}>
+          <div className={`${isMobile ? 'flex-col space-y-2 pt-4' : 'flex justify-end items-center gap-6'}`}>
             {editEvent && onDelete && (
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteConfirm(true)}
                 className="bg-red-600 hover:bg-red-700 h-9"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="h-4 w-4 mr-1" />
                 Delete
               </Button>
             )}
@@ -510,18 +510,18 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               onClick={() => onOpenChange(false)}
               className="bg-gray-700 border-gray-600 h-9"
             >
-              <X className="h-4 w-4 mr-2" />
+              <X className="h-4 w-4 mr-1" />
               Cancel
             </Button>
             <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 h-9">
               {editEvent ? (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-4 w-4 mr-1" />
                   Update
                 </>
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-1" />
                   Add
                 </>
               )}
