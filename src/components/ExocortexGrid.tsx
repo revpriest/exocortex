@@ -45,7 +45,10 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       setLoading(false);
     };
 
-    initDb();
+    initDb().catch((error) => {
+      console.error('Failed to initialize database:', error);
+      setError('Failed to initialize database. Please refresh the page.');
+    });
   }, []);
 
   // Load days for the grid
@@ -88,7 +91,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               const tenYearsAgo = new Date();
               tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
 
-              if (oldestDate < twoYearsAgo) {
+              if (oldestDate < tenYearsAgo) {
                 setHasReachedHistoricalLimit(true);
                 setLoading(false);
                 return;
@@ -106,7 +109,12 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
               setLoading(false);
             };
-            loadMoreDays();
+
+            loadMoreDays().catch((error) => {
+              console.error('Error in loadMoreDays:', error);
+              setLoading(false);
+              setError('Failed to load more days. Please try again.');
+            });
           }
         }
       },
@@ -305,10 +313,10 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     input.accept = '.json';
 
     input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
       try {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
         // Validate file before importing
         const isValid = await DataExporter.validateExportFile(file);
         if (!isValid) {
