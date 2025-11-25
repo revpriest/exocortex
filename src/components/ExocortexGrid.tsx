@@ -5,6 +5,7 @@ import { Plus, Download, Upload, Database, Trash2, AlertCircle } from 'lucide-re
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ExocortexGridProps {
   className?: string;
@@ -42,6 +43,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hasReachedHistoricalLimit, setHasReachedHistoricalLimit] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -878,6 +880,15 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     }
   };
 
+  const confirmClearAllData = () => {
+    handleClearAllData();
+    setShowClearConfirm(false);
+  };
+
+  const cancelClearAllData = () => {
+    setShowClearConfirm(false);
+  };
+
   if (loading && days.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -933,7 +944,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleClearAllData}
+              onClick={() => setShowClearConfirm(true)}
               className="bg-red-700 border-red-600 text-white"
               disabled={!db}
               title="Clear all events from the database"
@@ -1136,6 +1147,36 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         editEvent={editingEvent}
         defaultValues={defaultValues}
       />
+
+      {/* Clear Database Confirmation Dialog */}
+      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <DialogContent className="sm:max-w-sm bg-gray-800 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Delete Entire Database</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-300">
+              This will delete the entire database. This action cannot be undone.
+            </p>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={cancelClearAllData}
+              className="bg-gray-700 border-gray-600"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmClearAllData}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
