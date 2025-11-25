@@ -233,33 +233,18 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     setIsDialogOpen(true);
   };
 
-  const handleExportDatabase = async () => {
+  const handleExport = async () => {
     if (!db) return;
 
     try {
-      await DataExporter.copyToClipboard(db);
-      setError('Export data copied to clipboard! Paste it into a text file and save as .json');
+      await DataExporter.exportDatabase(db);
+      setError('Export completed! Check your downloads folder for the JSON file.');
 
       // Clear success message after 5 seconds
       setTimeout(() => setError(null), 5000);
     } catch (error) {
       console.error('Export failed:', error);
       setError('Failed to export database. Please try again.');
-    }
-  };
-
-  const handleExportToNewTab = async () => {
-    if (!db) return;
-
-    try {
-      await DataExporter.openInNewTab(db);
-      setError('Export opened in new tab! Save the page as a .json file.');
-
-      // Clear success message after 5 seconds
-      setTimeout(() => setError(null), 5000);
-    } catch (error) {
-      console.error('Export to new tab failed:', error);
-      setError(error instanceof Error ? error.message : 'Failed to open export in new tab.');
     }
   };
 
@@ -340,24 +325,13 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportDatabase}
+              onClick={handleExport}
               className="bg-gray-700 border-gray-600 text-white"
               disabled={!db}
-              title="Copy export data to clipboard"
+              title="Export data to JSON file"
             >
               <Download className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportToNewTab}
-              className="bg-gray-700 border-gray-600 text-white"
-              disabled={!db}
-              title="Open export data in new tab"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              View
+              Export
             </Button>
             <Button
               variant="outline"
