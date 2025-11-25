@@ -83,12 +83,12 @@ export function StatsView({ className }: StatsViewProps) {
         await database.init();
         setDb(database);
 
-        // Set default date range to last week
+        // Set default date range to last two days
         const today = new Date();
-        const lastWeek = new Date();
-        lastWeek.setDate(today.getDate() - 7);
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(today.getDate() - 2);
 
-        setStartDate(lastWeek);
+        setStartDate(twoDaysAgo);
         setEndDate(today);
 
         // Load events for the default range
