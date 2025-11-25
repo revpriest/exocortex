@@ -320,19 +320,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     const startDay = eventStartTime.toISOString().split('T')[0];
     const endDay = eventEndTime.toISOString().split('T')[0];
 
-    // Debug logging for sleep events
-    if (event.category === 'Sleep') {
-      console.log('Sleep event portion detection:', {
-        eventId: event.id,
-        dayDate,
-        startDay,
-        endDay,
-        startTime: eventStartTime.toISOString(),
-        endTime: eventEndTime.toISOString(),
-        portionType: startDay === endDay ? 'full' : dayDate === startDay ? 'start' : dayDate === endDay ? 'end' : 'middle'
-      });
-    }
-
     if (startDay === endDay) {
       return 'full';
     }
@@ -352,14 +339,9 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const getEventsForDay = (targetDay: DayEvents, allDays: DayEvents[]): ExocortexEvent[] => {
     const eventsForDay: ExocortexEvent[] = [];
 
-    // Debug: Log all available days
-    console.log(`Processing day ${targetDay.date}. Available days:`, allDays.map(d => d.date));
-
     // First, find spanning events from other days that overlap with this day
     allDays.forEach(day => {
       if (day.date === targetDay.date) return; // Skip the same day
-
-      console.log(`Checking day ${day.date} for events that might span to ${targetDay.date}`);
 
       day.events.forEach(event => {
         const eventEndTime = new Date(event.endTime);
@@ -369,37 +351,9 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         const endDay = eventEndTime.toISOString().split('T')[0];
         const targetDayDate = targetDay.date;
 
-        // Debug logging for sleep events
-        if (event.category === 'Sleep') {
-          console.log('Checking sleep event for spanning:', {
-            eventId: event.id,
-            sourceDay: day.date,
-            targetDay: targetDayDate,
-            startDay,
-            endDay,
-            startTime: eventStartTime.toISOString(),
-            endTime: eventEndTime.toISOString(),
-            isSpanning: startDay !== endDay,
-            startsOnTargetDay: startDay === targetDayDate,
-            endsOnTargetDay: endDay === targetDayDate,
-            overlapsTargetDay: startDay <= targetDayDate && endDay >= targetDayDate
-          });
-        }
-
         // Check if this event spans across the target day
         // The event should start on or before the target day and end on or after the target day
         if (startDay !== endDay && startDay <= targetDayDate && endDay >= targetDayDate) {
-          // Debug logging for sleep events
-          if (event.category === 'Sleep') {
-            console.log('Adding spanning sleep event:', {
-              eventId: event.id,
-              targetDay: targetDayDate,
-              startDay,
-              endDay,
-              newId: `${event.id}-span-${targetDayDate}`
-            });
-          }
-
           // Add the spanning portion
           eventsForDay.push({
             ...event,
@@ -413,11 +367,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     targetDay.events.forEach(event => {
       eventsForDay.push(event);
     });
-
-    // Debug logging for final events list
-    if (targetDay.events.some(e => e.category === 'Sleep')) {
-      console.log(`Events for day ${targetDay.date}:`, eventsForDay);
-    }
 
     // Sort events by end time to maintain proper sequence
     eventsForDay.sort((a, b) => a.endTime - b.endTime);
