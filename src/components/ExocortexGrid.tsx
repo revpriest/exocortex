@@ -227,6 +227,12 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         break;
     }
 
+    // Ensure we have positive duration
+    if (portionEndTime.getTime() <= portionStartTime.getTime()) {
+      // Fallback: make it at least 1 hour long
+      portionEndTime = new Date(portionStartTime.getTime() + 60 * 60 * 1000);
+    }
+
     const startHour = (portionStartTime.getTime() - dayStart.getTime()) / (1000 * 60 * 60);
     const durationHours = (portionEndTime.getTime() - portionStartTime.getTime()) / (1000 * 60 * 60);
 
@@ -256,6 +262,19 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     const startDay = eventStartTime.toISOString().split('T')[0];
     const endDay = eventEndTime.toISOString().split('T')[0];
 
+    // Debug logging for sleep events
+    if (event.category === 'Sleep') {
+      console.log('Sleep event portion detection:', {
+        eventId: event.id,
+        dayDate,
+        startDay,
+        endDay,
+        startTime: eventStartTime.toISOString(),
+        endTime: eventEndTime.toISOString(),
+        portionType: startDay === endDay ? 'full' : dayDate === startDay ? 'start' : dayDate === endDay ? 'end' : 'middle'
+      });
+    }
+
     if (startDay === endDay) {
       return 'full';
     }
@@ -275,47 +294,52 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const getEventsForDay = (targetDay: DayEvents, allDays: DayEvents[]): ExocortexEvent[] => {
     const eventsForDay: ExocortexEvent[] = [];
 
-    // First, find any spanning events from previous days that end on this day
-    const previousDayIndex = allDays.findIndex(day => day.date === targetDay.date) - 1;
-    let lastSpanningEventEnd: number | null = null;
+    // First, find spanning events from previous days that end on this day
+    allDays.forEach(day => {
+      if (day.date === targetDay.date) return; // Skip the same day
 
-    if (previousDayIndex >= 0) {
-      const previousDay = allDays[previousDayIndex];
-      previousDay.events.forEach(event => {
+      day.events.forEach(event => {
         const eventEndTime = new Date(event.endTime);
-        const eventStartTime = new Date(getEventStartTime(event, previousDay.events, previousDay.events.indexOf(event)));
+        const eventStartTime = new Date(getEventStartTime(event, day.events, day.events.indexOf(event)));
 
         const startDay = eventStartTime.toISOString().split('T')[0];
         const endDay = eventEndTime.toISOString().split('T')[0];
+        const targetDayDate = targetDay.date;
 
-        // If this event spans into the target day
-        if (startDay !== endDay && endDay === targetDay.date) {
+        // Check if this event spans into the target day
+        if (startDay !== endDay && endDay === targetDayDate) {
+          // Debug logging for sleep events
+          if (event.category === 'Sleep') {
+            console.log('Adding spanning sleep event:', {
+              eventId: event.id,
+              targetDay: targetDayDate,
+              startDay,
+              endDay,
+              newId: `${event.id}-span-${targetDayDate}`
+            });
+          }
+
           // Add the spanning portion
           eventsForDay.push({
             ...event,
-            id: `${event.id}-span-${targetDay.date}`
+            id: `${event.id}-span-${targetDayDate}`
           });
-          lastSpanningEventEnd = event.endTime;
         }
       });
-    }
+    });
 
     // Then add the regular events for this day
     targetDay.events.forEach(event => {
       eventsForDay.push(event);
     });
 
+    // Debug logging for final events list
+    if (targetDay.events.some(e => e.category === 'Sleep')) {
+      console.log(`Events for day ${targetDay.date}:`, eventsForDay);
+    }
+
     // Sort events by end time to maintain proper sequence
     eventsForDay.sort((a, b) => a.endTime - b.endTime);
-
-    // If there was a spanning event, adjust the start time of the first regular event
-    if (lastSpanningEventEnd && eventsForDay.length > 0) {
-      const firstRegularEventIndex = eventsForDay.findIndex(event => !event.id.includes('-span-'));
-      if (firstRegularEventIndex > 0) {
-        // The first regular event should start at the end of the spanning event
-        // We'll handle this in the rendering logic
-      }
-    }
 
     return eventsForDay;
   };
