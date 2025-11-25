@@ -12,7 +12,7 @@ interface ExocortexGridProps {
 
 const HOURS_IN_DAY = 24;
 const HOUR_WIDTH = 60; // pixels per hour
-const ROW_HEIGHT = 80; // pixels per day row
+const ROW_HEIGHT = 100; // pixels per day row - increased for mobile touch targets
 
 export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [days, setDays] = useState<DayEvents[]>([]);
@@ -508,15 +508,15 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header with import/export */}
+      {/* Header with import/export - mobile optimized */}
       <div className="mb-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <h1 className="text-xl font-semibold text-white">
             Exocortex
           </h1>
 
-          {/* Import/Export buttons */}
-          <div className="flex space-x-2">
+          {/* Import/Export buttons - mobile responsive */}
+          <div className="flex flex-wrap gap-2 justify-start">
             <Button
               variant="outline"
               size="sm"
@@ -525,8 +525,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               disabled={!db}
               title="Export data to JSON file"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Export
+              <Download className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Export</span>
             </Button>
             <Button
               variant="outline"
@@ -536,8 +536,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               disabled={!db}
               title="Import data from JSON file"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Import
+              <Upload className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Import</span>
             </Button>
             <Button
               variant="outline"
@@ -547,8 +547,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               disabled={!db}
               title="Generate random test data for the past 30 days"
             >
-              <Database className="h-4 w-4 mr-2" />
-              Test Data
+              <Database className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Test</span>
             </Button>
             <Button
               variant="outline"
@@ -558,8 +558,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               disabled={!db}
               title="Clear all events from the database"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear
+              <Trash2 className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Clear</span>
             </Button>
           </div>
         </div>
@@ -576,22 +576,22 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         )}
       </div>
 
-      {/* Grid container */}
+      {/* Grid container - mobile optimized */}
       <div
         ref={gridRef}
         className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg"
         style={{
-          maxHeight: '80vh',
+          maxHeight: 'calc(100vh - 200px)', // More space for mobile
           minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`
         }}
       >
-        {/* Hour headers */}
+        {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
           <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
-                className="text-xs text-gray-400 border-r border-gray-700 px-2 py-1 text-center flex-shrink-0"
+                className="text-xs md:text-sm text-gray-400 border-r border-gray-700 px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
                 style={{ width: `${HOUR_WIDTH}px` }}
               >
                 {hour}
@@ -611,8 +611,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                 minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`
               }}
             >
-              {/* Date label */}
-              <div className="absolute left-2 top-2 text-sm text-gray-400 z-20">
+              {/* Date label - mobile optimized */}
+              <div className="absolute left-2 top-2 text-xs md:text-sm text-gray-400 z-20 select-none">
                 {new Date(day.date).toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
@@ -632,24 +632,24 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                 ))}
               </div>
 
-              {/* Events */}
+              {/* Events - mobile optimized */}
               <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
                 {day.events.map((event, eventIndex) => (
                   <div
                     key={event.id}
-                    className="absolute top-2 h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                    className="absolute top-2 h-20 md:h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
                     style={calculateEventStyle(event, day.events, eventIndex)}
                     onClick={() => handleEventClick(event)}
                   >
                     <div className="p-2 h-full flex flex-col items-center justify-center text-center">
-                      <div className="text-xs font-medium truncate w-full mb-1" style={{ color: getTextColor(event) }}>
+                      <div className="text-xs md:text-sm font-medium truncate w-full mb-1" style={{ color: getTextColor(event) }}>
                         {event.category}
                       </div>
                       <SmileyFace
                         health={event.health}
                         wakefulness={event.wakefulness}
                         happiness={event.happiness}
-                        size={20}
+                        size={24}
                       />
                     </div>
                   </div>
@@ -672,13 +672,18 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         </div>
       </div>
 
-      {/* Floating add button */}
+      {/* Floating add button - mobile optimized */}
       <Button
         size="lg"
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700"
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-16 h-16 md:w-14 md:h-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 z-50 touch-manipulation"
         onClick={handleOpenAddDialog}
+        style={{
+          // Ensure button stays within safe areas on mobile
+          paddingBottom: 'env(safe-area-inset-bottom, 1rem)',
+          paddingRight: 'env(safe-area-inset-right, 1rem)',
+        }}
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-7 w-7 md:h-6 md:w-6" />
       </Button>
 
       {/* Event dialog */}
