@@ -187,24 +187,32 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
         endDate.toISOString().split('T')[0]
       );
 
+      console.log('Days loaded:', days.length);
+      console.log('Events breakdown:', days.map(day => ({ date: day.date, eventCount: day.events.length })));
+
       // Extract all categories and get unique ones, keeping most recent first
       const allCategories = days.flatMap(day => day.events.map(event => event.category));
-      const uniqueCategories = [...new Set(allCategories.reverse())].slice(0, 12);
+      console.log('All categories found:', allCategories);
+
+      // Reverse to get most recent first, then get unique ones
+      const reversedCategories = [...allCategories].reverse();
+      const uniqueCategories = [...new Set(reversedCategories)].slice(0, 12);
 
       console.log('Categories loaded:', uniqueCategories);
 
       // If no categories found, add some default ones for testing
       if (uniqueCategories.length === 0) {
-        const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study'];
+        const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
         setRecentCategories(defaultCategories);
         console.log('Using default categories:', defaultCategories);
       } else {
         setRecentCategories(uniqueCategories);
+        console.log('Using existing categories:', uniqueCategories);
       }
     } catch (error) {
       console.error('Failed to load recent categories:', error);
       // Add default categories even if there's an error
-      const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study'];
+      const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
       setRecentCategories(defaultCategories);
     }
   };
