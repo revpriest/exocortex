@@ -510,16 +510,11 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
           {/* Time selection */}
           <div className={`${isMobile ? '!space-y-0' : 'space-y-1'}`}>
-            {startTime && (
-              <div className="flex items-center space-x-2 mb-2 text-xs text-gray-400">
-                <span>Start time: {startTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} at {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            )}
-            <Label className={`${isMobile ? '!text-xs' : 'text-sm'}`}>End Time</Label>
+            <Label className={`${isMobile ? '!text-xs' : 'text-sm'}`}>Time</Label>
             <div className="flex items-center space-x-2">
               <Clock className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'} text-gray-400`} />
               <span className={`${isMobile ? '!text-xs' : 'text-sm'}`}>
-                {formatDate(endTime)} at {formatTime(endTime)}
+                {startTime ? `${formatTime(startTime)} → ${formatTime(endTime)}` : formatTime(endTime)}
               </span>
             </div>
 
