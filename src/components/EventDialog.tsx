@@ -299,9 +299,9 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={`${isMobile ? 'w-[95vw] max-w-none mx-4' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white ${isMobile ? 'max-h-[90vh] overflow-y-auto' : ''}`}>
-          <DialogHeader>
-            <DialogTitle className={isMobile ? 'text-lg' : ''}>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
+        <DialogContent className={`${isMobile ? 'w-[90vw] max-w-[90vw] sm:max-w-[400px] mx-auto' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white ${isMobile ? 'max-h-[80vh] overflow-y-auto' : ''}`}>
+          <DialogHeader className={isMobile ? 'pb-2' : ''}>
+            <DialogTitle className={isMobile ? 'text-base' : ''}>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           </DialogHeader>
 
           {/* Error display */}
@@ -313,22 +313,22 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           )}
 
           {/* Smiley face canvas with color preview background */}
-          <div className="flex justify-center py-2">
+          <div className={`flex justify-center ${isMobile ? 'py-1' : 'py-2'}`}>
             <div className="relative">
               <div
-                className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} rounded-full border-2 border-gray-600`}
+                className={`${isMobile ? 'w-20 h-20' : 'w-32 h-32'} rounded-full border-2 border-gray-600`}
                 style={{ backgroundColor: getColorPreview() }}
               />
               <canvas
                 ref={canvasRef}
-                width={isMobile ? "96" : "128"}
-                height={isMobile ? "96" : "128"}
-                className={`absolute top-0 left-0 ${isMobile ? 'w-24 h-24' : 'w-32 h-32'}`}
+                width={isMobile ? "80" : "128"}
+                height={isMobile ? "80" : "128"}
+                className={`absolute top-0 left-0 ${isMobile ? 'w-20 h-20' : 'w-32 h-32'}`}
               />
             </div>
           </div>
 
-        <div className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
+        <div className={`${isMobile ? 'space-y-2' : 'space-y-4'}`}>
           {/* Category input with dropdown */}
           <div className="space-y-1">
             <Label htmlFor="category" className="text-sm">Category</Label>
@@ -506,11 +506,11 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className={`${isMobile ? 'w-[95vw] max-w-none mx-4' : 'sm:max-w-sm'} bg-gray-800 border-gray-700 text-white`}>
-          <DialogHeader>
-            <DialogTitle className={isMobile ? 'text-lg' : ''}>Delete Event</DialogTitle>
+        <DialogContent className={`${isMobile ? 'w-[90vw] max-w-[90vw] sm:max-w-[350px] mx-auto' : 'sm:max-w-sm'} bg-gray-800 border-gray-700 text-white`}>
+          <DialogHeader className={isMobile ? 'pb-2' : ''}>
+            <DialogTitle className={isMobile ? 'text-base' : ''}>Delete Event</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+          <div className={isMobile ? 'py-2' : 'py-4'}>
             <p className="text-sm text-gray-300">
               Are you sure you want to delete this event? This action cannot be undone.
             </p>
