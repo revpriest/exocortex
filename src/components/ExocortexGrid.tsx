@@ -596,8 +596,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       const events: Omit<ExocortexEvent, 'id'>[] = [];
 
       // Generate events for each day
+      const generatedDays: string[] = [];
       for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
         const dayEvents: Omit<ExocortexEvent, 'id'>[] = [];
+        const currentDateStr = currentDate.toISOString().split('T')[0];
+        generatedDays.push(currentDateStr);
 
         // Create sleep event that starts around 22:00 and lasts 7-8 hours
         const sleepStartHour = 20 + Math.floor(Math.random() * 3); // 20:00, 21:00, or 22:00
@@ -736,26 +739,76 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         await db.addEvent(event);
       }
 
+      // DEBUG: Log which days were generated
+      console.log('Generated test data for days:', generatedDays);
+      console.log('Total events generated:', events.length);
+
       // Refresh the grid to show test data - reload past 30 days
       const testEndDate = new Date();
       testEndDate.setDate(testEndDate.getDate() - 1); // Yesterday
       const testStartDate = new Date();
       testStartDate.setDate(testStartDate.getDate() - 30); // 30 days ago
 
+      // DEBUG: Log the date range we're trying to load
+      console.log('Loading test data range:', {
+        startDate: testStartDate.toISOString().split('T')[0],
+        endDate: testEndDate.toISOString().split('T')[0]
+      });
+
       const daysWithEvents = await db.getEventsByDateRange(
         testStartDate.toISOString().split('T')[0],
         testEndDate.toISOString().split('T')[0]
       );
 
+      // DEBUG: Log what we actually loaded
+      console.log('Loaded days with events:', daysWithEvents.map(d => ({
+        date: d.date,
+        eventCount: d.events.length
+      })));
+
       // Also get today's events (should be empty)
       const today = new Date().toISOString().split('T')[0];
       const todayEvents = await db.getEventsByDate(today);
 
+      // DEBUG: Check if yesterday is missing
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const hasYesterday = daysWithEvents.some(day => day.date === yesterdayStr);
+
+      console.log('Yesterday check:', {
+        yesterday: yesterdayStr,
+        hasYesterdayInLoaded: hasYesterday,
+        yesterdayEventCount: hasYesterday ? daysWithEvents.find(d => d.date === yesterdayStr)?.events.length : 0
+      });
+
+      // If yesterday is missing, let's try to load it explicitly
+      if (!hasYesterday) {
+        console.log('Yesterday is missing, loading explicitly...');
+        const yesterdayEvents = await db.getEventsByDate(yesterdayStr);
+        if (yesterdayEvents.length > 0) {
+          daysWithEvents.push({ date: yesterdayStr, events: yesterdayEvents });
+          console.log('Added yesterday with', yesterdayEvents.length, 'events');
+        }
+      }
+
+      // Sort daysWithEvents by date (newest first) before adding today
+      daysWithEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
       // CRITICAL FIX: Proper ordering - today should be first (most recent), then past days in reverse chronological order
       const allDays = [
         { date: today, events: todayEvents }, // Today first (most recent)
-        ...daysWithEvents.reverse() // Then past days with yesterday at the top
+        ...daysWithEvents // Then past days (already sorted with yesterday first)
       ];
+
+      // DEBUG: Log final structure
+      console.log('Final days structure:', allDays.map((day, index) => ({
+        index,
+        date: day.date,
+        eventCount: day.events.length,
+        isToday: day.date === today,
+        isYesterday: day.date === yesterdayStr
+      })));
 
       setDays(allDays);
 
