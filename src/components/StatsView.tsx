@@ -278,6 +278,7 @@ export function StatsView({ className }: StatsViewProps) {
       .sort((a, b) => b.hours - a.hours)
       .slice(0, 10); // Top 10 categories
 
+    // Debug to see category order and check for "Exercise"
     return data;
   }, [events]);
 
@@ -463,17 +464,23 @@ export function StatsView({ className }: StatsViewProps) {
         </CardHeader>
         <CardContent>
           {categoryData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={500}>
               <BarChart
                 data={categoryData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis
                   type="category"
                   dataKey="category"
                   stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF', angle: -45, textAnchor: 'end', height: 100 }}
+                  tick={{
+                    fill: '#9CA3AF',
+                    angle: 0,
+                    textAnchor: 'middle',
+                    fontSize: 13,
+                    interval: 0
+                  }}
                 />
                 <YAxis
                   type="number"
