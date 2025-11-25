@@ -171,11 +171,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         return estimatedStartTime.getTime();
       }
 
-      // For regular events during the day, assume they start at 7:00 AM if they're the first event
-      // This is a reasonable assumption for the test data
+      // FIX: For regular events, assume they start at midnight (00:00) if they're the first event
+      // This makes more sense since the day starts at midnight, not 7:00 AM
       const eventEndTime = new Date(event.endTime);
       const eventDate = new Date(eventEndTime);
-      eventDate.setHours(7, 0, 0, 0); // 7:00 AM start of day
+      eventDate.setHours(0, 0, 0, 0); // 00:00 (midnight) start of day
 
       return eventDate.getTime();
     } else {
