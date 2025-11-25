@@ -14,13 +14,18 @@ interface EventDialogProps {
   onUpdate?: (id: string, event: Omit<ExocortexEvent, 'id'>) => void;
   onDelete?: (id: string) => void;
   editEvent?: ExocortexEvent | null;
+  defaultValues?: {
+    happiness: number;
+    wakefulness: number;
+    health: number;
+  };
 }
 
-export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, editEvent }: EventDialogProps) {
+export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, editEvent, defaultValues }: EventDialogProps) {
   const [category, setCategory] = useState('');
-  const [happiness, setHappiness] = useState([0.7]);
-  const [wakefulness, setWakefulness] = useState([0.8]);
-  const [health, setHealth] = useState([0.9]);
+  const [happiness, setHappiness] = useState([defaultValues?.happiness || 0.7]);
+  const [wakefulness, setWakefulness] = useState([defaultValues?.wakefulness || 0.8]);
+  const [health, setHealth] = useState([defaultValues?.health || 0.9]);
   const [endTime, setEndTime] = useState(new Date());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -35,13 +40,13 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
         setEndTime(new Date(editEvent.endTime));
       } else {
         setCategory('');
-        setHappiness([0.7]);
-        setWakefulness([0.8]);
-        setHealth([0.9]);
+        setHappiness([defaultValues?.happiness || 0.7]);
+        setWakefulness([defaultValues?.wakefulness || 0.8]);
+        setHealth([defaultValues?.health || 0.9]);
         setEndTime(new Date());
       }
     }
-  }, [open, editEvent]);
+  }, [open, editEvent, defaultValues]);
 
   const handleSubmit = () => {
     if (!category.trim()) {

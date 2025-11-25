@@ -18,6 +18,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
+  const [defaultValues, setDefaultValues] = useState({
+    happiness: 0.7,
+    wakefulness: 0.8,
+    health: 0.9,
+  });
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -139,6 +144,25 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     }
   };
 
+  const getLatestEventDefaults = async () => {
+    if (!db) return { happiness: 0.7, wakefulness: 0.8, health: 0.9 };
+
+    try {
+      const latestEvent = await db.getLatestEvent();
+      if (latestEvent) {
+        return {
+          happiness: latestEvent.happiness,
+          wakefulness: latestEvent.wakefulness,
+          health: latestEvent.health,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to get latest event:', error);
+    }
+
+    return { happiness: 0.7, wakefulness: 0.8, health: 0.9 };
+  };
+
   const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
 
@@ -193,6 +217,18 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const handleDialogClose = () => {
     setIsDialogOpen(false);
     setEditingEvent(null);
+  };
+
+  const handleOpenAddDialog = async () => {
+    if (!db) {
+      setIsDialogOpen(true);
+      return;
+    }
+
+    // Get defaults from latest event
+    const defaults = await getLatestEventDefaults();
+    setDefaultValues(defaults);
+    setIsDialogOpen(true);
   };
 
   if (loading && days.length === 0) {
@@ -296,7 +332,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       <Button
         size="lg"
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700"
-        onClick={() => setIsDialogOpen(true)}
+        onClick={handleOpenAddDialog}
       >
         <Plus className="h-6 w-6" />
       </Button>
@@ -309,6 +345,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         onUpdate={handleUpdateEvent}
         onDelete={handleDeleteEvent}
         editEvent={editingEvent}
+        defaultValues={defaultValues}
       />
     </div>
   );
