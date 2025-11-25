@@ -22,6 +22,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   const [wakefulness, setWakefulness] = useState([0.8]);
   const [health, setHealth] = useState([0.9]);
   const [endTime, setEndTime] = useState(new Date());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Reset form when dialog opens or editEvent changes
   useEffect(() => {
@@ -69,15 +70,26 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   };
 
   const handleDelete = () => {
-    if (editEvent && onDelete && confirm('Are you sure you want to delete this event?')) {
+    if (editEvent && onDelete) {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (editEvent && onDelete) {
       try {
         onDelete(editEvent.id);
         onOpenChange(false);
+        setShowDeleteConfirm(false);
       } catch (error) {
         console.error('Error deleting event:', error);
         alert('Failed to delete event. Please try again.');
       }
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
   };
 
   const adjustTime = (minutes: number) => {
@@ -116,11 +128,12 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700 text-white">
-        <DialogHeader>
-          <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
+          </DialogHeader>
 
         <div className="space-y-6">
           {/* Category input */}
@@ -264,5 +277,36 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <DialogContent className="sm:max-w-sm bg-gray-800 border-gray-700 text-white">
+        <DialogHeader>
+          <DialogTitle>Delete Event</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-gray-300">
+            Are you sure you want to delete this event? This action cannot be undone.
+          </p>
+        </div>
+        <div className="flex justify-end space-x-2">
+          <Button
+            variant="outline"
+            onClick={cancelDelete}
+            className="bg-gray-700 border-gray-600"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={confirmDelete}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
