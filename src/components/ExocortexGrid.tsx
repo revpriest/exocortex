@@ -1113,10 +1113,10 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     <div className={`relative ${className}`}>
       {/* Header with import/export - mobile optimized */}
       <div className="mb-4">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-          <h1 className="text-xl font-semibold text-white">
-            Exocortex
-          </h1>
+        <div className="flex justify-between items-center gap-4">
+          <h2 className="text-lg font-semibold text-white">
+            Time Grid
+          </h2>
 
           {/* Import/Export buttons - mobile responsive */}
           <div className="flex flex-wrap gap-2 justify-start">

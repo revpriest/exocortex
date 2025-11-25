@@ -2,23 +2,38 @@
  * Index.tsx - Main Application Page
  *
  * This is the main page users see when they visit the app.
- * It displays the time tracking grid interface.
+ * It displays both the time tracking grid and statistics interfaces
+ * with navigation to switch between them.
  *
  * In a single-page app, this is essentially our "home screen".
  */
 
+import React, { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
+import { StatsView } from '@/components/StatsView';
+import { Button } from '@/components/ui/button';
+import { Grid3X3, BarChart3 } from 'lucide-react';
 
 /**
  * Index Component
  *
  * This is the main page component that:
  * 1. Sets SEO metadata for search engines and browser tabs
- * 2. Renders the main time tracking grid
- * 3. Provides responsive layout and styling
+ * 2. Provides navigation between grid and stats views
+ * 3. Renders the appropriate view based on user selection
+ * 4. Provides responsive layout and styling
  */
 const Index = () => {
+  /**
+   * State Management
+   *
+   * currentView: Controls which interface is displayed
+   * - 'grid': Shows the time tracking grid
+   * - 'stats': Shows the statistics and analytics
+   */
+  const [currentView, setCurrentView] = useState<'grid' | 'stats'>('grid');
+
   /**
    * Set SEO (Search Engine Optimization) metadata
    *
@@ -32,6 +47,20 @@ const Index = () => {
     title: 'Exocortex - Time Tracking',
     description: 'A visual time tracking app that displays your daily events in a colorful grid pattern.',
   });
+
+  /**
+   * Navigation Handler Functions
+   *
+   * These functions handle switching between the different views.
+   * They update the state which triggers a re-render with the new view.
+   */
+  const handleGridClick = () => {
+    setCurrentView('grid');
+  };
+
+  const handleStatsClick = () => {
+    setCurrentView('stats');
+  };
 
   /**
    * Page Layout Structure
@@ -50,16 +79,55 @@ const Index = () => {
         and centers it horizontally with mx-auto (margin-left: auto; margin-right: auto)
       */}
       <div className="max-w-7xl mx-auto">
-        {/*
-          ExocortexGrid is the main component that handles:
-          - Displaying events in a grid layout
-          - Managing user interactions (add, edit, delete events)
-          - Handling data loading and saving
-          - Infinite scroll for past days
+        {/* Navigation Header */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              Exocortex
+            </h1>
 
-          The className="w-full" ensures it takes full width of container.
+            {/* View Toggle Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant={currentView === 'grid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleGridClick}
+                className={
+                  currentView === 'grid'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
+                }
+              >
+                <Grid3X3 className="h-4 w-4 mr-2" />
+                Grid
+              </Button>
+              <Button
+                variant={currentView === 'stats' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleStatsClick}
+                className={
+                  currentView === 'stats'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
+                }
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Stats
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        {/*
+          Conditionally render either the grid or stats view based on currentView state.
+          The className="w-full" ensures the component takes full width of container.
         */}
-        <ExocortexGrid className="w-full" />
+        {currentView === 'grid' ? (
+          <ExocortexGrid className="w-full" />
+        ) : (
+          <StatsView className="w-full" />
+        )}
       </div>
     </div>
   );
