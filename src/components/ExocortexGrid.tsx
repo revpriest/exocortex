@@ -237,11 +237,29 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     if (!db) return;
 
     try {
-      await DataExporter.exportDatabase(db);
-      setError(null); // Clear any previous errors
+      await DataExporter.copyToClipboard(db);
+      setError('Export data copied to clipboard! Paste it into a text file and save as .json');
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setError(null), 5000);
     } catch (error) {
       console.error('Export failed:', error);
       setError('Failed to export database. Please try again.');
+    }
+  };
+
+  const handleExportToNewTab = async () => {
+    if (!db) return;
+
+    try {
+      await DataExporter.openInNewTab(db);
+      setError('Export opened in new tab! Save the page as a .json file.');
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setError(null), 5000);
+    } catch (error) {
+      console.error('Export to new tab failed:', error);
+      setError(error instanceof Error ? error.message : 'Failed to open export in new tab.');
     }
   };
 
@@ -325,9 +343,21 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               onClick={handleExportDatabase}
               className="bg-gray-700 border-gray-600 text-white"
               disabled={!db}
+              title="Copy export data to clipboard"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export
+              Copy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportToNewTab}
+              className="bg-gray-700 border-gray-600 text-white"
+              disabled={!db}
+              title="Open export data in new tab"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              View
             </Button>
             <Button
               variant="outline"
@@ -335,6 +365,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
               onClick={handleImportDatabase}
               className="bg-gray-700 border-gray-600 text-white"
               disabled={!db}
+              title="Import data from JSON file"
             >
               <Upload className="h-4 w-4 mr-2" />
               Import
