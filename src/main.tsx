@@ -11,11 +11,14 @@ import './index.css';
 // import '@fontsource-variable/<font-name>';
 
 // Register service worker for PWA offline functionality
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    console.log('Attempting to register service worker...');
+
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
-        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        console.log('✅ ServiceWorker registration successful with scope: ', registration.scope);
+        console.log('ServiceWorker state:', registration.installing ? 'installing' : 'installed');
 
         // Check for updates periodically
         setInterval(() => {
@@ -23,9 +26,11 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
         }, 60 * 60 * 1000); // Check every hour
       })
       .catch((error) => {
-        console.log('ServiceWorker registration failed: ', error);
+        console.log('❌ ServiceWorker registration failed: ', error);
       });
   });
+} else {
+  console.log('⚠️ Service workers are not supported in this browser');
 }
 
 createRoot(document.getElementById("root")!).render(
