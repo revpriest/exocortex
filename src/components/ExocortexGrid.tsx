@@ -606,7 +606,18 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
         const sleepStart = new Date(currentDate);
         sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
-        const sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
+        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
+
+        // CRITICAL FIX: Ensure sleep events don't cross into today
+        // If this is yesterday's sleep event, make sure it ends before today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+        if (sleepEnd >= today) {
+          // Adjust sleep duration to end before today
+          const maxDuration = today.getTime() - sleepStart.getTime();
+          const adjustedDurationHours = Math.max(6, (maxDuration / (60 * 60 * 1000)) - 0.5); // At least 6 hours
+          sleepEnd = new Date(sleepStart.getTime() + adjustedDurationHours * 60 * 60 * 1000);
+        }
 
         // Sleep event with typical sleep values
         const sleepEvent = {
@@ -663,53 +674,57 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
           currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
         }
 
-        // Evening activities (after sleep ends, on the next day)
+        // Evening activities (after sleep ends, on the next day) - ONLY if the next day is not today
         const nextDay = new Date(currentDate);
         nextDay.setDate(nextDay.getDate() + 1);
-        const eveningStart = new Date(Math.max(sleepEnd.getTime(), new Date(nextDay).setHours(7, 0, 0, 0)));
-        const endOfDay = new Date(nextDay);
-        endOfDay.setHours(23, 59, 59, 999);
 
-        currentTime = new Date(eveningStart);
+        // Only add evening activities if the next day is not today
+        if (nextDay < today) {
+          const eveningStart = new Date(Math.max(sleepEnd.getTime(), new Date(nextDay).setHours(7, 0, 0, 0)));
+          const endOfDay = new Date(nextDay);
+          endOfDay.setHours(23, 59, 59, 999);
 
-        while (currentTime < endOfDay) {
-          const timeUntilEnd = endOfDay.getTime() - currentTime.getTime();
+          currentTime = new Date(eveningStart);
 
-          // Don't create events too close to next sleep time
-          const nextSleepStart = new Date(nextDay);
-          nextSleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
-          const timeUntilNextSleep = nextSleepStart.getTime() - currentTime.getTime();
+          while (currentTime < endOfDay) {
+            const timeUntilEnd = endOfDay.getTime() - currentTime.getTime();
 
-          if (timeUntilNextSleep < 60 * 60 * 1000) break; // Less than 1 hour before next sleep
+            // Don't create events too close to next sleep time
+            const nextSleepStart = new Date(nextDay);
+            nextSleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
+            const timeUntilNextSleep = nextSleepStart.getTime() - currentTime.getTime();
 
-          // Random duration between 30 minutes and 3 hours
-          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilEnd, timeUntilNextSleep - 30 * 60 * 1000);
-          if (maxDuration <= 0) break;
+            if (timeUntilNextSleep < 60 * 60 * 1000) break; // Less than 1 hour before next sleep
 
-          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
-          const actualDuration = Math.min(durationMs, maxDuration);
+            // Random duration between 30 minutes and 3 hours
+            const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilEnd, timeUntilNextSleep - 30 * 60 * 1000);
+            if (maxDuration <= 0) break;
 
-          const category = categories[Math.floor(Math.random() * categories.length)];
+            const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
+            const actualDuration = Math.min(durationMs, maxDuration);
 
-          // Evening mood values (can be more variable)
-          const happiness = Math.random() * 0.6 + 0.3; // 0.3-0.9
-          const wakefulness = Math.random() * 0.5 + 0.3; // 0.3-0.8 (getting tired)
-          const health = Math.random() * 0.4 + 0.5; // 0.5-0.9
+            const category = categories[Math.floor(Math.random() * categories.length)];
 
-          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
+            // Evening mood values (can be more variable)
+            const happiness = Math.random() * 0.6 + 0.3; // 0.3-0.9
+            const wakefulness = Math.random() * 0.5 + 0.3; // 0.3-0.8 (getting tired)
+            const health = Math.random() * 0.4 + 0.5; // 0.5-0.9
 
-          const event = {
-            endTime: eventEndTime.getTime(),
-            category,
-            happiness,
-            wakefulness,
-            health,
-          };
+            const eventEndTime = new Date(currentTime.getTime() + actualDuration);
 
-          dayEvents.push(event);
+            const event = {
+              endTime: eventEndTime.getTime(),
+              category,
+              happiness,
+              wakefulness,
+              health,
+            };
 
-          // Move to next event time with some gap
-          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
+            dayEvents.push(event);
+
+            // Move to next event time with some gap
+            currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
+          }
         }
 
         // Add all events for this day
@@ -736,8 +751,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       const today = new Date().toISOString().split('T')[0];
       const todayEvents = await db.getEventsByDate(today);
 
-      // Combine all days and reverse to show most recent first
-      const allDays = [...daysWithEvents.reverse(), { date: today, events: todayEvents }];
+      // CRITICAL FIX: Proper ordering - today should be first (most recent), then past days in reverse chronological order
+      const allDays = [
+        { date: today, events: todayEvents }, // Today first (most recent)
+        ...daysWithEvents.reverse() // Then past days with yesterday at the top
+      ];
 
       setDays(allDays);
 
