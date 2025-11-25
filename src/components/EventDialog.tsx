@@ -107,13 +107,13 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     ctx.fillStyle = '#333';
     ctx.fill();
 
-    // Draw mouth based on happiness (smooth curve)
+    // Draw mouth based on happiness (exaggerated curve)
     const mouthWidth = radius * 0.6;
-    const mouthY = centerY + radius * 0.2; // Lower position
+    const mouthY = centerY + radius * 0.25; // Even lower to compensate for exaggerated curve
 
-    // Calculate mouth curve height based on happiness
-    // -0.3 to 0.3 range: negative = sad, positive = happy
-    const mouthCurveHeight = (currentHappiness - 0.5) * 0.6 * radius;
+    // Calculate mouth curve height based on happiness (exaggerated)
+    // -0.6 to 0.6 range: negative = sad, positive = happy (twice the height)
+    const mouthCurveHeight = (currentHappiness - 0.5) * 1.2 * radius;
 
     ctx.beginPath();
     ctx.strokeStyle = '#333';
@@ -238,14 +238,20 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
             </Alert>
           )}
 
-          {/* Smiley face canvas */}
+          {/* Smiley face canvas with color preview background */}
           <div className="flex justify-center py-2">
-            <canvas
-              ref={canvasRef}
-              width="120"
-              height="120"
-              className="border border-gray-600 rounded-full bg-gray-700"
-            />
+            <div className="relative">
+              <div
+                className="w-32 h-32 rounded-full border-2 border-gray-600"
+                style={{ backgroundColor: getColorPreview() }}
+              />
+              <canvas
+                ref={canvasRef}
+                width="128"
+                height="128"
+                className="absolute top-0 left-0 w-32 h-32"
+              />
+            </div>
           </div>
 
         <div className="space-y-4">
@@ -353,14 +359,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
             />
           </div>
 
-          {/* Color preview */}
-          <div className="space-y-1">
-            <Label className="text-sm">Event Color Preview</Label>
-            <div
-              className="w-full h-8 rounded-md border border-gray-600"
-              style={{ backgroundColor: getColorPreview() }}
-            />
-          </div>
+
 
           {/* Action buttons */}
           <div className="flex justify-between items-center">
