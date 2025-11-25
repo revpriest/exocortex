@@ -411,7 +411,16 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={`${isMobile ? '!w-[85vw] !max-w-[85vw] !max-h-[80vh] !overflow-y-auto !p-4' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}>
+        <DialogContent
+          className={`${isMobile ? '!w-[85vw] !max-w-[85vw] !max-h-[80vh] overflow-y-scroll overscroll-behavior-contain !p-4' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}
+          style={isMobile ? {
+            height: '80vh',
+            maxHeight: '80vh',
+            overflowY: 'scroll',
+            WebkitOverflowScrolling: 'touch' as any,
+            scrollbarWidth: 'thin' as any
+          } : undefined}
+        >
           <DialogHeader>
             <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           </DialogHeader>
