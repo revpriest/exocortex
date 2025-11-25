@@ -1224,7 +1224,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               }}
             >
               {/* Date label - mobile optimized */}
-              <div className="absolute left-2 top-2 text-xs md:text-sm text-gray-400 z-20 select-none">
+              <div className="absolute left-2 -top-1 text-xs md:text-sm text-gray-400 z-20 select-none">
                 {new Date(day.date).toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
