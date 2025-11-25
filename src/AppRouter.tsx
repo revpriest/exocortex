@@ -15,6 +15,7 @@ import { ScrollToTop } from "./components/ScrollToTop";
 
 // Import page components
 import Index from "./pages/Index";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 
 /**
@@ -48,6 +49,11 @@ export function AppRouter() {
           This shows the main time tracking interface
         */}
         <Route path="/" element={<Index />} />
+
+        {/* Help route: Matches "/help"
+          This shows the about/help page
+        */}
+        <Route path="/help" element={<Help />} />
 
         {/*
           IMPORTANT: Add all custom routes ABOVE this catch-all route.

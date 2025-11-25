@@ -10,10 +10,11 @@
 
 import React, { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
+import { useNavigate } from 'react-router-dom';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
 import { Button } from '@/components/ui/button';
-import { Grid3X3, BarChart3 } from 'lucide-react';
+import { Grid3X3, BarChart3, HelpCircle } from 'lucide-react';
 
 /**
  * Index Component
@@ -25,6 +26,11 @@ import { Grid3X3, BarChart3 } from 'lucide-react';
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
+  /**
+   * Navigation hook for routing to other pages
+   */
+  const navigate = useNavigate();
+
   /**
    * State Management
    *
@@ -60,6 +66,10 @@ const Index = () => {
 
   const handleStatsClick = () => {
     setCurrentView('stats');
+  };
+
+  const handleHelpClick = () => {
+    navigate('/help');
   };
 
   /**
@@ -113,6 +123,15 @@ const Index = () => {
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Stats
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleHelpClick}
+                className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Help
               </Button>
             </div>
           </div>
