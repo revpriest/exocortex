@@ -13,6 +13,19 @@ interface ExocortexGridProps {
 const HOURS_IN_DAY = 24;
 const HOUR_WIDTH = 60; // pixels per hour on desktop
 const MOBILE_HOUR_WIDTH = 30; // pixels per hour on mobile - smaller to fit screen
+
+// CSS custom properties for responsive hour width
+const responsiveStyles = `
+  .exocortex-grid {
+    --hour-width: ${HOUR_WIDTH}px;
+  }
+
+  @media (max-width: 768px) {
+    .exocortex-grid {
+      --hour-width: ${MOBILE_HOUR_WIDTH}px;
+    }
+  }
+`;
 const ROW_HEIGHT = 80; // pixels per day row - balanced for mobile and desktop
 
 export function ExocortexGrid({ className }: ExocortexGridProps) {
@@ -150,13 +163,9 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     const startHour = (startTime - startOfDay.getTime()) / (1000 * 60 * 60);
     const durationHours = duration / (1000 * 60 * 60);
 
-    // Use responsive hour width
-    const isMobile = window.innerWidth < 768;
-    const hourWidth = isMobile ? MOBILE_HOUR_WIDTH : HOUR_WIDTH;
-
     return {
-      left: `${startHour * hourWidth}px`,
-      width: `${durationHours * hourWidth}px`,
+      left: `calc(${startHour} * var(--hour-width))`,
+      width: `calc(${durationHours} * var(--hour-width))`,
       backgroundColor: getEventColor(event),
     };
   };
@@ -584,12 +593,14 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       {/* Grid container - mobile optimized */}
       <div
         ref={gridRef}
-        className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg"
+        className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg exocortex-grid"
         style={{
           height: 'calc(100vh - 100px)', // More space - button should be immediately visible
           width: '100%',
         }}
       >
+        {/* Inject responsive styles */}
+        <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
           <div className="flex">
@@ -598,10 +609,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                 key={hour}
                 className="text-xs md:text-sm text-gray-400 border-r border-gray-700 px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
                 style={{
-                  width: `${HOUR_WIDTH}px`,
-                  '@media (max-width: 768px)': {
-                    width: `${MOBILE_HOUR_WIDTH}px`,
-                  }
+                  width: `var(--hour-width)`,
                 }}
               >
                 {hour}
@@ -637,10 +645,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                     key={hourIndex}
                     className="border-r border-gray-800 flex-shrink-0"
                     style={{
-                      width: `${HOUR_WIDTH}px`,
-                      '@media (max-width: 768px)': {
-                        width: `${MOBILE_HOUR_WIDTH}px`,
-                      }
+                      width: `var(--hour-width)`,
                     }}
                   />
                 ))}
