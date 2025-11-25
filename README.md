@@ -253,7 +253,9 @@ This is a personal project for time tracking, but feel free to:
 
 ## 📄 License
 
-This project is open source and available under the MIT License.
+This project is open source and available under the
+ (GPL V3)[https://www.gnu.org/licenses/gpl-3.0.en.html] License.
+
 
 ---
 
