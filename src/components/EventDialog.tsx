@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
 import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle, ChevronDown } from 'lucide-react';
 import { ExocortexDB } from '@/lib/exocortex';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // Helper function to draw smiley face
 function drawSmileyFaceOnCanvas(
@@ -100,6 +101,7 @@ interface EventDialogProps {
 }
 
 export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, editEvent, defaultValues }: EventDialogProps) {
+  const isMobile = useIsMobile();
   const [category, setCategory] = useState('');
   const [happinessState, setHappinessState] = useState([defaultValues?.happiness || 0.7]);
   const [wakefulnessState, setWakefulnessState] = useState([defaultValues?.wakefulness || 0.8]);
@@ -297,9 +299,9 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700 text-white" style={{ minWidth: '400px' }}>
+        <DialogContent className={`${isMobile ? 'w-[95vw] max-w-none mx-4' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white ${isMobile ? 'max-h-[90vh] overflow-y-auto' : ''}`}>
           <DialogHeader>
-            <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
+            <DialogTitle className={isMobile ? 'text-lg' : ''}>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           </DialogHeader>
 
           {/* Error display */}
@@ -314,19 +316,19 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           <div className="flex justify-center py-2">
             <div className="relative">
               <div
-                className="w-32 h-32 rounded-full border-2 border-gray-600"
+                className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32'} rounded-full border-2 border-gray-600`}
                 style={{ backgroundColor: getColorPreview() }}
               />
               <canvas
                 ref={canvasRef}
-                width="128"
-                height="128"
-                className="absolute top-0 left-0 w-32 h-32"
+                width={isMobile ? "96" : "128"}
+                height={isMobile ? "96" : "128"}
+                className={`absolute top-0 left-0 ${isMobile ? 'w-24 h-24' : 'w-32 h-32'}`}
               />
             </div>
           </div>
 
-        <div className="space-y-4">
+        <div className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
           {/* Category input with dropdown */}
           <div className="space-y-1">
             <Label htmlFor="category" className="text-sm">Category</Label>
@@ -354,7 +356,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
               {/* Dropdown menu */}
               {showDropdown && recentCategories.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
+                <div className={`absolute ${isMobile ? 'left-0 right-0 -ml-4 -mr-4' : 'left-0 right-0'} mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50 max-h-48 overflow-y-auto`}>
                   {recentCategories.map((cat, index) => (
                     <button
                       key={index}
@@ -364,7 +366,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                         e.stopPropagation();
                         handleCategorySelect(cat);
                       }}
-                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-600 focus:bg-gray-600 focus:outline-none transition-colors"
+                      className={`w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-600 focus:bg-gray-600 focus:outline-none transition-colors ${isMobile ? 'px-4' : ''}`}
                     >
                       {cat}
                     </button>
@@ -372,8 +374,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 </div>
               )}
               {showDropdown && recentCategories.length === 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50">
-                  <div className="px-3 py-2 text-sm text-gray-400">
+                <div className={`absolute ${isMobile ? 'left-0 right-0 -ml-4 -mr-4' : 'left-0 right-0'} mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50`}>
+                  <div className={`px-3 py-2 text-sm text-gray-400 ${isMobile ? 'px-4' : ''}`}>
                     No recent categories found
                   </div>
                 </div>
@@ -391,7 +393,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               </span>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex items-center space-x-2'}`}>
               <Button
                 variant="outline"
                 size="sm"
@@ -474,26 +476,26 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-between items-center">
+          <div className={`${isMobile ? 'flex-col space-y-2' : 'flex justify-between items-center'} ${isMobile ? 'pt-4' : ''}`}>
             {editEvent && onDelete && (
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="bg-red-600 hover:bg-red-700"
+                className={`bg-red-600 hover:bg-red-700 ${isMobile ? 'w-full' : ''}`}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </Button>
             )}
-            <div className="flex justify-end space-x-2 ml-auto">
+            <div className={`${isMobile ? 'flex space-x-2 w-full' : 'flex justify-end space-x-2 ml-auto'}`}>
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="bg-gray-700 border-gray-600"
+                className={`bg-gray-700 border-gray-600 ${isMobile ? 'flex-1' : ''}`}
               >
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleSubmit} className={`bg-blue-600 hover:bg-blue-700 ${isMobile ? 'flex-1' : ''}`}>
                 {editEvent ? 'Update Event' : 'Add Event'}
               </Button>
             </div>
@@ -504,27 +506,27 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="sm:max-w-sm bg-gray-800 border-gray-700 text-white">
+        <DialogContent className={`${isMobile ? 'w-[95vw] max-w-none mx-4' : 'sm:max-w-sm'} bg-gray-800 border-gray-700 text-white`}>
           <DialogHeader>
-            <DialogTitle>Delete Event</DialogTitle>
+            <DialogTitle className={isMobile ? 'text-lg' : ''}>Delete Event</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-gray-300">
               Are you sure you want to delete this event? This action cannot be undone.
             </p>
           </div>
-          <div className="flex justify-end space-x-2">
+          <div className={`${isMobile ? 'flex-col space-y-2' : 'flex justify-end space-x-2'}`}>
             <Button
               variant="outline"
               onClick={cancelDelete}
-              className="bg-gray-700 border-gray-600"
+              className={`bg-gray-700 border-gray-600 ${isMobile ? 'w-full' : ''}`}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className={`bg-red-600 hover:bg-red-700 ${isMobile ? 'w-full' : ''}`}
             >
               Delete
             </Button>
