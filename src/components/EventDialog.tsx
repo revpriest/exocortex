@@ -412,20 +412,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className={`${isMobile ? '!w-[85vw] !max-w-[85vw] !max-h-[80vh] overflow-y-scroll overscroll-behavior-contain !p-4' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}
-          style={isMobile ? {
-            height: '80vh',
-            maxHeight: '80vh',
-            overflowY: 'scroll',
-            WebkitOverflowScrolling: 'touch' as any,
-            scrollbarWidth: 'thin' as any
-          } : undefined}
+          className={`${isMobile ? '!w-[85vw] !max-w-[85vw] !h-[85vh] overflow-y-auto overscroll-behavior-contain' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}
         >
-          <DialogHeader>
-            <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
-          </DialogHeader>
-
-          {/* Error display */}
           {error && (
             <Alert variant="destructive" className="border-red-600 bg-red-900/20">
               <AlertCircle className="h-4 w-4" />
@@ -649,7 +637,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               )}
             </Button>
           </div>
-        </div>
+          </div>
         </DialogContent>
       </Dialog>
 
