@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
-import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle, ChevronDown } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle, ChevronDown, X, Save, Plus } from 'lucide-react';
 import { ExocortexDB } from '@/lib/exocortex';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -494,7 +494,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           </div>
 
           {/* Action buttons */}
-          <div className={`${isMobile ? 'flex-col space-y-2 pt-4' : 'flex justify-end items-center gap-3'}`}>
+          <div className={`${isMobile ? 'flex-col space-y-2 pt-4' : 'flex justify-end items-center gap-4'}`}>
             {editEvent && onDelete && (
               <Button
                 variant="destructive"
@@ -510,10 +510,21 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
               onClick={() => onOpenChange(false)}
               className="bg-gray-700 border-gray-600 h-9"
             >
+              <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
             <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 h-9">
-              {editEvent ? 'Update Event' : 'Add Event'}
+              {editEvent ? (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Update
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </>
+              )}
             </Button>
           </div>
         </div>
