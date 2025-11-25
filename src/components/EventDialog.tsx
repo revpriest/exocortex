@@ -514,7 +514,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
             <div className="flex items-center space-x-2">
               <Clock className={`${isMobile ? '!h-3 !w-3' : 'h-4 w-4'} text-gray-400`} />
               <span className={`${isMobile ? '!text-xs' : 'text-sm'}`}>
-                {startTime ? `${formatTime(startTime)} → ${formatTime(endTime)}` : formatTime(endTime)}
+                {startTime ? `${startTime.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}, ${formatTime(startTime)} → ${formatTime(endTime)}` : `${formatDate(endTime)}, ${formatTime(endTime)}`}
               </span>
             </div>
 
