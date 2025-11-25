@@ -1,4 +1,4 @@
-const CACHE_NAME = 'exocortex-grid-v1';
+const CACHE_NAME = 'exocortex-v1';
 
 console.log('🔧 Service worker script loaded');
 
@@ -118,7 +118,7 @@ self.addEventListener('fetch', (event) => {
               console.log('📱 Serving offline page for HTML request');
 
               return new Response(
-                '<!DOCTYPE html><html><head><title>Exocortex Grid - Offline</title><style>body{font-family:system-ui,sans-serif;background:#111827;color:#f3f4f6;padding:2rem;text-align:center}h1{color:#3b82f6;margin-bottom:1rem}</style></head><body><h1>Exocortex Grid</h1><p>You are currently offline. Your time tracking data is still available locally.</p><p>Please check your internet connection and try again.</p></body></html>',
+                '<!DOCTYPE html><html><head><title>Exocortex - Offline</title><style>body{font-family:system-ui,sans-serif;background:#111827;color:#f3f4f6;padding:2rem;text-align:center}h1{color:#3b82f6;margin-bottom:1rem}</style></head><body><h1>Exocortex</h1><p>You are currently offline. Your time tracking data is still available locally.</p><p>Please check your internet connection and try again.</p></body></html>',
                 {
                   headers: {
                     'Content-Type': 'text/html',

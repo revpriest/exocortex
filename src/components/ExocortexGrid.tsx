@@ -17,12 +17,12 @@ const MOBILE_HOUR_WIDTH = 30; // pixels per hour on mobile - smaller to fit scre
 
 // CSS custom properties for responsive hour width
 const responsiveStyles = `
-  .exocortex-grid {
+  .exocortex {
     --hour-width: ${HOUR_WIDTH}px;
   }
 
   @media (max-width: 768px) {
-    .exocortex-grid {
+    .exocortex {
       --hour-width: ${MOBILE_HOUR_WIDTH}px;
     }
   }
@@ -978,7 +978,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       {/* Grid container - mobile optimized */}
       <div
         ref={gridRef}
-        className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg exocortex-grid"
+        className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg exocortex"
         style={{
           height: 'calc(100vh - 100px)', // More space - button should be immediately visible
           width: '100%',

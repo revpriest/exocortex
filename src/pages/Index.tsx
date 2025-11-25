@@ -3,7 +3,7 @@ import { ExocortexGrid } from '@/components/ExocortexGrid';
 
 const Index = () => {
   useSeoMeta({
-    title: 'Exocortex - Time Tracking Grid',
+    title: 'Exocortex - Time Tracking',
     description: 'A visual time tracking app that displays your daily events in a colorful grid pattern.',
   });
 
