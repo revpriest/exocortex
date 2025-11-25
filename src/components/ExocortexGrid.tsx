@@ -18,7 +18,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  
+
   const gridRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
@@ -29,12 +29,12 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       const database = new ExocortexDB();
       await database.init();
       setDb(database);
-      
+
       // Load initial days (today and past few days)
       await loadDays(database, new Date(), 7);
       setLoading(false);
     };
-    
+
     initDb();
   }, []);
 
@@ -42,12 +42,12 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number) => {
     const endDate = new Date(fromDate);
     endDate.setDate(endDate.getDate() - count + 1);
-    
+
     const newDays = await database.getEventsByDateRange(
       endDate.toISOString().split('T')[0],
       fromDate.toISOString().split('T')[0]
     );
-    
+
     setDays(prev => [...prev, ...newDays.reverse()]);
   }, []);
 
@@ -88,7 +88,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     const eventDate = new Date(event.endTime);
     const startOfDay = new Date(eventDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     let startTime: number;
     if (index === 0) {
       // First event starts at midnight
@@ -97,11 +97,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       // Start time is the end time of the previous event
       startTime = dayEvents[index - 1].endTime;
     }
-    
+
     const duration = event.endTime - startTime;
     const startHour = (startTime - startOfDay.getTime()) / (1000 * 60 * 60);
     const durationHours = duration / (1000 * 60 * 60);
-    
+
     return {
       left: `${startHour * HOUR_WIDTH}px`,
       width: `${durationHours * HOUR_WIDTH}px`,
@@ -113,14 +113,14 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
-    
+
     try {
       await db.addEvent(eventData);
-      
+
       // Refresh today's events
       const today = new Date().toISOString().split('T')[0];
       const todayEvents = await db.getEventsByDate(today);
-      
+
       setDays(prev => {
         const newDays = [...prev];
         const todayIndex = newDays.findIndex(day => day.date === today);
@@ -131,7 +131,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         }
         return newDays;
       });
-      
+
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Failed to add event:', error);
@@ -149,10 +149,13 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   return (
     <div className={`relative ${className}`}>
       {/* Grid container */}
-      <div 
+      <div
         ref={gridRef}
         className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg"
-        style={{ maxHeight: '80vh' }}
+        style={{
+          maxHeight: '80vh',
+          minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`
+        }}
       >
         {/* Hour headers */}
         <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
@@ -160,7 +163,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
-                className="text-xs text-gray-400 border-r border-gray-700 px-2 py-1 text-center"
+                className="text-xs text-gray-400 border-r border-gray-700 px-2 py-1 text-center flex-shrink-0"
                 style={{ width: `${HOUR_WIDTH}px` }}
               >
                 {hour}
@@ -170,35 +173,38 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
         </div>
 
         {/* Day rows */}
-        <div className="relative">
+        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
           {days.map((day, dayIndex) => (
             <div
               key={day.date}
               className="relative border-b border-gray-800"
-              style={{ height: `${ROW_HEIGHT}px` }}
+              style={{
+                height: `${ROW_HEIGHT}px`,
+                minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`
+              }}
             >
               {/* Date label */}
               <div className="absolute left-2 top-2 text-sm text-gray-400 z-20">
-                {new Date(day.date).toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
+                {new Date(day.date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
                 })}
               </div>
 
               {/* Grid lines */}
-              <div className="absolute inset-0 flex">
+              <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
                 {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
                   <div
                     key={hourIndex}
-                    className="border-r border-gray-800"
+                    className="border-r border-gray-800 flex-shrink-0"
                     style={{ width: `${HOUR_WIDTH}px` }}
                   />
                 ))}
               </div>
 
               {/* Events */}
-              <div className="absolute inset-0">
+              <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
                 {day.events.map((event, eventIndex) => (
                   <div
                     key={event.id}
