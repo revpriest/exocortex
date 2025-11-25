@@ -609,20 +609,28 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
         await DataExporter.importDatabase(db, file);
 
-        // Refresh the grid to show imported events
+        // Refresh the entire grid to show all imported events
+        // Load recent days (similar to initial load)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7); // Load past 7 days
+
+        const daysWithEvents = await db.getEventsByDateRange(
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        );
+
+        // Also get today's events (should be included in range, but ensure it's there)
         const today = new Date().toISOString().split('T')[0];
         const todayEvents = await db.getEventsByDate(today);
 
-        setDays(prev => {
-          const newDays = [...prev];
-          const todayIndex = newDays.findIndex(day => day.date === today);
-          if (todayIndex !== -1) {
-            newDays[todayIndex] = { date: today, events: todayEvents };
-          } else {
-            newDays.unshift({ date: today, events: todayEvents });
-          }
-          return newDays;
-        });
+        // Combine and sort: today first, then past days in reverse chronological order
+        const allDays = [
+          { date: today, events: todayEvents }, // Today first (most recent)
+          ...daysWithEvents.filter(day => day.date !== today).reverse() // Past days (excluding duplicate today)
+        ];
+
+        setDays(allDays);
 
         setError(`Successfully imported events from ${file.name}`);
 
