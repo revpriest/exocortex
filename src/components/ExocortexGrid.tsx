@@ -1299,7 +1299,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                           health={event.health}
                           wakefulness={event.wakefulness}
                           happiness={event.happiness}
-                          size={18}
+                          size={27}
                         />
                         {event.notes && (
                           <div
