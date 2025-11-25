@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
-import { Clock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle } from 'lucide-react';
 
 interface EventDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   // Reset form when dialog opens or editEvent changes
   useEffect(() => {
     if (open) {
+      setError(null); // Clear any previous errors
       if (editEvent) {
         setCategory(editEvent.category);
         setHappiness([editEvent.happiness]);
@@ -48,11 +50,15 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     }
   }, [open, editEvent, defaultValues]);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = () => {
     if (!category.trim()) {
-      alert('Please enter a category');
+      setError('Please enter a category');
       return;
     }
+
+    setError(null);
 
     try {
       const eventData = {
@@ -70,7 +76,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       }
     } catch (error) {
       console.error('Error saving event:', error);
-      alert('Failed to save event. Please try again.');
+      setError('Failed to save event. Please try again.');
     }
   };
 
@@ -88,7 +94,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
         setShowDeleteConfirm(false);
       } catch (error) {
         console.error('Error deleting event:', error);
-        alert('Failed to delete event. Please try again.');
+        setError('Failed to delete event. Please try again.');
+        setShowDeleteConfirm(false);
       }
     }
   };
@@ -139,6 +146,14 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           <DialogHeader>
             <DialogTitle>{editEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           </DialogHeader>
+
+          {/* Error display */}
+          {error && (
+            <Alert variant="destructive" className="border-red-600 bg-red-900/20">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
         <div className="space-y-6">
           {/* Category input */}
