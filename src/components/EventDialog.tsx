@@ -11,9 +11,9 @@ import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle } from 'lucide-re
 // Helper function to draw smiley face
 function drawSmileyFaceOnCanvas(
   canvas: HTMLCanvasElement | null,
-  health: number[],
-  wakefulness: number[],
-  happiness: number[]
+  healthArr: number[],
+  wakefulnessArr: number[],
+  happinessArr: number[]
 ) {
   if (!canvas) return;
 
@@ -28,13 +28,13 @@ function drawSmileyFaceOnCanvas(
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Get current mood values from state arrays
-  const h = health[0];
-  const w = wakefulness[0];
-  const hp = happiness[0];
+  const healthVal = healthArr[0];
+  const wakefulnessVal = wakefulnessArr[0];
+  const happinessVal = happinessArr[0];
 
   // Calculate face color (yellow to green based on health)
   // Yellow: RGB(255, 255, 0), Green: RGB(0, 255, 0)
-  const red = Math.round(255 * h);
+  const red = Math.round(255 * healthVal);
   const green = 255;
   const blue = 0;
   const faceColor = `rgb(${red}, ${green}, ${blue})`;
@@ -50,7 +50,7 @@ function drawSmileyFaceOnCanvas(
 
   // Draw eyes based on wakefulness (fixed: 0% = closed, 100% = open)
   const eyeWidth = radius * 0.2; // Bigger eyes
-  const eyeHeight = Math.max(radius * 0.02, radius * 0.2 * w); // Minimum height for closed eyes
+  const eyeHeight = Math.max(radius * 0.02, radius * 0.2 * wakefulnessVal); // Minimum height for closed eyes
   const eyeYOffset = radius * 0.3;
   const eyeXOffset = radius * 0.3;
 
@@ -69,10 +69,10 @@ function drawSmileyFaceOnCanvas(
   // Draw mouth based on happiness (exaggerated curve)
   const mouthWidth = radius * 0.6;
   const mouthY = centerY + radius * 0.25; // Even lower to compensate for exaggerated curve
-  
+
   // Calculate mouth curve height based on happiness (exaggerated)
   // -0.6 to 0.6 range: negative = sad, positive = happy (twice as height)
-  const mouthCurveHeight = (hp - 0.5) * 1.2 * radius;
+  const mouthCurveHeight = (happinessVal - 0.5) * 1.2 * radius;
 
   ctx.beginPath();
   ctx.strokeStyle = '#333';
@@ -100,9 +100,9 @@ interface EventDialogProps {
 
 export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, editEvent, defaultValues }: EventDialogProps) {
   const [category, setCategory] = useState('');
-  const [happiness, setHappiness] = useState([defaultValues?.happiness || 0.7]);
-  const [wakefulness, setWakefulness] = useState([defaultValues?.wakefulness || 0.8]);
-  const [health, setHealth] = useState([defaultValues?.health || 0.9]);
+  const [happinessState, setHappinessState] = useState([defaultValues?.happiness || 0.7]);
+  const [wakefulnessState, setWakefulnessState] = useState([defaultValues?.wakefulness || 0.8]);
+  const [healthState, setHealthState] = useState([defaultValues?.health || 0.9]);
   const [endTime, setEndTime] = useState(new Date());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -111,15 +111,15 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     if (open) {
       if (editEvent) {
         setCategory(editEvent.category);
-        setHappiness([editEvent.happiness]);
-        setWakefulness([editEvent.wakefulness]);
-        setHealth([editEvent.health]);
+        setHappinessState([editEvent.happiness]);
+        setWakefulnessState([editEvent.wakefulness]);
+        setHealthState([editEvent.health]);
         setEndTime(new Date(editEvent.endTime));
       } else {
         setCategory('');
-        setHappiness([defaultValues?.happiness || 0.7]);
-        setWakefulness([defaultValues?.wakefulness || 0.8]);
-        setHealth([defaultValues?.health || 0.9]);
+        setHappinessState([defaultValues?.happiness || 0.7]);
+        setWakefulnessState([defaultValues?.wakefulness || 0.8]);
+        setHealthState([defaultValues?.health || 0.9]);
         setEndTime(new Date());
       }
     }
@@ -130,13 +130,13 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
   // Draw smiley face based on current mood values
   const drawSmileyFace = () => {
-    drawSmileyFaceOnCanvas(canvasRef.current, health, wakefulness, happiness);
+    drawSmileyFaceOnCanvas(canvasRef.current, healthState, wakefulnessState, happinessState);
   };
 
   // Update canvas when mood values change
   useEffect(() => {
     drawSmileyFace();
-  }, [happiness, wakefulness, health]);
+  }, [happinessState, wakefulnessState, healthState]);
 
   // Initial draw when component mounts
   useEffect(() => {
@@ -155,9 +155,9 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const eventData = {
         endTime: endTime.getTime(),
         category: category.trim(),
-        happiness: happiness[0],
-        wakefulness: wakefulness[0],
-        health: health[0],
+        happiness: happinessState[0],
+        wakefulness: wakefulnessState[0],
+        health: healthState[0],
       };
 
       if (editEvent && onUpdate) {
@@ -215,11 +215,11 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       id: 'preview',
       endTime: endTime.getTime(),
       category: category || 'preview',
-      happiness: happiness[0],
-      wakefulness: wakefulness[0],
-      health: health[0],
+      happiness: happinessState[0],
+      wakefulness: wakefulnessState[0],
+      health: healthState[0],
     };
-    
+
     return getEventColor(tempEvent);
   };
 
@@ -242,7 +242,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
           {/* Smiley face canvas with color preview background */}
           <div className="flex justify-center py-2">
             <div className="relative">
-              <div 
+              <div
                 className="w-32 h-32 rounded-full border-2 border-gray-600"
                 style={{ backgroundColor: getColorPreview() }}
               />
@@ -277,7 +277,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 {formatDate(endTime)} at {formatTime(endTime)}
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
@@ -288,7 +288,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 <ChevronLeft className="h-4 w-4" />
                 -1h
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -298,7 +298,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 <ChevronLeft className="h-4 w-4" />
                 -15m
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -308,7 +308,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 +15m
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -323,10 +323,10 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
           {/* Happiness slider */}
           <div className="space-y-1">
-            <Label className="text-sm">Happiness: {Math.round(happiness[0] * 100)}%</Label>
+            <Label className="text-sm">Happiness: {Math.round(happinessState[0] * 100)}%</Label>
             <Slider
-              value={happiness}
-              onValueChange={setHappiness}
+              value={happinessState}
+              onValueChange={setHappinessState}
               max={1}
               min={0}
               step={0.01}
@@ -336,10 +336,10 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
           {/* Wakefulness slider */}
           <div className="space-y-1">
-            <Label className="text-sm">Wakefulness: {Math.round(wakefulness[0] * 100)}%</Label>
+            <Label className="text-sm">Wakefulness: {Math.round(wakefulnessState[0] * 100)}%</Label>
             <Slider
-              value={wakefulness}
-              onValueChange={setWakefulness}
+              value={wakefulnessState}
+              onValueChange={setWakefulnessState}
               max={1}
               min={0}
               step={0.01}
@@ -349,10 +349,10 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
           {/* Health slider */}
           <div className="space-y-1">
-            <Label className="text-sm">Health: {Math.round(health[0] * 100)}%</Label>
+            <Label className="text-sm">Health: {Math.round(healthState[0] * 100)}%</Label>
             <Slider
-              value={health}
-              onValueChange={setHealth}
+              value={healthState}
+              onValueChange={setHealthState}
               max={1}
               min={0}
               step={0.01}
