@@ -118,6 +118,23 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     };
   };
 
+  // Calculate text color based on background brightness
+  const getTextColor = (event: ExocortexEvent) => {
+    const color = getEventColor(event);
+
+    // Convert hex color to RGB
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Return black for bright backgrounds, white for dark backgrounds
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+  };
+
   const hourSlots = getHourSlots();
 
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
@@ -422,7 +439,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                     onClick={() => handleEventClick(event)}
                   >
                     <div className="p-2 h-full flex flex-col items-center justify-center text-center">
-                      <div className="text-xs font-medium text-white truncate w-full mb-1">
+                      <div className="text-xs font-medium truncate w-full mb-1" style={{ color: getTextColor(event) }}>
                         {event.category}
                       </div>
                       <SmileyFace
@@ -431,9 +448,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
                         happiness={event.happiness}
                         size={20}
                       />
-                      <div className="text-xs text-gray-200 mt-1">
-                        {formatTime(event.endTime)}
-                      </div>
                     </div>
                   </div>
                 ))}
