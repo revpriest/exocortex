@@ -3,11 +3,6 @@ import path from "node:path";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vitest/config";
 
-import path from "node:path";
-
-import react from "@vitejs/plugin-react-swc";
-import { defineConfig } from "vitest/config";
-
 // Plugin to fix asset paths for subdirectory deployment
 function fixAssetPaths() {
   return {
@@ -35,13 +30,13 @@ export default defineConfig(() => ({
   },
   plugins: [
     react(),
+    fixAssetPaths(),
   ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
   test: {
     globals: true,
     environment: 'jsdom',
@@ -51,11 +46,6 @@ export default defineConfig(() => ({
     },
     env: {
       DEBUG_PRINT_LIMIT: '0', // Suppress DOM output that exceeds AI context windows
-    },
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
     },
   },
 }));

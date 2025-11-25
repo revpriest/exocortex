@@ -1,6 +1,6 @@
 # Project Overview
 
-This project is a Nostr client application built with React 18.x, TailwindCSS 3.x, Vite, shadcn/ui, and Nostrify.
+This project is a time mapping application built with React 18.x, TailwindCSS 3.x, Vite, shadcn/ui, and Nostrify.
 
 ## Technology Stack
 
