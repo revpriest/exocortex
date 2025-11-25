@@ -122,17 +122,17 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const getTextColor = (event: ExocortexEvent) => {
     const color = getEventColor(event);
 
-    // Convert hex color to RGB
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
+    // Parse HSL color - format is "hsl(h, s%, l%)"
+    const hslMatch = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+    if (!hslMatch) {
+      // Fallback to white if we can't parse the color
+      return '#ffffff';
+    }
 
-    // Calculate relative luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const lightness = parseInt(hslMatch[3]);
 
-    // Return black for bright backgrounds, white for dark backgrounds
-    return luminance > 0.5 ? '#000000' : '#ffffff';
+    // Return black for bright backgrounds (lightness > 50%), white for dark backgrounds
+    return lightness > 50 ? '#000000' : '#ffffff';
   };
 
   const hourSlots = getHourSlots();
