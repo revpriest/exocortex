@@ -183,25 +183,17 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 29); // -29 to include 30 days total (today + 29 previous)
 
-      console.log('Querying from', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
-
       const days = await db.getEventsByDateRange(
         startDate.toISOString().split('T')[0],
         endDate.toISOString().split('T')[0]
       );
 
-      console.log('Days loaded:', days.length);
-      console.log('Events breakdown:', days.map(day => ({ date: day.date, eventCount: day.events.length })));
-
       // Extract all categories and get unique ones, keeping most recent first
       const allCategories = days.flatMap(day => day.events.map(event => event.category));
-      console.log('All categories found:', allCategories);
 
       // Reverse to get most recent first, then get unique ones
       const reversedCategories = [...allCategories].reverse();
       const uniqueCategories = [...new Set(reversedCategories)].slice(0, 12);
-
-      console.log('Categories loaded:', uniqueCategories);
 
       // Always include default categories along with existing ones
       const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
@@ -209,9 +201,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const finalCategories = [...new Set(combinedCategories)].slice(0, 12); // Remove duplicates and limit to 12
 
       setRecentCategories(finalCategories);
-      console.log('Combined categories (existing + defaults):', finalCategories);
     } catch (error) {
-      console.error('Failed to load recent categories:', error);
       // Add default categories even if there's an error
       const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
       setRecentCategories(defaultCategories);
@@ -355,8 +345,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Dropdown button clicked, current state:', showDropdown);
-                  console.log('Recent categories:', recentCategories);
                   setShowDropdown(!showDropdown);
                 }}
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-600"
@@ -374,7 +362,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Category clicked:', cat);
                         handleCategorySelect(cat);
                       }}
                       className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-600 focus:bg-gray-600 focus:outline-none transition-colors"

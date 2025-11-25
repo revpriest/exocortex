@@ -330,8 +330,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
       <div className="mb-4">
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-xl font-semibold text-white mb-1">
-              exocortex
+            <h2 className="text-sm font-medium text-gray-400 mb-1">
+              Exocortex
             </h2>
           </div>
 
