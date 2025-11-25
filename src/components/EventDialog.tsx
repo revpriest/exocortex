@@ -34,19 +34,25 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    e.stopPropagation();
+
     if (!category.trim()) {
       alert('Please enter a category');
       return;
     }
 
-    onSubmit({
-      endTime: endTime.getTime(),
-      category: category.trim(),
-      happiness: happiness[0],
-      wakefulness: wakefulness[0],
-      health: health[0],
-    });
+    try {
+      onSubmit({
+        endTime: endTime.getTime(),
+        category: category.trim(),
+        happiness: happiness[0],
+        wakefulness: wakefulness[0],
+        health: health[0],
+      });
+    } catch (error) {
+      console.error('Error submitting event:', error);
+      alert('Failed to add event. Please try again.');
+    }
   };
 
   const adjustTime = (minutes: number) => {
@@ -56,17 +62,17 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -74,7 +80,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
     const hue = Math.abs(category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 360;
     const saturation = Math.round(happiness[0] * 100);
     const value = Math.round(wakefulness[0] * 100);
-    
+
     return `hsl(${hue}, ${saturation}%, ${value}%)`;
   };
 
@@ -84,8 +90,8 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
         <DialogHeader>
           <DialogTitle>Add New Event</DialogTitle>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
+
+        <form onSubmit={handleSubmit} action="#" className="space-y-6">
           {/* Category input */}
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
@@ -108,7 +114,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
                 {formatDate(endTime)} at {formatTime(endTime)}
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Button
                 type="button"
@@ -120,7 +126,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
                 <ChevronLeft className="h-4 w-4" />
                 -1h
               </Button>
-              
+
               <Button
                 type="button"
                 variant="outline"
@@ -131,7 +137,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
                 <ChevronLeft className="h-4 w-4" />
                 -15m
               </Button>
-              
+
               <Button
                 type="button"
                 variant="outline"
@@ -142,7 +148,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
                 +15m
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              
+
               <Button
                 type="button"
                 variant="outline"
@@ -198,7 +204,7 @@ export function EventDialog({ open, onOpenChange, onSubmit }: EventDialogProps) 
           {/* Color preview */}
           <div className="space-y-2">
             <Label>Event Color Preview</Label>
-            <div 
+            <div
               className="w-full h-12 rounded-md border border-gray-600"
               style={{ backgroundColor: getColorPreview() }}
             />
