@@ -2,6 +2,12 @@
 
 A beautiful, intuitive time tracking application that visualizes your daily activities in a colorful grid pattern. Track your events, moods, and daily patterns with an easy-to-use interface.
 
+It's a web app, but all your data stays on your own machine.
+
+It can be installed as a Progressive Web App, and run offline.
+
+See it at https://exocortex.dalliance.net/
+
 ## 🌟 Features
 
 - **Visual Time Grid**: See your entire day laid out in 24-hour blocks
