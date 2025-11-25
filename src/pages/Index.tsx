@@ -1,22 +1,27 @@
 import { useSeoMeta } from '@unhead/react';
-
-// FIXME: Update this page (the content is just a fallback if you fail to update the page)
+import { ExocortexGrid } from '@/components/ExocortexGrid';
 
 const Index = () => {
   useSeoMeta({
-    title: 'Welcome to Your Blank App',
-    description: 'A modern Nostr client application built with React, TailwindCSS, and Nostrify.',
+    title: 'Exocortex - Time Tracking Grid',
+    description: 'A visual time tracking app that displays your daily events in a colorful grid pattern.',
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-          Welcome to Your Blank App
-        </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400">
-          Start building your amazing project here!
-        </p>
+    <div className="min-h-screen bg-gray-900 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Exocortex
+          </h1>
+          <p className="text-gray-400">
+            Visual time tracking with mood and energy patterns
+          </p>
+        </div>
+
+        {/* Main grid */}
+        <ExocortexGrid className="w-full" />
       </div>
     </div>
   );
