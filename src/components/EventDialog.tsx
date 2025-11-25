@@ -157,7 +157,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (!target.closest('.relative')) {
+      const dropdownContainer = target.closest('.relative');
+      if (!dropdownContainer || !dropdownContainer.contains(target)) {
         setShowDropdown(false);
       }
     };
@@ -177,10 +178,12 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const db = new ExocortexDB();
       await db.init();
 
-      // Get events from the last 30 days
+      // Get events from the last 30 days including today
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
+      startDate.setDate(startDate.getDate() - 29); // -29 to include 30 days total (today + 29 previous)
+
+      console.log('Querying from', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
 
       const days = await db.getEventsByDateRange(
         startDate.toISOString().split('T')[0],
