@@ -108,6 +108,8 @@ const Index = () => {
    * - pb-16 md:pb-20: Extra bottom padding to avoid floating add button overlap
    * - max-w-7xl mx-auto: Center content and limit max width for readability
    */
+
+
   return (
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
       {/*
