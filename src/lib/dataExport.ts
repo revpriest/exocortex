@@ -238,6 +238,13 @@ export class DataExporter {
       }
 
       console.log('📥 Starting legacy import...');
+      console.log('📋 Legacy file structure:', {
+        tagCount: jsonData.tag?.length || 0,
+        eventCount: jsonData.event?.length || 0,
+        eventTagCount: jsonData.event_tag?.length || 0,
+        sampleEvent: jsonData.event?.[0] || 'none',
+        sampleTag: jsonData.tag?.[0] || 'none'
+      });
 
       // Create tag lookup map (ID → name)
       const tagMap = new Map<string, string>();
@@ -278,28 +285,40 @@ export class DataExporter {
             : 'Uncategorized';
 
           // Parse happiness (old format uses string, map to 0-1 range)
-          let happiness = 0.5; // default
+          let happiness = 0.5; // default (50% in 0-1 range)
           if (legacyEvent.happiness) {
             const happinessValue = parseInt(legacyEvent.happiness);
             if (!isNaN(happinessValue)) {
-              // Map from -100..100 range to 0..1 range
+              // Map from -100..100 range to 0..1 range (50% at 0, 0% at -100, 100% at +100)
               happiness = (happinessValue + 100) / 200;
               happiness = Math.max(0, Math.min(1, happiness)); // clamp to 0-1
             }
           }
 
-          // Apply importance if available (this was the old field name)
+          // Parse wakefulness from importance field (old importance maps to wakefulness)
+          let wakefulness = 0.8; // default to reasonably awake (80% in 0-1 range)
           if (legacyEvent.importance) {
             const importanceValue = parseInt(legacyEvent.importance);
             if (!isNaN(importanceValue)) {
-              // If importance is set, it overrides happiness
-              happiness = (importanceValue + 100) / 200;
-              happiness = Math.max(0, Math.min(1, happiness));
+              // Map from -100..100 range to 0..1 range (50% at 0, 0% at -100, 100% at +100)
+              wakefulness = (importanceValue + 100) / 200;
+              wakefulness = Math.max(0, Math.min(1, wakefulness)); // clamp to 0-1
             }
           }
 
-          // Parse wakefulness (not in old format, use reasonable default)
-          const wakefulness = 0.8; // default to reasonably awake
+          // Debug log the conversion
+          console.log(`🔄 Event ${legacyEvent.id}:`, {
+            original: {
+              happiness: legacyEvent.happiness,
+              importance: legacyEvent.importance
+            },
+            converted: {
+              happiness: `${happiness} (${Math.round(happiness * 100)}%)`,
+              wakefulness: `${wakefulness} (${Math.round(wakefulness * 100)}%)`,
+              health: '1.0 (100%)'
+            },
+            category: category
+          });
 
           // Health is always 100% in legacy import (not tracked in old format)
           const health = 1.0;
