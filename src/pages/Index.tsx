@@ -97,7 +97,7 @@ const CacheResetSection = () => {
           Cache Management
         </CardTitle>
         <CardDescription>
-          Manage application caches and service workers to troubleshoot update issues
+          Clear caches and update to latest version.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -117,11 +117,6 @@ const CacheResetSection = () => {
           </div>
         </div>
 
-        {hasCache && (
-          <div className="text-sm text-muted-foreground">
-            Cached assets detected. Use reset below if you're experiencing update issues.
-          </div>
-        )}
 
         {/* Reset Button */}
         <AlertDialog>
@@ -153,11 +148,6 @@ const CacheResetSection = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        <div className="text-xs text-muted-foreground">
-          <p><strong>Note:</strong> This action is safe and won't delete your tracked events.</p>
-          <p>Only the application cache and service workers will be cleared.</p>
-        </div>
       </CardContent>
     </Card>
   );
