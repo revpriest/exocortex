@@ -140,6 +140,18 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [showTestConfirm, setShowTestConfirm] = useState(false);
 
   /**
+   * Drag-to-Scroll State
+   *
+   * These state variables manage the drag-to-scroll functionality:
+   * - isDragging: Whether the user is currently dragging
+   * - dragStart: Mouse position when drag started
+   * - scrollStart: Scroll position when drag started
+   */
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+
+  /**
    * React Refs
    *
    * Refs provide direct access to DOM elements and persist values
@@ -282,6 +294,110 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       }
     };
   }, [loading, days, db, loadDays]);
+
+  /**
+   * Drag-to-Scroll Event Handlers
+   *
+   * These handlers implement the drag-to-scroll functionality for the grid.
+   * This allows users to click and drag to navigate the large time grid.
+   */
+
+  // Handle mouse down - start dragging
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Only start drag if not clicking on interactive elements
+    if ((e.target as HTMLElement).closest('button, a, input, select, textarea, .cursor-pointer')) {
+      return;
+    }
+
+    e.preventDefault();
+
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    setScrollStart({
+      left: grid.scrollLeft,
+      top: grid.scrollTop
+    });
+
+    // Add cursor style to indicate dragging
+    grid.style.cursor = 'grabbing';
+    grid.style.userSelect = 'none';
+    grid.style.webkitUserSelect = 'none';
+  }, []);
+
+  // Handle mouse move - update scroll while dragging
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    // Calculate the distance moved
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+
+    // Update scroll position
+    grid.scrollLeft = scrollStart.left - deltaX;
+    grid.scrollTop = scrollStart.top - deltaY;
+  }, [isDragging, dragStart, scrollStart]);
+
+  // Handle mouse up - stop dragging
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging) return;
+
+    const grid = gridRef.current;
+    if (grid) {
+      // Reset cursor style
+      grid.style.cursor = '';
+      grid.style.userSelect = '';
+      grid.style.webkitUserSelect = '';
+    }
+
+    setIsDragging(false);
+  }, [isDragging]);
+
+  // Handle mouse leave - stop dragging when mouse leaves the grid
+  const handleMouseLeave = useCallback(() => {
+    if (!isDragging) return;
+
+    const grid = gridRef.current;
+    if (grid) {
+      // Reset cursor style
+      grid.style.cursor = '';
+      grid.style.userSelect = '';
+      grid.style.webkitUserSelect = '';
+    }
+
+    setIsDragging(false);
+  }, [isDragging]);
+
+  // Handle click - prevent click events after drag
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Prevent click if we just finished dragging
+    if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, [isDragging]);
+
+  // Global mouse up handler - ensure dragging stops even if mouse is released outside grid
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isDragging) {
+        handleMouseUp();
+      }
+    };
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('mouseleave', handleGlobalMouseUp);
+
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('mouseleave', handleGlobalMouseUp);
+    };
+  }, [isDragging, handleMouseUp]);
 
   // Helper function to calculate the actual start time of an event
   const getEventStartTime = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): number => {
@@ -1258,7 +1374,13 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         style={{
           height: 'calc(100vh - 100px)', // More space - button should be immediately visible
           width: '100%',
+          cursor: isDragging ? 'grabbing' : 'grab',
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
       >
         {/* Inject responsive styles */}
         <style>{responsiveStyles}</style>
