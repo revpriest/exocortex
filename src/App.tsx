@@ -21,8 +21,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from '@/components/AppProvider';
 import { AppConfig } from '@/contexts/AppContext';
 import AppRouter from './AppRouter';
-import { PWAUpdateManager } from '@/components/PWAUpdateManager';
-import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 
 /**
  * Head Configuration for SEO
@@ -88,9 +86,7 @@ export function App() {
       <AppProvider storageKey="exocortexlog:app-config" defaultConfig={defaultConfig}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <ServiceWorkerRegistration />
             <Toaster />
-            <PWAUpdateManager />
             <Suspense>
               <AppRouter />
             </Suspense>

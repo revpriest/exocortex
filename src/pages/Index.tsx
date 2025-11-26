@@ -2,7 +2,7 @@
  * Index.tsx - Main Application Page
  *
  * This is the main page users see when they visit the app.
- * It displays the time tracking grid, statistics interface, and configuration
+ * It displays both the time tracking grid and statistics interfaces
  * with navigation to switch between them.
  *
  * In a single-page app, this is essentially our "home screen".
@@ -12,12 +12,11 @@ import React, { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
+import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw } from 'lucide-react';
+import { Grid3X3, BarChart3, HelpCircle, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
-import { useBuildInfo } from '@/hooks/useBuildInfo';
-import { useCacheRefresh } from '@/hooks/useCacheRefresh';
 
 /**
  * Theme Switch Component
@@ -57,17 +56,15 @@ const ThemeSwitch = () => {
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
-  const { refreshApp, isRefreshing } = useCacheRefresh();
-
   /**
    * State Management
    *
    * currentView: Controls which interface is displayed
    * - 'grid': Shows the time tracking grid
    * - 'stats': Shows the statistics and analytics
-   * - 'conf': Shows the configuration and about information
+   * - 'help': Shows the help/about information
    */
-  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'conf'>('grid');
+  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'help'>('grid');
 
   /**
    * Set SEO (Search Engine Optimization) metadata
@@ -97,8 +94,8 @@ const Index = () => {
     setCurrentView('stats');
   };
 
-  const handleConfClick = () => {
-    setCurrentView('conf');
+  const handleHelpClick = () => {
+    setCurrentView('help');
   };
 
   /**
@@ -111,56 +108,6 @@ const Index = () => {
    * - pb-16 md:pb-20: Extra bottom padding to avoid floating add button overlap
    * - max-w-7xl mx-auto: Center content and limit max width for readability
    */
-
-
-  // Component for build information section
-  const BuildInfoSection = () => {
-    const buildInfo = useBuildInfo();
-
-    if (!buildInfo) {
-      return (
-        <div className="mt-6 pt-6 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            Loading build information...
-          </p>
-        </div>
-      );
-    }
-
-    const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
-
-    return (
-      <div className="mt-6 pt-6 border-t border-border">
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div className="flex items-center justify-between">
-            <span>Build:</span>
-            <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
-              {buildInfo.buildHash}
-            </code>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Built:</span>
-            <span>{formatDate(buildInfo.buildDate)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Version:</span>
-            <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
-              {buildInfo.version.slice(-8)}
-            </code>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
       {/*
@@ -194,12 +141,12 @@ const Index = () => {
                 Stats
               </Button>
               <Button
-                variant={currentView === 'conf' ? 'default' : 'outline'}
+                variant={currentView === 'help' ? 'default' : 'outline'}
                 size="sm"
-                onClick={handleConfClick}
+                onClick={handleHelpClick}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Conf
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Help
               </Button>
             </div>
           </div>
@@ -225,6 +172,11 @@ const Index = () => {
                 </div>
                 <ThemeSwitch />
               </div>
+            </div>
+
+            {/* Category Color Overrides Section */}
+            <div className="mb-8 pb-6 border-b border-border">
+              <ColorOverrideWidget />
             </div>
 
             {/* About Content */}
@@ -255,40 +207,6 @@ const Index = () => {
                   You should probably back up with the export button often, no guarantees.
                 </p>
               </div>
-
-              {/* Cache Refresh Button */}
-              <div className="mt-6 pt-6 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Force Refresh App
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={refreshApp}
-                    disabled={isRefreshing}
-                    className="text-xs"
-                  >
-                    {isRefreshing ? (
-                      <>
-                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                        Refreshing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Refresh
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Clears all caches and reloads app without losing data. Use if app isn't updating.
-                </p>
-              </div>
-
-              {/* Build Information */}
-              <BuildInfoSection />
             </div>
           </div>
         )}

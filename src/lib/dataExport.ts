@@ -15,7 +15,6 @@
 
 // Import our data types and database class
 import { ExocortexEvent, ExocortexDB } from './exocortex';
-import { AppConfig } from '@/contexts/AppContext';
 
 /**
  * Export Data Structure Interface
@@ -27,7 +26,6 @@ import { AppConfig } from '@/contexts/AppContext';
  * - version: Export format version (for migration support)
  * - exportDate: When the export was created (ISO string)
  * - events: Array of all events in the database
- * - appConfig: Application configuration including theme and color overrides (optional for backward compatibility)
  */
 export interface ExportData {
   /** Export format version for compatibility checking */
@@ -36,8 +34,6 @@ export interface ExportData {
   exportDate: string;
   /** All events from the database at time of export */
   events: ExocortexEvent[];
-  /** Application configuration (theme and color overrides) - optional for backward compatibility */
-  appConfig?: AppConfig;
 }
 
 /**
@@ -55,20 +51,19 @@ export class DataExporter {
   /**
    * Export Database to JSON File
    *
-   * This method exports all events from the database and app configuration to a downloadable JSON file.
+   * This method exports all events from the database to a downloadable JSON file.
    * It includes metadata for version tracking and export date information.
    *
    * Process:
    * 1. Query all events from database (wide date range for completeness)
-   * 2. Create structured export data with metadata and app config
+   * 2. Create structured export data with metadata
    * 3. Convert to formatted JSON string
    * 4. Create Blob and trigger browser download
    *
    * @param db - The ExocortexDB instance to export from
-   * @param appConfig - The application configuration to include in export
    * @returns Promise that resolves when export is complete
    */
-  static async exportDatabase(db: ExocortexDB, appConfig?: AppConfig): Promise<void> {
+  static async exportDatabase(db: ExocortexDB): Promise<void> {
     try {
       // Array to hold all events from database
       const allEvents: ExocortexEvent[] = [];
@@ -103,13 +98,11 @@ export class DataExporter {
        * - Version: Allows us to handle format changes in future imports
        * - Export date: Helps users track when backup was made
        * - Events: The actual data array
-       * - App config: Theme and color override settings
        */
       const exportData: ExportData = {
-        version: '2.0', // Increment version to indicate new format includes app config
+        version: '1.0',
         exportDate: new Date().toISOString(),
-        events: allEvents,
-        appConfig: appConfig
+        events: allEvents
       };
 
       // Convert JavaScript object to formatted JSON string
@@ -144,7 +137,7 @@ export class DataExporter {
     }
   }
 
-  static async importDatabase(db: ExocortexDB, file: File): Promise<AppConfig | undefined> {
+  static async importDatabase(db: ExocortexDB, file: File): Promise<void> {
     try {
       // Read file content
       const text = await file.text();
@@ -174,9 +167,6 @@ export class DataExporter {
 
       console.log(`Successfully imported ${jsonData.events.length} events`);
 
-      // Return app config if it exists in the export file
-      return jsonData.appConfig;
-
     } catch (error) {
       console.error('Failed to import database:', error);
       if (error instanceof SyntaxError) {
@@ -193,8 +183,6 @@ export class DataExporter {
       reader.onload = (e) => {
         try {
           const jsonData = JSON.parse(e.target?.result as string);
-          // Validate that version and events exist and events is an array
-          // appConfig is optional for backward compatibility
           const isValid = jsonData.version && jsonData.events && Array.isArray(jsonData.events);
           resolve(isValid);
         } catch {
