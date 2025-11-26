@@ -29,11 +29,12 @@ import { useAppContext } from '@/hooks/useAppContext';
 
 // Import UI components
 import { Button } from '@/components/ui/button';
-import { Plus, Download, Upload, Database, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Download, Upload, Database, Trash2, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
 
 /**
  * Component Props Interface
@@ -138,6 +139,8 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   // Controls visibility of the "clear all data" confirmation dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showTestConfirm, setShowTestConfirm] = useState(false);
+  const [showDateSkipDialog, setShowDateSkipDialog] = useState(false);
+  const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
 
   /**
    * Drag-to-Scroll State
@@ -1330,6 +1333,78 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     setShowClearConfirm(false);
   };
 
+  // Skip to date functionality
+  const handleSkipToDate = async () => {
+    if (!db || !selectedSkipDate) return;
+
+    try {
+      const targetDate = selectedSkipDate;
+      const today = new Date();
+
+      // Clear current days
+      setDays([]);
+      setHasReachedHistoricalLimit(false);
+      setLoading(true);
+
+      // Calculate how many days to load based on target date
+      const daysDiff = Math.floor((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+      const daysToLoad = Math.max(7, Math.min(daysDiff + 7, 30)); // Load at least 7 days, up to 30 days
+
+      // Load data starting from today going backwards
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - daysToLoad);
+
+      const daysWithEvents = await db.getEventsByDateRange(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+      );
+
+      // Also get today's events (should be included in range, but ensure it's there)
+      const todayStr = today.toISOString().split('T')[0];
+      const todayEvents = await db.getEventsByDate(todayStr);
+
+      // Combine and sort: today first, then past days in reverse chronological order
+      const allDays = [
+        { date: todayStr, events: todayEvents }, // Today first (most recent)
+        ...daysWithEvents.filter(day => day.date !== todayStr).reverse() // Past days (excluding duplicate today)
+      ];
+
+      setDays(allDays);
+
+      // Scroll to the selected date
+      setTimeout(() => {
+        if (gridRef.current) {
+          const targetDateStr = targetDate.toISOString().split('T')[0];
+          const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+
+          if (targetDayIndex !== -1) {
+            const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
+            if (targetDayElement) {
+              targetDayElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+            } else {
+              // Fallback: calculate approximate scroll position
+              const rowHeight = 80; // ROW_HEIGHT constant
+              const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
+              gridRef.current.scrollTop = estimatedPosition;
+            }
+          }
+        }
+      }, 100);
+
+      setShowDateSkipDialog(false);
+      setError(`Jumped to ${targetDate.toLocaleDateString()}`);
+      setTimeout(() => setError(null), 3000);
+    } catch (error) {
+      console.error('Failed to skip to date:', error);
+      setError('Failed to jump to selected date. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading && days.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1370,6 +1445,17 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             >
               <Upload className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Import</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDateSkipDialog(true)}
+              className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
+              disabled={!db}
+              title="Jump to a specific date"
+            >
+              <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Skip to Date</span>
             </Button>
             <Button
               variant="outline"
@@ -1457,6 +1543,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           {days.map((day, dayIndex) => (
             <div
               key={day.date}
+              data-day={day.date}
               className="relative border-b border-border"
               style={{
                 height: `${ROW_HEIGHT}px`,
@@ -1674,6 +1761,49 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               className="bg-primary hover:bg-primary/90"
             >
               Generate
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Skip to Date Dialog */}
+      <Dialog open={showDateSkipDialog} onOpenChange={setShowDateSkipDialog}>
+        <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Jump to Date</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Select a date to jump to in your time tracking data. The calendar will show all available dates.
+            </p>
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={selectedSkipDate}
+                onSelect={setSelectedSkipDate}
+                className="rounded-md border-border"
+                disabled={(date) => {
+                  // Don't allow dates in the future
+                  return date > new Date();
+                }}
+                initialFocus
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDateSkipDialog(false)}
+              className="bg-secondary border-border"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSkipToDate}
+              disabled={!selectedSkipDate || loading}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Jump to Date
             </Button>
           </div>
         </DialogContent>
