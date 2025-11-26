@@ -21,10 +21,17 @@ const RelayMetadataSchema = z.object({
   updatedAt: z.number(),
 }) satisfies z.ZodType<RelayMetadata>;
 
+// Zod schema for ColorOverride validation
+const ColorOverrideSchema = z.object({
+  category: z.string(),
+  hue: z.number().min(0).max(360),
+});
+
 // Zod schema for AppConfig validation
 const AppConfigSchema = z.object({
   theme: z.enum(['dark', 'light', 'system']),
   relayMetadata: RelayMetadataSchema,
+  colorOverrides: z.array(ColorOverrideSchema).default([]),
 }) satisfies z.ZodType<AppConfig>;
 
 export function AppProvider(props: AppProviderProps) {

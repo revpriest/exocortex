@@ -311,8 +311,10 @@ export function hashString(str: string): number {
   return Math.abs(hash);
 }
 
-export function getEventColor(event: ExocortexEvent): string {
-  const hue = (hashString(event.category) % 360);
+export function getEventColor(event: ExocortexEvent, colorOverrides?: { category: string; hue: number }[]): string {
+  // Find custom hue for this category if it exists
+  const override = colorOverrides?.find(override => override.category === event.category);
+  const hue = override ? override.hue : (hashString(event.category) % 360);
   const saturation = Math.round(event.happiness * 100);
   const value = Math.round(event.wakefulness * 100);
 

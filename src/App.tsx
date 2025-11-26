@@ -59,10 +59,11 @@ const queryClient = new QueryClient({
  * Default App Configuration
  *
  * This defines the initial settings for our app.
- * Currently we only have theme, but you could add more settings here.
+ * Currently we have theme and color overrides, but you could add more settings here.
  */
 const defaultConfig: AppConfig = {
   theme: "dark",
+  colorOverrides: [],
 };
 
 /**

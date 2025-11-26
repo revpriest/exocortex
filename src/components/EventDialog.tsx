@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Import types and utilities
 import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
+import { useAppContext } from '@/hooks/useAppContext';
 import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle, ChevronDown, X, Save, Plus } from 'lucide-react';
 import { ExocortexDB } from '@/lib/exocortex';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -144,6 +145,7 @@ interface EventDialogProps {
 
 export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, editEvent, defaultValues }: EventDialogProps) {
   const isMobile = useIsMobile();
+  const { config } = useAppContext();
   const [category, setCategory] = useState('');
   const [notes, setNotes] = useState('');
   const [happinessState, setHappinessState] = useState([defaultValues?.happiness || 0.7]);
@@ -405,7 +407,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       health: healthState[0],
     };
 
-    return getEventColor(tempEvent);
+    return getEventColor(tempEvent, config.colorOverrides);
   };
 
   return (

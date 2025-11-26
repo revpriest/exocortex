@@ -25,6 +25,7 @@ import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getH
 
 // Import hooks
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useAppContext } from '@/hooks/useAppContext';
 
 // Import UI components
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both m
  * It manages all state related to events, database operations, and UI interactions.
  */
 export function ExocortexGrid({ className }: ExocortexGridProps) {
+  const { config } = useAppContext();
   /**
    * Component State Variables
    *
@@ -400,7 +402,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return {
       left: `calc(${startHour} * var(--hour-width))`,
       width: `calc(${durationHours} * var(--hour-width))`,
-      backgroundColor: getEventColor(event),
+      backgroundColor: getEventColor(event, config.colorOverrides),
     };
   };
 
@@ -458,7 +460,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return {
       left: `calc(${startHour} * var(--hour-width))`,
       width: `calc(${durationHours} * var(--hour-width))`,
-      backgroundColor: getEventColor(event),
+      backgroundColor: getEventColor(event, config.colorOverrides),
     };
   };
 
@@ -542,7 +544,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
   // Calculate text color based on background brightness
   const getTextColor = (event: ExocortexEvent) => {
-    const color = getEventColor(event);
+    const color = getEventColor(event, config.colorOverrides);
 
     // Parse HSL color - format is "hsl(h, s%, l%)"
     const hslMatch = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
