@@ -1,6 +1,9 @@
-const CACHE_NAME = 'exocortex-v1';
+// Generate a unique cache name based on install time
+const CACHE_PREFIX = 'exocortex-cache';
+const CACHE_NAME = `${CACHE_PREFIX}-${Date.now()}`;
+const CACHE_VERSION_KEY = 'exocortex-cache-version';
 
-console.log('🔧 Service worker script loaded');
+console.log('🔧 Service worker script loaded', { version: CACHE_NAME });
 
 // Install event - cache the app shell
 self.addEventListener('install', (event) => {
@@ -20,12 +23,84 @@ self.addEventListener('install', (event) => {
       })
       .then(() => {
         console.log('✅ Core files cached successfully');
+
+        // Store the new version in IndexedDB for tracking
+        return storeVersion(CACHE_NAME);
+      })
+      .then(() => {
+        console.log('✅ Version stored, skipping waiting');
         return self.skipWaiting();
       })
       .catch(error => {
         console.error('❌ Failed to cache core files:', error);
       })
   );
+});
+
+// Store version in IndexedDB for tracking
+async function storeVersion(version) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(['version'], 'readwrite');
+    const store = tx.objectStore('version');
+    await store.put({ id: 'current', version: version, timestamp: Date.now() });
+    await tx.complete;
+    console.log('💾 Version stored:', version);
+  } catch (error) {
+    console.error('❌ Failed to store version:', error);
+  }
+}
+
+// Open IndexedDB
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('ExocortexSW', 1);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('version')) {
+        db.createObjectStore('version');
+      }
+    };
+  });
+}
+
+// Get stored version
+async function getStoredVersion() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(['version'], 'readonly');
+    const store = tx.objectStore('version');
+    const result = await store.get('current');
+    await tx.complete;
+    return result ? result.version : null;
+  } catch (error) {
+    console.error('❌ Failed to get stored version:', error);
+    return null;
+  }
+}
+
+// Notify all clients about updates
+async function notifyClients(updateType = 'update-available') {
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => {
+    client.postMessage({
+      type: updateType,
+      version: CACHE_NAME,
+      timestamp: Date.now()
+    });
+  });
+}
+
+// Listen for messages from clients
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('⚡ Skip waiting requested, activating new service worker');
+    self.skipWaiting();
+  }
 });
 
 // Activate event - clean up old caches
@@ -36,16 +111,27 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       console.log('🧹 Checking for old caches...');
 
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
+      const deletionPromises = cacheNames.map((cacheName) => {
+        // Delete old caches that match our prefix but aren't the current one
+        if (cacheName.startsWith(CACHE_PREFIX) && cacheName !== CACHE_NAME) {
+          console.log('🗑️ Deleting old cache:', cacheName);
+          return caches.delete(cacheName);
+        }
+      });
+
+      return Promise.all(deletionPromises);
+    }).then(async () => {
       console.log('✅ Service worker activated and claiming clients');
+
+      // Check if this is a new version
+      const storedVersion = await getStoredVersion();
+      if (storedVersion && storedVersion !== CACHE_NAME) {
+        console.log('🔄 New version detected, notifying clients');
+        await notifyClients('update-available');
+      } else {
+        console.log('📱 Same version or first installation');
+      }
+
       return self.clients.claim();
     })
   );

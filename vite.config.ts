@@ -22,6 +22,8 @@ function fixAssetPaths() {
   };
 }
 
+
+
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
