@@ -76,7 +76,7 @@ const Index = () => {
    * The @unhead/react library handles updating the HTML document
    */
   useSeoMeta({
-    title: 'Exocortex - Time Tracking',
+    title: 'ExocortexLog - Time Tracking',
     description: 'A visual time tracking app that displays your daily events in a colorful grid pattern.',
   });
 
@@ -182,7 +182,7 @@ const Index = () => {
             {/* About Content */}
             <div className="prose max-w-none">
               <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
-                Exocortex was vibe-coded by{' '}
+                ExocortexLog was vibe-coded by{' '}
                 <a
                   href="https://dalliance.net/"
                   className="text-primary hover:text-primary/80 underline transition-colors"

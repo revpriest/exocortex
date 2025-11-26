@@ -1,6 +1,6 @@
 {
-  "name": "Exocortex",
-  "short_name": "Exocortex",
+  "name": "ExocortexLog",
+  "short_name": "ExocortexLog",
   "description": "A visual time tracking app that displays your daily events in a colorful grid pattern",
   "start_url": "/",
   "display": "standalone",

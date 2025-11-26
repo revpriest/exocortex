@@ -83,7 +83,7 @@ const defaultConfig: AppConfig = {
 export function App() {
   return (
     <UnheadProvider head={head}>
-      <AppProvider storageKey="exocortex:app-config" defaultConfig={defaultConfig}>
+      <AppProvider storageKey="exocortexlog:app-config" defaultConfig={defaultConfig}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <Toaster />

@@ -1,4 +1,4 @@
-# Exocortex - Visual Time Tracking App
+# ExocortexLog - Visual Time Tracking App
 
 A beautiful, intuitive time tracking application that visualizes your daily activities in a colorful grid pattern. Track your events, moods, and daily patterns with an easy-to-use interface.
 

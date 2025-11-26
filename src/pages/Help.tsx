@@ -23,8 +23,8 @@ const Help = () => {
    * Set SEO (Search Engine Optimization) metadata
    */
   useSeoMeta({
-    title: 'Exocortex - Help',
-    description: 'Information about the Exocortex time tracking application.',
+    title: 'ExocortexLog - Help',
+    description: 'Information about the ExocortexLog time tracking application.',
   });
 
   return (
@@ -33,7 +33,7 @@ const Help = () => {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-            About Exocortex
+            About ExocortexLog
           </h1>
         </div>
 
@@ -41,9 +41,9 @@ const Help = () => {
         <div className="bg-gray-800 rounded-lg p-6 md:p-8">
           <div className="prose prose-invert max-w-none">
             <p className="text-gray-300 text-base md:text-lg leading-relaxed">
-              Exocortex was vibe-coded by{' '}
-              <a 
-                href="https://dalliance.net/" 
+              ExocortexLog was vibe-coded by{' '}
+              <a
+                href="https://dalliance.net/"
                 className="text-blue-400 hover:text-blue-300 underline transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -51,8 +51,8 @@ const Help = () => {
                 pre
               </a>
               {' '}using{' '}
-              <a 
-                href="https://shakespeare.diy/" 
+              <a
+                href="https://shakespeare.diy/"
                 className="text-blue-400 hover:text-blue-300 underline transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
