@@ -415,13 +415,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     }, 100); // 100ms delay to ensure click events are blocked
   }, [isDragging]);
 
-  // Handle click on events - only trigger if it's a true click, not a drag
-  const handleEventClickWithDragCheck = useCallback((event: ExocortexEvent) => {
-    // Only trigger event click if we haven't just finished dragging
-    if (!hasDragged) {
-      handleEventClick(event);
-    }
-  }, [hasDragged, handleEventClick]);
+
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -857,6 +851,14 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     setEditingEvent(event);
     setIsDialogOpen(true);
   };
+
+  // Handle click on events - only trigger if it's a true click, not a drag
+  const handleEventClickWithDragCheck = useCallback((event: ExocortexEvent) => {
+    // Only trigger event click if we haven't just finished dragging
+    if (!hasDragged) {
+      handleEventClick(event);
+    }
+  }, [hasDragged, handleEventClick]);
 
   const handleDialogClose = () => {
     setIsDialogOpen(false);
