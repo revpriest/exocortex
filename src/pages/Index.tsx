@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Grid3X3, BarChart3, Settings, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
+import { useBuildInfo } from '@/hooks/useBuildInfo';
 
 /**
  * Theme Switch Component
@@ -109,6 +110,54 @@ const Index = () => {
    * - max-w-7xl mx-auto: Center content and limit max width for readability
    */
 
+
+  // Component for build information section
+  const BuildInfoSection = () => {
+    const buildInfo = useBuildInfo();
+
+    if (!buildInfo) {
+      return (
+        <div className="mt-6 pt-6 border-t border-border">
+          <p className="text-xs text-muted-foreground">
+            Loading build information...
+          </p>
+        </div>
+      );
+    }
+
+    const formatDate = (dateString: string) => {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    return (
+      <div className="mt-6 pt-6 border-t border-border">
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div className="flex items-center justify-between">
+            <span>Build:</span>
+            <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
+              {buildInfo.buildHash}
+            </code>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Built:</span>
+            <span>{formatDate(buildInfo.buildDate)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Version:</span>
+            <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
+              {buildInfo.version.slice(-8)}
+            </code>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
@@ -209,6 +258,9 @@ const Index = () => {
                   You should probably back up with the export button often, no guarantees.
                 </p>
               </div>
+
+              {/* Build Information */}
+              <BuildInfoSection />
             </div>
           </div>
         )}
