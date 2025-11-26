@@ -146,10 +146,14 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
    * - isDragging: Whether the user is currently dragging
    * - dragStart: Mouse position when drag started
    * - scrollStart: Scroll position when drag started
+   * - hasDragged: Whether the user has actually moved the mouse during this interaction
+   * - dragThreshold: Minimum distance in pixels to consider it a drag vs click
    */
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+  const [hasDragged, setHasDragged] = useState(false);
+  const dragThreshold = 5; // 5 pixels minimum movement to consider it a drag
 
   /**
    * React Refs
@@ -304,8 +308,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
   // Handle mouse down - start dragging
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Only start drag if not clicking on interactive elements
-    if ((e.target as HTMLElement).closest('button, a, input, select, textarea, .cursor-pointer')) {
+    // Only exclude certain UI controls, but allow dragging over events and other elements
+    if ((e.target as HTMLElement).closest('button, a, input, select, textarea, [role="button"]')) {
       return;
     }
 
@@ -314,7 +318,14 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     const grid = gridRef.current;
     if (!grid) return;
 
+    // Clear any existing drag reset timeout
+    if (dragResetTimeoutRef.current) {
+      clearTimeout(dragResetTimeoutRef.current);
+      dragResetTimeoutRef.current = null;
+    }
+
     setIsDragging(true);
+    setHasDragged(false); // Reset drag movement tracking
     setDragStart({ x: e.clientX, y: e.clientY });
     setScrollStart({
       left: grid.scrollLeft,
@@ -338,10 +349,19 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     const deltaX = e.clientX - dragStart.x;
     const deltaY = e.clientY - dragStart.y;
 
+    // Check if we've moved beyond the drag threshold
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    if (distance >= dragThreshold && !hasDragged) {
+      setHasDragged(true);
+    }
+
     // Update scroll position
     grid.scrollLeft = scrollStart.left - deltaX;
     grid.scrollTop = scrollStart.top - deltaY;
-  }, [isDragging, dragStart, scrollStart]);
+  }, [isDragging, dragStart, scrollStart, hasDragged, dragThreshold]);
+
+  // Timeout ref for delayed reset
+  const dragResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle mouse up - stop dragging
   const handleMouseUp = useCallback(() => {
@@ -356,6 +376,17 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     }
 
     setIsDragging(false);
+
+    // Clear any existing timeout
+    if (dragResetTimeoutRef.current) {
+      clearTimeout(dragResetTimeoutRef.current);
+    }
+
+    // Delay resetting hasDragged to prevent click events from firing
+    dragResetTimeoutRef.current = setTimeout(() => {
+      setHasDragged(false);
+      dragResetTimeoutRef.current = null;
+    }, 100); // 100ms delay to ensure click events are blocked
   }, [isDragging]);
 
   // Handle mouse leave - stop dragging when mouse leaves the grid
@@ -371,16 +402,35 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     }
 
     setIsDragging(false);
+
+    // Clear any existing timeout
+    if (dragResetTimeoutRef.current) {
+      clearTimeout(dragResetTimeoutRef.current);
+    }
+
+    // Delay resetting hasDragged to prevent click events from firing
+    dragResetTimeoutRef.current = setTimeout(() => {
+      setHasDragged(false);
+      dragResetTimeoutRef.current = null;
+    }, 100); // 100ms delay to ensure click events are blocked
   }, [isDragging]);
 
-  // Handle click - prevent click events after drag
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Prevent click if we just finished dragging
-    if (isDragging) {
-      e.preventDefault();
-      e.stopPropagation();
+  // Handle click on events - only trigger if it's a true click, not a drag
+  const handleEventClickWithDragCheck = useCallback((event: ExocortexEvent) => {
+    // Only trigger event click if we haven't just finished dragging
+    if (!hasDragged) {
+      handleEventClick(event);
     }
-  }, [isDragging]);
+  }, [hasDragged, handleEventClick]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dragResetTimeoutRef.current) {
+        clearTimeout(dragResetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Global mouse up handler - ensure dragging stops even if mouse is released outside grid
   useEffect(() => {
@@ -1380,7 +1430,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
       >
         {/* Inject responsive styles */}
         <style>{responsiveStyles}</style>
@@ -1488,7 +1537,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                       key={`${event.id}-${day.date}`}
                       className="absolute top-2 h-16 rounded-md border border-border shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
                       style={eventStyle}
-                      onClick={() => handleEventClick({ ...event, id: originalEventId })} // Use original event for click handler
+                      onClick={() => handleEventClickWithDragCheck({ ...event, id: originalEventId })} // Use drag-aware click handler
                     >
                       <div className="p-0 h-full flex flex-col items-center justify-center text-center">
                         <div className="text-xs font-medium truncate w-full mb-0.5" style={{ color: getTextColor(event) }}>
