@@ -302,6 +302,8 @@ export class DataExporter {
             if (!isNaN(importanceValue)) {
               // Map from -100..100 range to 0..1 range (50% at 0, 0% at -100, 100% at +100)
               wakefulness = (importanceValue + 100) / 200;
+              // Scale up wakefulness by 1.5x to affect smiley face eyes appearance
+              wakefulness = wakefulness * 1.5;
               wakefulness = Math.max(0, Math.min(1, wakefulness)); // clamp to 0-1
             }
           }
@@ -314,7 +316,7 @@ export class DataExporter {
             },
             converted: {
               happiness: `${happiness} (${Math.round(happiness * 100)}%)`,
-              wakefulness: `${wakefulness} (${Math.round(wakefulness * 100)}%)`,
+              wakefulness: `${wakefulness} (${Math.round(wakefulness * 100)}%) × 1.5 scaled`,
               health: '1.0 (100%)'
             },
             category: category
