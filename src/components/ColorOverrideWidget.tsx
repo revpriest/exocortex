@@ -333,11 +333,7 @@ export const ColorOverrideWidget: React.FC = () => {
         </div>
       )}
 
-      {/* Info Note */}
-      <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-        <p>Colors are calculated using HSL (Hue, Saturation, Lightness).</p>
-        <p>Hue determines the base color, while saturation and lightness are adjusted based on mood and wakefulness.</p>
-      </div>
+
     </div>
   );
 };

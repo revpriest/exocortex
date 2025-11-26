@@ -15,8 +15,9 @@ import { StatsView } from '@/components/StatsView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Grid3X3, BarChart3, HelpCircle, Moon, Sun } from 'lucide-react';
+import { Grid3X3, BarChart3, Settings, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
+import { APP_VERSION } from '../main';
 
 /**
  * Theme Switch Component
@@ -62,9 +63,9 @@ const Index = () => {
    * currentView: Controls which interface is displayed
    * - 'grid': Shows the time tracking grid
    * - 'stats': Shows the statistics and analytics
-   * - 'help': Shows the help/about information
+   * - 'conf': Shows the configuration and about information
    */
-  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'help'>('grid');
+  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'conf'>('grid');
 
   /**
    * Set SEO (Search Engine Optimization) metadata
@@ -94,8 +95,8 @@ const Index = () => {
     setCurrentView('stats');
   };
 
-  const handleHelpClick = () => {
-    setCurrentView('help');
+  const handleConfClick = () => {
+    setCurrentView('conf');
   };
 
   /**
@@ -141,12 +142,12 @@ const Index = () => {
                 Stats
               </Button>
               <Button
-                variant={currentView === 'help' ? 'default' : 'outline'}
+                variant={currentView === 'conf' ? 'default' : 'outline'}
                 size="sm"
-                onClick={handleHelpClick}
+                onClick={handleConfClick}
               >
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Help
+                <Settings className="h-4 w-4 mr-2" />
+                Conf
               </Button>
             </div>
           </div>
@@ -205,6 +206,12 @@ const Index = () => {
               <div className="mt-6 pt-6 border-t border-border">
                 <p className="text-destructive text-base md:text-lg leading-relaxed">
                   You should probably back up with the export button often, no guarantees.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-border">
+                <p className="text-muted-foreground text-sm">
+                  Version: {APP_VERSION}
                 </p>
               </div>
             </div>

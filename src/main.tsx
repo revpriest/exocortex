@@ -21,6 +21,14 @@ import './index.css';
 // Example: import '@fontsource-variable/inter';
 
 /**
+ * Application Version
+ *
+ * This constant represents the current version of ExocortexLog.
+ * Update this value when releasing new versions.
+ */
+export const APP_VERSION = '1.0.0';
+
+/**
  * Service Worker Registration
  *
  * Service workers enable offline functionality and faster load times.
