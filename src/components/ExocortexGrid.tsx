@@ -848,6 +848,57 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     setShowTestConfirm(false);
   };
 
+  const handleImportLegacyDatabase = () => {
+    if (!db) return;
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await DataExporter.importLegacyDatabase(db, file);
+        // Refresh the grid to show imported data
+        const today = new Date().toISOString().split('T')[0];
+        const todayEvents = await db.getEventsByDate(today);
+
+        // Load past 7 days
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() - 1);
+
+        const pastDays = await db.getEventsByDateRange(
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        );
+
+        // Sort past days by date (newest first)
+        pastDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        // Final structure: today first, then past days
+        const allDays = [
+          { date: today, events: todayEvents },
+          ...pastDays
+        ];
+
+        setDays(allDays);
+        setHasReachedHistoricalLimit(false);
+
+        setError('Legacy data imported successfully. Categories from multiple tags have been combined.');
+
+        // Clear success message after 5 seconds
+        setTimeout(() => setError(null), 5000);
+      } catch (error) {
+        console.error('Failed to import legacy data:', error);
+        setError(`Legacy import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    };
+    input.click();
+  };
+
 
 
   const handleGenerateTestData = async () => {
