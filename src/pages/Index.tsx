@@ -13,7 +13,37 @@ import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
 import { Button } from '@/components/ui/button';
-import { Grid3X3, BarChart3, HelpCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Grid3X3, BarChart3, HelpCircle, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
+
+/**
+ * Theme Switch Component
+ *
+ * A toggle switch that allows users to switch between dark and light themes.
+ * It uses the existing theme system and persists the preference in localStorage.
+ */
+const ThemeSwitch = () => {
+  const { theme, setTheme } = useTheme();
+
+  const isDarkMode = theme === 'dark' || (theme === 'system' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const handleToggle = () => {
+    setTheme(isDarkMode ? 'light' : 'dark');
+  };
+
+  return (
+    <div className="flex items-center space-x-3">
+      <Sun className="h-4 w-4 text-muted-foreground" />
+      <Switch
+        checked={isDarkMode}
+        onCheckedChange={handleToggle}
+      />
+      <Moon className="h-4 w-4 text-muted-foreground" />
+    </div>
+  );
+};
 
 /**
  * Index Component
@@ -72,13 +102,13 @@ const Index = () => {
    *
    * We use Tailwind CSS classes for responsive design:
    * - min-h-screen: Ensures page fills full viewport height
-   * - bg-gray-900: Dark background color
+   * - bg-background: Theme-aware background color (changes with dark/light mode)
    * - p-2 md:p-4: Small padding on mobile, larger on desktop
    * - pb-16 md:pb-20: Extra bottom padding to avoid floating add button overlap
    * - max-w-7xl mx-auto: Center content and limit max width for readability
    */
   return (
-    <div className="min-h-screen bg-gray-900 p-2 md:p-4 pb-16 md:pb-20">
+    <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
       {/*
         Container with max width keeps content readable on large screens
         and centers it horizontally with mx-auto (margin-left: auto; margin-right: auto)
@@ -87,7 +117,7 @@ const Index = () => {
         {/* Navigation Header */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-white">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               Exocortex
             </h1>
 
@@ -97,11 +127,6 @@ const Index = () => {
                 variant={currentView === 'grid' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleGridClick}
-                className={
-                  currentView === 'grid'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
-                }
               >
                 <Grid3X3 className="h-4 w-4 mr-2" />
                 Grid
@@ -110,11 +135,6 @@ const Index = () => {
                 variant={currentView === 'stats' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleStatsClick}
-                className={
-                  currentView === 'stats'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
-                }
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Stats
@@ -123,11 +143,6 @@ const Index = () => {
                 variant={currentView === 'help' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleHelpClick}
-                className={
-                  currentView === 'help'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
-                }
               >
                 <HelpCircle className="h-4 w-4 mr-2" />
                 Help
@@ -146,13 +161,25 @@ const Index = () => {
         ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
         ) : (
-          <div className="bg-gray-800 rounded-lg p-6 md:p-8">
-            <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300 text-base md:text-lg leading-relaxed">
+          <div className="bg-card rounded-lg p-6 md:p-8 border">
+            {/* Theme Settings Section */}
+            <div className="mb-8 pb-6 border-b border-border">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
+                  <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
+                </div>
+                <ThemeSwitch />
+              </div>
+            </div>
+
+            {/* About Content */}
+            <div className="prose max-w-none">
+              <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
                 Exocortex was vibe-coded by{' '}
                 <a
                   href="https://dalliance.net/"
-                  className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                  className="text-primary hover:text-primary/80 underline transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -161,7 +188,7 @@ const Index = () => {
                 {' '}using{' '}
                 <a
                   href="https://shakespeare.diy/"
-                  className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                  className="text-primary hover:text-primary/80 underline transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -169,8 +196,8 @@ const Index = () => {
                 </a>
               </p>
 
-              <div className="mt-6 pt-6 border-t border-gray-700">
-                <p className="text-yellow-400 text-base md:text-lg leading-relaxed">
+              <div className="mt-6 pt-6 border-t border-border">
+                <p className="text-destructive text-base md:text-lg leading-relaxed">
                   You should probably back up with the export button often, no guarantees.
                 </p>
               </div>

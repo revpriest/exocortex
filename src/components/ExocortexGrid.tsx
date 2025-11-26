@@ -1130,7 +1130,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-secondary border-border text-secondary-foreground"
               disabled={!db}
               title="Export data to JSON file"
             >
@@ -1141,7 +1141,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               variant="outline"
               size="sm"
               onClick={handleImportDatabase}
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-secondary border-border text-secondary-foreground"
               disabled={!db}
               title="Import data from JSON file"
             >
@@ -1152,7 +1152,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               variant="outline"
               size="sm"
               onClick={() => setShowTestConfirm(true)}
-              className="bg-blue-700 border-blue-600 text-white"
+              className="bg-primary border-primary text-primary-foreground"
               disabled={!db}
               title="Generate random test data for the past 30 days"
             >
@@ -1163,7 +1163,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               variant="outline"
               size="sm"
               onClick={() => setShowClearConfirm(true)}
-              className="bg-red-700 border-red-600 text-white"
+              className="bg-destructive border-destructive text-destructive-foreground"
               disabled={!db}
               title="Clear all events from the database"
             >
@@ -1188,7 +1188,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       {/* Grid container - mobile optimized */}
       <div
         ref={gridRef}
-        className="relative overflow-auto bg-gray-900 border border-gray-700 rounded-lg exocortex"
+        className="relative overflow-auto bg-background border border-border rounded-lg exocortex"
         style={{
           height: 'calc(100vh - 100px)', // More space - button should be immediately visible
           width: '100%',
@@ -1197,12 +1197,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         {/* Inject responsive styles */}
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
-        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
+        <div className="sticky top-0 z-10 bg-card border-b border-border">
           <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
             {hourSlots.map((hour, index) => (
               <div
                 key={hour}
-                className="text-xs md:text-sm text-gray-400 border-r border-gray-700 px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
+                className="text-xs md:text-sm text-muted-foreground border-r border-border px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
                 style={{
                   width: `var(--hour-width)`,
                 }}
@@ -1218,13 +1218,13 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           {days.map((day, dayIndex) => (
             <div
               key={day.date}
-              className="relative border-b border-gray-800"
+              className="relative border-b border-border"
               style={{
                 height: `${ROW_HEIGHT}px`,
               }}
             >
               {/* Date label - mobile optimized */}
-              <div className="absolute left-2 -top-1 text-xs md:text-sm text-gray-400 z-20 select-none">
+              <div className="absolute left-2 -top-1 text-xs md:text-sm text-muted-foreground z-20 select-none">
                 {new Date(day.date).toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
@@ -1238,7 +1238,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                 {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
                   <div
                     key={hourIndex}
-                    className="border-r border-gray-800 flex-shrink-0"
+                    className="border-r border-border flex-shrink-0"
                     style={{
                       width: `var(--hour-width)`,
                     }}
@@ -1298,7 +1298,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                   return (
                     <div
                       key={`${event.id}-${day.date}`}
-                      className="absolute top-2 h-16 rounded-md border border-gray-600 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
+                      className="absolute top-2 h-16 rounded-md border border-border shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
                       style={eventStyle}
                       onClick={() => handleEventClick({ ...event, id: originalEventId })} // Use original event for click handler
                     >
@@ -1357,7 +1357,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       {/* Floating add button - mobile optimized */}
       <button
         onClick={handleOpenAddDialog}
-        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-14 h-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 z-50 touch-manipulation"
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-14 h-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-50 touch-manipulation"
         style={{
           // Ensure button stays within safe areas on mobile
           paddingBottom: 'env(safe-area-inset-bottom, 1rem)',
@@ -1383,12 +1383,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       {/* Clear Database Confirmation Dialog */}
       <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <DialogContent className="sm:max-w-sm bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="sm:max-w-sm bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Delete Entire Database</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-muted-foreground">
               This will delete the entire database. This action cannot be undone.
             </p>
           </div>
@@ -1396,14 +1396,14 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             <Button
               variant="outline"
               onClick={cancelClearAllData}
-              className="bg-gray-700 border-gray-600"
+              className="bg-secondary border-border"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={confirmClearAllData}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Delete
             </Button>
@@ -1413,12 +1413,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       {/* Generate Test Data Confirmation Dialog */}
       <Dialog open={showTestConfirm} onOpenChange={setShowTestConfirm}>
-        <DialogContent className="sm:max-w-sm bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="sm:max-w-sm bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Generate Test Data</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-muted-foreground">
               This will create 30 days of random test data with various activities and diary notes. This will replace any existing data.
             </p>
           </div>
@@ -1426,13 +1426,13 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             <Button
               variant="outline"
               onClick={cancelGenerateTestData}
-              className="bg-gray-700 border-gray-600"
+              className="bg-secondary border-border"
             >
               Cancel
             </Button>
             <Button
               onClick={confirmGenerateTestData}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
               Generate
             </Button>
