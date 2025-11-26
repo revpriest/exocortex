@@ -740,7 +740,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         // Validate file before importing
         const isValid = await DataExporter.validateExportFile(file);
         if (!isValid) {
-          setError('Invalid export file. Please select a valid exocortex export file.');
+          setError('Invalid export file. Please select a valid ExocortexLog export file.');
           return;
         }
 

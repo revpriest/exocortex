@@ -123,7 +123,7 @@ export class DataExporter {
 
       const link = document.createElement('a');
       link.href = url;
-      link.download = `exocortex-export-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `exocortexlog-export-${new Date().toISOString().split('T')[0]}.json`;
 
       document.body.appendChild(link);
       link.click();
