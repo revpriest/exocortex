@@ -3,7 +3,7 @@
  *
  * This hook provides access to build information including version,
  * build hash, build date, and git commit information.
- * 
+ *
  * Build information is generated during the build process and stored
  * in build-info.json in the public directory.
  */
@@ -31,10 +31,10 @@ export function useBuildInfo(): BuildInfo | null {
           setBuildInfo(info);
           console.log('📋 Build info loaded:', info);
         } else {
-          // Fallback: create basic info from build timestamp in main.js
-          console.log('📋 No build-info.json found, using fallback');
+          // Fallback: Use current time (development mode)
+          console.log('📋 No build-info.json found, using development fallback');
           const fallbackInfo: BuildInfo = {
-            version: Date.now().toString(),
+            version: 'dev',
             buildHash: 'dev',
             buildDate: new Date().toISOString(),
             branch: 'main',

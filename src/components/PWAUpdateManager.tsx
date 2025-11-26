@@ -15,6 +15,7 @@ export function PWAUpdateManager() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [lastNotifiedVersion, setLastNotifiedVersion] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -25,29 +26,37 @@ export function PWAUpdateManager() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'update-available') {
         console.log('🔄 PWA update available:', event.data);
-        setUpdateInfo({
-          version: event.data.version,
-          timestamp: event.data.timestamp
-        });
-        setUpdateAvailable(true);
-        setIsDismissed(false);
 
-        // Also show a toast notification
-        toast({
-          title: "App Update Available",
-          description: "A new version of ExocortexLog is ready to install.",
-          duration: 10000,
-          action: (
-            <Button
-              size="sm"
-              onClick={() => handleRefresh()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Update Now
-            </Button>
-          ),
-        });
+        // Only show update if it's a different version than last notified
+        const newVersion = event.data.version;
+        if (!lastNotifiedVersion || lastNotifiedVersion !== newVersion) {
+          setUpdateInfo({
+            version: newVersion,
+            timestamp: event.data.timestamp
+          });
+          setUpdateAvailable(true);
+          setIsDismissed(false);
+          setLastNotifiedVersion(newVersion);
+
+          // Also show a toast notification
+          toast({
+            title: "App Update Available",
+            description: "A new version of ExocortexLog is ready to install.",
+            duration: 10000,
+            action: (
+              <Button
+                size="sm"
+                onClick={() => handleRefresh()}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Update Now
+              </Button>
+            ),
+          });
+        } else {
+          console.log('📱 Same version already notified, skipping');
+        }
       }
     };
 
@@ -89,13 +98,19 @@ export function PWAUpdateManager() {
         });
 
         // Check if there's a waiting service worker (new version available)
-        if (registration.waiting) {
-          console.log('🔄 Waiting service worker found - update available');
+        if (registration.waiting && !updateAvailable) {
+          console.log('🔄 New waiting service worker found - update available');
           setUpdateAvailable(true);
           setUpdateInfo({
-            version: 'Available Now',
+            version: 'New Version',
             timestamp: Date.now()
           });
+        } else if (!registration.waiting && updateAvailable) {
+          // Reset state if waiting service worker is gone (user updated)
+          console.log('📱 Update completed, resetting state');
+          setUpdateAvailable(false);
+          setUpdateInfo(null);
+          setIsDismissed(false);
         }
       } else {
         console.log('ℹ️ No service worker registration found');
