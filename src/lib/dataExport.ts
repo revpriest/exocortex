@@ -47,6 +47,21 @@ export interface ExportData {
  * - importDatabase: Load events from JSON file
  * - validateExportFile: Check if file is valid export format
  */
+/**
+ * DataImporter Class
+ *
+ * Handles importing new format data files (alias for DataExporter's import functionality)
+ */
+export class DataImporter {
+  static async importDatabase(db: ExocortexDB, file: File): Promise<void> {
+    return DataExporter.importDatabase(db, file);
+  }
+
+  static async validateFile(file: File): Promise<boolean> {
+    return DataExporter.validateExportFile(file);
+  }
+}
+
 export class DataExporter {
   /**
    * Export Database to JSON File
@@ -184,6 +199,175 @@ export class DataExporter {
         try {
           const jsonData = JSON.parse(e.target?.result as string);
           const isValid = jsonData.version && jsonData.events && Array.isArray(jsonData.events);
+          resolve(isValid);
+        } catch {
+          resolve(false);
+        }
+      };
+
+      reader.onerror = () => resolve(false);
+
+      reader.readAsText(file);
+    });
+  }
+
+  /**
+   * Import Legacy Database from Old Format
+   *
+   * This method imports data from the legacy Exocortex format and converts it
+   * to the new format, handling the schema differences:
+   * - Converts tags to categories
+   - Combines multiple tags per event into combined category names
+   - Maps old fields to new fields (importance → happiness, sets health to 100%)
+   - Handles microsecond timestamps
+   * - Ignores location data
+   *
+   * @param db - The ExocortexDB instance to import into
+   * @param file - The legacy JSON file to import
+   * @returns Promise that resolves when import is complete
+   */
+  static async importLegacyDatabase(db: ExocortexDB, file: File): Promise<void> {
+    try {
+      // Read and parse the legacy JSON file
+      const text = await file.text();
+      const jsonData = JSON.parse(text);
+
+      // Validate legacy format
+      if (!jsonData.tag || !jsonData.event || !jsonData.event_tag) {
+        throw new Error('Invalid legacy export file format. Missing required fields: tag, event, or event_tag');
+      }
+
+      console.log('📥 Starting legacy import...');
+
+      // Create tag lookup map (ID → name)
+      const tagMap = new Map<string, string>();
+      jsonData.tag.forEach((tag: any) => {
+        if (tag.id && tag.name) {
+          tagMap.set(tag.id, tag.name);
+        }
+      });
+
+      console.log(`🏷️ Loaded ${tagMap.size} categories from legacy data`);
+
+      // Create event → tags map
+      const eventTagsMap = new Map<string, string[]>();
+      jsonData.event_tag.forEach((eventTag: any) => {
+        if (eventTag.event && eventTag.tag) {
+          if (!eventTagsMap.has(eventTag.event)) {
+            eventTagsMap.set(eventTag.event, []);
+          }
+          const tagName = tagMap.get(eventTag.tag);
+          if (tagName) {
+            eventTagsMap.get(eventTag.event)!.push(tagName);
+          }
+        }
+      });
+
+      // Process and import events
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      for (const legacyEvent of jsonData.event) {
+        try {
+          // Get tags for this event (categories)
+          const tags = eventTagsMap.get(legacyEvent.id) || [];
+
+          // Create combined category name
+          let category = tags.length > 0
+            ? tags.join(' / ')
+            : 'Uncategorized';
+
+          // Parse happiness (old format uses string, map to 0-1 range)
+          let happiness = 0.5; // default
+          if (legacyEvent.happiness) {
+            const happinessValue = parseInt(legacyEvent.happiness);
+            if (!isNaN(happinessValue)) {
+              // Map from -100..100 range to 0..1 range
+              happiness = (happinessValue + 100) / 200;
+              happiness = Math.max(0, Math.min(1, happiness)); // clamp to 0-1
+            }
+          }
+
+          // Apply importance if available (this was the old field name)
+          if (legacyEvent.importance) {
+            const importanceValue = parseInt(legacyEvent.importance);
+            if (!isNaN(importanceValue)) {
+              // If importance is set, it overrides happiness
+              happiness = (importanceValue + 100) / 200;
+              happiness = Math.max(0, Math.min(1, happiness));
+            }
+          }
+
+          // Parse wakefulness (not in old format, use reasonable default)
+          const wakefulness = 0.8; // default to reasonably awake
+
+          // Health is always 100% in legacy import (not tracked in old format)
+          const health = 1.0;
+
+          // Parse end time (handle both seconds and milliseconds)
+          let endTime = legacyEvent.end;
+          if (endTime && endTime < 1000000000000) {
+            // If it looks like seconds, convert to milliseconds
+            endTime = endTime * 1000;
+          }
+
+          // Skip events without valid end time
+          if (!endTime || endTime <= 0) {
+            console.warn('⚠️ Skipping event with invalid end time:', legacyEvent.id);
+            skippedCount++;
+            continue;
+          }
+
+          // Import the event
+          await db.addEvent({
+            endTime: endTime,
+            category: category,
+            notes: legacyEvent.text || undefined, // use text field as notes if present
+            happiness: happiness,
+            wakefulness: wakefulness,
+            health: health
+          });
+
+          importedCount++;
+        } catch (error) {
+          console.warn('⚠️ Failed to import legacy event:', legacyEvent.id, error);
+          skippedCount++;
+          // Continue with other events even if one fails
+        }
+      }
+
+      console.log(`✅ Successfully imported ${importedCount} events`);
+      if (skippedCount > 0) {
+        console.warn(`⚠️ Skipped ${skippedCount} events due to errors`);
+      }
+
+    } catch (error) {
+      console.error('❌ Failed to import legacy database:', error);
+      if (error instanceof SyntaxError) {
+        throw new Error('Invalid JSON file. Please select a valid legacy exocortex export file.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Validate Legacy Export File
+   *
+   * Checks if a file is in the legacy Exocortex format by looking for
+   * the required fields: tag, event, and event_tag.
+   *
+   * @param file - The file to validate
+   * @returns Promise that resolves to true if valid legacy format
+   */
+  static async validateLegacyFile(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        try {
+          const jsonData = JSON.parse(e.target?.result as string);
+          const isValid = jsonData.tag && jsonData.event && jsonData.event_tag &&
+            Array.isArray(jsonData.tag) && Array.isArray(jsonData.event) && Array.isArray(jsonData.event_tag);
           resolve(isValid);
         } catch {
           resolve(false);

@@ -848,6 +848,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     setShowTestConfirm(false);
   };
 
+
+
   const handleGenerateTestData = async () => {
     if (!db) return;
 
@@ -1149,6 +1151,17 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             >
               <Upload className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Import</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleImportLegacyDatabase}
+              className="bg-orange-600/20 border-orange-600 text-orange-400 hover:bg-orange-600/30"
+              disabled={!db}
+              title="Import data from legacy Exocortex format (old app)"
+            >
+              <Upload className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Legacy</span>
             </Button>
             <Button
               variant="outline"
