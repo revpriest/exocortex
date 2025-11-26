@@ -28,8 +28,8 @@ self.addEventListener('install', (event) => {
         return storeVersion(CACHE_NAME);
       })
       .then(() => {
-        console.log('✅ Version stored, skipping waiting');
-        return self.skipWaiting();
+        console.log('✅ Version stored');
+        // Don't skip waiting here - let activate handle it
       })
       .catch(error => {
         console.error('❌ Failed to cache core files:', error);
@@ -123,14 +123,9 @@ self.addEventListener('activate', (event) => {
     }).then(async () => {
       console.log('✅ Service worker activated and claiming clients');
 
-      // Check if this is a new version
-      const storedVersion = await getStoredVersion();
-      if (storedVersion && storedVersion !== CACHE_NAME) {
-        console.log('🔄 New version detected, notifying clients');
-        await notifyClients('update-available');
-      } else {
-        console.log('📱 Same version or first installation');
-      }
+      // ALWAYS notify clients about new version activation
+      // This ensures the PWAUpdateManager can detect the change
+      await notifyClients('update-available');
 
       return self.clients.claim();
     })

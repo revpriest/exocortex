@@ -15,9 +15,10 @@ import { StatsView } from '@/components/StatsView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Grid3X3, BarChart3, Settings, Moon, Sun } from 'lucide-react';
+import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useBuildInfo } from '@/hooks/useBuildInfo';
+import { useCacheRefresh } from '@/hooks/useCacheRefresh';
 
 /**
  * Theme Switch Component
@@ -57,6 +58,8 @@ const ThemeSwitch = () => {
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
+  const { refreshApp, isRefreshing } = useCacheRefresh();
+
   /**
    * State Management
    *
@@ -256,6 +259,37 @@ const Index = () => {
               <div className="mt-6 pt-6 border-t border-border">
                 <p className="text-destructive text-base md:text-lg leading-relaxed">
                   You should probably back up with the export button often, no guarantees.
+                </p>
+              </div>
+
+              {/* Cache Refresh Button */}
+              <div className="mt-6 pt-6 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Force Refresh App
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={refreshApp}
+                    disabled={isRefreshing}
+                    className="text-xs"
+                  >
+                    {isRefreshing ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                        Refreshing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Refresh
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Clears all caches and reloads app without losing data. Use if app isn't updating.
                 </p>
               </div>
 

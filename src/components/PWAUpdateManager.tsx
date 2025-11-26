@@ -18,13 +18,8 @@ export function PWAUpdateManager() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we're running as a PWA
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                  (window.navigator as any).standalone === true;
-
-    if (!isPWA) {
-      return; // Don't show update notifications for regular browser usage
-    }
+    // Always check for updates (both PWA and browser)
+    console.log('🔍 PWA Update Manager: Checking for updates...');
 
     // Listen for service worker messages
     const handleMessage = (event: MessageEvent) => {
@@ -68,6 +63,15 @@ export function PWAUpdateManager() {
     // Check for updates on page load
     checkForUpdates();
 
+    // Set up periodic check for updates (every 5 minutes)
+    const updateInterval = setInterval(checkForUpdates, 5 * 60 * 1000);
+
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleMessage);
+      navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
+      clearInterval(updateInterval);
+    };
+
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleMessage);
       navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
@@ -78,15 +82,23 @@ export function PWAUpdateManager() {
     try {
       const registration = await navigator.serviceWorker?.getRegistration();
       if (registration) {
-        // Check if there's a waiting service worker
+        console.log('🔍 Service worker registration found:', {
+          active: !!registration.active,
+          waiting: !!registration.waiting,
+          installing: !!registration.installing
+        });
+
+        // Check if there's a waiting service worker (new version available)
         if (registration.waiting) {
-          console.log('🔄 Waiting service worker found');
+          console.log('🔄 Waiting service worker found - update available');
           setUpdateAvailable(true);
           setUpdateInfo({
-            version: 'Unknown',
+            version: 'Available Now',
             timestamp: Date.now()
           });
         }
+      } else {
+        console.log('ℹ️ No service worker registration found');
       }
     } catch (error) {
       console.error('❌ Failed to check for updates:', error);
@@ -110,7 +122,7 @@ export function PWAUpdateManager() {
     } catch (error) {
       console.error('❌ Failed to refresh:', error);
       setIsRefreshing(false);
-      
+
       toast({
         title: "Update Failed",
         description: "Please refresh the page manually.",
@@ -121,7 +133,7 @@ export function PWAUpdateManager() {
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    
+
     toast({
       title: "Update Deferred",
       description: "You'll be prompted again later.",
@@ -151,7 +163,7 @@ export function PWAUpdateManager() {
             A new version of ExocortexLog is ready to install with improvements and bug fixes.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent className="pt-0">
           {updateInfo && (
             <div className="text-xs text-muted-foreground space-y-1">
@@ -162,7 +174,7 @@ export function PWAUpdateManager() {
             </div>
           )}
         </CardContent>
-        
+
         <CardFooter className="flex justify-between space-x-2 pt-3">
           <Button
             variant="ghost"
@@ -174,7 +186,7 @@ export function PWAUpdateManager() {
             <X className="h-4 w-4 mr-1" />
             Later
           </Button>
-          
+
           <Button
             onClick={handleRefresh}
             disabled={isRefreshing}
