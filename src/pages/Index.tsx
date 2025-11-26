@@ -12,7 +12,6 @@ import React, { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
-import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw } from 'lucide-react';
@@ -226,11 +225,6 @@ const Index = () => {
                 </div>
                 <ThemeSwitch />
               </div>
-            </div>
-
-            {/* Category Color Overrides Section */}
-            <div className="mb-8 pb-6 border-b border-border">
-              <ColorOverrideWidget />
             </div>
 
             {/* About Content */}
