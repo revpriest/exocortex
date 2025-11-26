@@ -304,7 +304,7 @@ export function StatsView({ className }: StatsViewProps) {
       <div className="bg-card rounded-lg p-6 border border-border">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
               <BarChart3 className="h-6 w-6" />
               Statistics & Analytics
             </h1>
@@ -344,14 +344,14 @@ export function StatsView({ className }: StatsViewProps) {
               <Label className="text-sm text-foreground mb-1 block">End Date</Label>
               <Button
                 variant="outline"
-                className="w-full sm:w-40 bg-gray-700 border-gray-600 text-white"
+                className="w-full sm:w-40"
                 onClick={() => setShowEndCalendar(!showEndCalendar)}
               >
                 <CalendarIcon className="h-4 w-4 mr-2" />
                 {endDate ? format(endDate, 'MMM dd, yyyy') : 'Select date'}
               </Button>
               {showEndCalendar && (
-                <div className="absolute top-full mt-1 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
+                <div className="absolute top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg">
                   <Calendar
                     mode="single"
                     selected={endDate}
