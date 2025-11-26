@@ -301,14 +301,14 @@ export function StatsView({ className }: StatsViewProps) {
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header with Date Range Selection */}
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div className="bg-card rounded-lg p-6 border border-border">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
           <div>
             <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
               <BarChart3 className="h-6 w-6" />
               Statistics & Analytics
             </h1>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               Visualize your time tracking patterns and mood trends
             </p>
           </div>
@@ -317,17 +317,17 @@ export function StatsView({ className }: StatsViewProps) {
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Start Date */}
             <div className="relative">
-              <Label className="text-sm text-gray-300 mb-1 block">Start Date</Label>
+              <Label className="text-sm text-foreground mb-1 block">Start Date</Label>
               <Button
                 variant="outline"
-                className="w-full sm:w-40 bg-gray-700 border-gray-600 text-white"
+                className="w-full sm:w-40 bg-secondary border-border text-secondary-foreground"
                 onClick={() => setShowStartCalendar(!showStartCalendar)}
               >
                 <CalendarIcon className="h-4 w-4 mr-2" />
                 {startDate ? format(startDate, 'MMM dd, yyyy') : 'Select date'}
               </Button>
               {showStartCalendar && (
-                <div className="absolute top-full mt-1 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
+                <div className="absolute top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg">
                   <Calendar
                     mode="single"
                     selected={startDate}
@@ -341,7 +341,7 @@ export function StatsView({ className }: StatsViewProps) {
 
             {/* End Date */}
             <div className="relative">
-              <Label className="text-sm text-gray-300 mb-1 block">End Date</Label>
+              <Label className="text-sm text-foreground mb-1 block">End Date</Label>
               <Button
                 variant="outline"
                 className="w-full sm:w-40 bg-gray-700 border-gray-600 text-white"
@@ -368,17 +368,17 @@ export function StatsView({ className }: StatsViewProps) {
 
       {/* Error Display */}
       {error && (
-        <Card className="border-red-600 bg-red-900/20">
+        <Card className="border-destructive bg-destructive/20">
           <CardContent className="pt-6">
-            <div className="text-red-400 text-sm">{error}</div>
+            <div className="text-destructive text-sm">{error}</div>
           </CardContent>
         </Card>
       )}
 
       {/* Mood Trends Line Chart */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
             Mood Trends Over Time
           </CardTitle>
@@ -387,24 +387,24 @@ export function StatsView({ className }: StatsViewProps) {
           {moodData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={moodData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="time"
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF' }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF' }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
                   domain={[0, 1]}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
-                  labelStyle={{ color: '#F3F4F6' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: number, name: string) => [
                     `${(value * 100).toFixed(0)}%`,
                     name
@@ -417,7 +417,7 @@ export function StatsView({ className }: StatsViewProps) {
                   }}
                 />
                 <Legend
-                  wrapperStyle={{ color: '#F3F4F6' }}
+                  wrapperStyle={{ color: 'hsl(var(--foreground))' }}
                 />
                 <Line
                   type="monotone"
@@ -449,7 +449,7 @@ export function StatsView({ className }: StatsViewProps) {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-400">
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
               No mood data available for the selected date range
             </div>
           )}
@@ -457,9 +457,9 @@ export function StatsView({ className }: StatsViewProps) {
       </Card>
 
       {/* Category Distribution Histogram */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">
+          <CardTitle className="text-foreground">
             Time Distribution by Category
           </CardTitle>
         </CardHeader>
@@ -470,13 +470,13 @@ export function StatsView({ className }: StatsViewProps) {
                 data={categoryData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   type="category"
                   dataKey="category"
-                  stroke="#9CA3AF"
+                  stroke="hsl(var(--muted-foreground))"
                   tick={{
-                    fill: '#9CA3AF',
+                    fill: 'hsl(var(--muted-foreground))',
                     angle: 0,
                     textAnchor: 'middle',
                     fontSize: 13,
@@ -485,17 +485,17 @@ export function StatsView({ className }: StatsViewProps) {
                 />
                 <YAxis
                   type="number"
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF' }}
-                  label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { fill: 'hsl(var(--muted-foreground))' } }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
-                  labelStyle={{ color: '#F3F4F6' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: number, name: string) => [
                     `${value} hours`,
                     name
@@ -513,7 +513,7 @@ export function StatsView({ className }: StatsViewProps) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-400">
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
               No category data available for the selected date range
             </div>
           )}
@@ -522,24 +522,24 @@ export function StatsView({ className }: StatsViewProps) {
 
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-red-400">
+              <div className="text-3xl font-bold text-destructive">
                 {moodData.length > 0
                   ? (moodData.reduce((sum, d) => sum + d.happiness, 0) / moodData.length).toFixed(2)
                   : '0.00'
                 }
               </div>
-              <div className="text-sm text-gray-400 mt-1">Average Happiness</div>
+              <div className="text-sm text-muted-foreground mt-1">Average Happiness</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-400">
+              <div className="text-3xl font-bold text-primary">
                 {(() => {
                   const sleepEvents = events.filter(e => e.category.toLowerCase() === 'sleep');
                   if (sleepEvents.length === 0) return '0.00';
@@ -547,16 +547,16 @@ export function StatsView({ className }: StatsViewProps) {
                   return avgSleep.toFixed(2);
                 })()}
               </div>
-              <div className="text-sm text-gray-400 mt-1">Wakefulness (Sleep)</div>
-              <div className="text-xs text-gray-500 mt-1">During sleep periods</div>
+              <div className="text-sm text-muted-foreground mt-1">Wakefulness (Sleep)</div>
+              <div className="text-xs text-muted-foreground/70 mt-1">During sleep periods</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-400">
+              <div className="text-3xl font-bold text-primary">
                 {(() => {
                   const awakeEvents = events.filter(e => e.category.toLowerCase() !== 'sleep');
                   if (awakeEvents.length === 0) return '0.00';
@@ -564,22 +564,22 @@ export function StatsView({ className }: StatsViewProps) {
                   return avgAwake.toFixed(2);
                 })()}
               </div>
-              <div className="text-sm text-gray-400 mt-1">Wakefulness (Awake)</div>
-              <div className="text-xs text-gray-500 mt-1">During awake periods</div>
+              <div className="text-sm text-muted-foreground mt-1">Wakefulness (Awake)</div>
+              <div className="text-xs text-muted-foreground/70 mt-1">During awake periods</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">
+              <div className="text-3xl font-bold text-green-600">
                 {moodData.length > 0
                   ? (moodData.reduce((sum, d) => sum + d.health, 0) / moodData.length).toFixed(2)
                   : '0.00'
                 }
               </div>
-              <div className="text-sm text-gray-400 mt-1">Average Health</div>
+              <div className="text-sm text-muted-foreground mt-1">Average Health</div>
             </div>
           </CardContent>
         </Card>
