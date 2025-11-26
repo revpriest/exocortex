@@ -83,7 +83,7 @@ const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both m
  * It manages all state related to events, database operations, and UI interactions.
  */
 export function ExocortexGrid({ className }: ExocortexGridProps) {
-  const { config } = useAppContext();
+  const { config, updateConfig } = useAppContext();
   /**
    * Component State Variables
    *
@@ -713,8 +713,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     if (!db) return;
 
     try {
-      await DataExporter.exportDatabase(db);
-      setError('Export completed! Check your downloads folder for the JSON file.');
+      await DataExporter.exportDatabase(db, config);
+      setError('Export completed! Check your downloads folder for the JSON file. Includes events, theme settings, and color overrides.');
 
       // Clear success message after 5 seconds
       setTimeout(() => setError(null), 5000);
@@ -744,7 +744,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           return;
         }
 
-        await DataExporter.importDatabase(db, file);
+        const importedConfig = await DataExporter.importDatabase(db, file);
 
         // Refresh the entire grid to show all imported events
         // Load recent days (similar to initial load)
@@ -769,7 +769,13 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
         setDays(allDays);
 
-        setError(`Successfully imported events from ${file.name}`);
+        // Apply imported app configuration if it exists
+        if (importedConfig) {
+          updateConfig(() => importedConfig);
+          setError(`Successfully imported events and settings from ${file.name}`);
+        } else {
+          setError(`Successfully imported events from ${file.name} (no settings found in export)`);
+        }
 
         // Clear success message after 3 seconds
         setTimeout(() => setError(null), 3000);
