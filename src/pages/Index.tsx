@@ -2,7 +2,7 @@
  * Index.tsx - Main Application Page
  *
  * This is the main page users see when they visit the app.
- * It displays both the time tracking grid and statistics interfaces
+ * It displays the time tracking grid, statistics interface, and configuration
  * with navigation to switch between them.
  *
  * In a single-page app, this is essentially our "home screen".
@@ -12,10 +12,9 @@ import React, { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
-import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Grid3X3, BarChart3, HelpCircle, Moon, Sun } from 'lucide-react';
+import { Grid3X3, BarChart3, Settings, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 
 /**
@@ -62,9 +61,9 @@ const Index = () => {
    * currentView: Controls which interface is displayed
    * - 'grid': Shows the time tracking grid
    * - 'stats': Shows the statistics and analytics
-   * - 'help': Shows the help/about information
+   * - 'conf': Shows the configuration and about information
    */
-  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'help'>('grid');
+  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'conf'>('grid');
 
   /**
    * Set SEO (Search Engine Optimization) metadata
@@ -94,8 +93,8 @@ const Index = () => {
     setCurrentView('stats');
   };
 
-  const handleHelpClick = () => {
-    setCurrentView('help');
+  const handleConfClick = () => {
+    setCurrentView('conf');
   };
 
   /**
@@ -141,12 +140,12 @@ const Index = () => {
                 Stats
               </Button>
               <Button
-                variant={currentView === 'help' ? 'default' : 'outline'}
+                variant={currentView === 'conf' ? 'default' : 'outline'}
                 size="sm"
-                onClick={handleHelpClick}
+                onClick={handleConfClick}
               >
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Help
+                <Settings className="h-4 w-4 mr-2" />
+                Conf
               </Button>
             </div>
           </div>
@@ -172,11 +171,6 @@ const Index = () => {
                 </div>
                 <ThemeSwitch />
               </div>
-            </div>
-
-            {/* Category Color Overrides Section */}
-            <div className="mb-8 pb-6 border-b border-border">
-              <ColorOverrideWidget />
             </div>
 
             {/* About Content */}

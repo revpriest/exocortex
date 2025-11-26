@@ -18,24 +18,13 @@ import { createContext } from "react";
  */
 export type Theme = "dark" | "light" | "system";
 
-/**
- * Color Override Interface
- *
- * Defines a custom color override for a specific category.
- * Users can override the default hue calculation for categories.
- */
-export interface ColorOverride {
-  /** Category name to override */
-  category: string;
-  /** Custom hue value (0-360) */
-  hue: number;
-}
+
 
 /**
  * Application Configuration Interface
  *
  * This interface defines the shape of our global app settings.
- * Currently we track theme and color overrides, but you could add more settings like:
+ * Currently we track theme settings, but you could add more settings like:
  * - language preferences
  * - notification settings
  * - user preferences
@@ -44,8 +33,6 @@ export interface ColorOverride {
 export interface AppConfig {
   /** Current theme - dark, light, or system default */
   theme: Theme;
-  /** Custom color overrides for specific categories */
-  colorOverrides: ColorOverride[];
 }
 
 /**
