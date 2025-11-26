@@ -313,30 +313,30 @@ const Index = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="prose max-w-none">
-                  <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
-                    ExocortexLog was vibe-coded by{' '}
-                    <a
-                      href="https://dalliance.net/"
-                      className="text-primary hover:text-primary/80 underline transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      pre
-                    </a>
-                    {' '}using{' '}
-                    <a
-                      href="https://shakespeare.diy/"
-                      className="text-primary hover:text-primary/80 underline transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      shakespeare
-                    </a>
+                  <p className="text-destructive text-base md:text-lg leading-relaxed">
+                    You should probably back up with the export button often, no guarantees.
                   </p>
 
                   <div className="mt-6 pt-6 border-t border-border">
-                    <p className="text-destructive text-base md:text-lg leading-relaxed">
-                      You should probably back up with the export button often, no guarantees.
+                    <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
+                      ExocortexLog was vibe-coded by{' '}
+                      <a
+                        href="https://dalliance.net/"
+                        className="text-primary hover:text-primary/80 underline transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        pre
+                      </a>
+                      {' '}using{' '}
+                      <a
+                        href="https://shakespeare.diy/"
+                        className="text-primary hover:text-primary/80 underline transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        shakespeare
+                      </a>
                     </p>
                   </div>
 
