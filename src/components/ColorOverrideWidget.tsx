@@ -43,7 +43,7 @@ const ColorOverrideItem: React.FC<ColorOverrideItemProps> = ({
 }) => {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [editCategory, setEditCategory] = useState(override.category);
-  
+
   const handleCategoryChange = (newCategory: string) => {
     setEditCategory(newCategory);
     setShowCategoryDropdown(false);
@@ -58,7 +58,7 @@ const ColorOverrideItem: React.FC<ColorOverrideItemProps> = ({
     <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg">
       {/* Color Preview */}
       <div className="flex-shrink-0">
-        <div 
+        <div
           className="w-12 h-12 rounded-full border-2 border-border shadow-sm"
           style={{ backgroundColor: `hsl(${override.hue}, 70%, 50%)` }}
         />
@@ -119,13 +119,13 @@ const ColorOverrideItem: React.FC<ColorOverrideItemProps> = ({
           step={1}
           className="w-full"
           style={{
-            background: `linear-gradient(to right, 
-              hsl(0, 70%, 50%), 
-              hsl(60, 70%, 50%), 
-              hsl(120, 70%, 50%), 
-              hsl(180, 70%, 50%), 
-              hsl(240, 70%, 50%), 
-              hsl(300, 70%, 50%), 
+            background: `linear-gradient(to right,
+              hsl(0, 70%, 50%),
+              hsl(60, 70%, 50%),
+              hsl(120, 70%, 50%),
+              hsl(180, 70%, 50%),
+              hsl(240, 70%, 50%),
+              hsl(300, 70%, 50%),
               hsl(360, 70%, 50%))`
           }}
         />
@@ -157,6 +157,7 @@ export const ColorOverrideWidget: React.FC = () => {
   const [overrides, setOverrides] = useState<ColorOverride[]>(config.colorOverrides || []);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState('');
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
 
   // Load existing categories from database
   useEffect(() => {
@@ -175,7 +176,7 @@ export const ColorOverrideWidget: React.FC = () => {
           endDate.toISOString().split('T')[0]
         );
 
-        const categories = days.flatMap(day => 
+        const categories = days.flatMap(day =>
           day.events.map(event => event.category)
         );
 
@@ -198,6 +199,25 @@ export const ColorOverrideWidget: React.FC = () => {
   useEffect(() => {
     setOverrides(config.colorOverrides || []);
   }, [config.colorOverrides]);
+
+  // Close add dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      const dropdownContainer = target.closest('.relative');
+      if (!dropdownContainer || !dropdownContainer.contains(target)) {
+        setShowAddDropdown(false);
+      }
+    };
+
+    if (showAddDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAddDropdown]);
 
   const addOverride = () => {
     const category = newCategory.trim() || 'New Category';
@@ -233,18 +253,58 @@ export const ColorOverrideWidget: React.FC = () => {
 
       {/* Add New Override */}
       <div className="flex gap-2">
-        <Input
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          placeholder="Category name (e.g., Work)"
-          className="flex-1"
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
+        <div className="relative flex-1">
+          <Input
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            onBlur={() => {
+              if (newCategory.trim()) {
+                setShowAddDropdown(false);
+              }
+            }}
+            placeholder="Category name (e.g., Work)"
+            className="pr-8"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addOverride();
+              }
+            }}
+            onFocus={() => setShowAddDropdown(true)}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
               e.preventDefault();
-              addOverride();
-            }
-          }}
-        />
+              e.stopPropagation();
+              setShowAddDropdown(!showAddDropdown);
+            }}
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
+          >
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </Button>
+
+          {/* Add Category Dropdown */}
+          {showAddDropdown && availableCategories.length > 0 && (
+            <div className="absolute top-full mt-1 left-0 right-0 bg-popover border border-border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
+              {availableCategories.map((cat, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => {
+                    setNewCategory(cat);
+                    setShowAddDropdown(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none transition-colors"
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <Button onClick={addOverride} className="px-4">
           <Plus className="h-4 w-4 mr-2" />
           Add
@@ -265,7 +325,7 @@ export const ColorOverrideWidget: React.FC = () => {
               override={override}
               onUpdate={(updatedOverride) => updateOverride(index, updatedOverride)}
               onDelete={() => deleteOverride(index)}
-              availableCategories={availableCategories.filter(cat => 
+              availableCategories={availableCategories.filter(cat =>
                 !overrides.some(o => o.category === cat && o.category !== override.category)
               )}
             />
