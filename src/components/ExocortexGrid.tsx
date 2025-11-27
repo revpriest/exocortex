@@ -35,6 +35,7 @@ import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 /**
  * Component Props Interface
@@ -1333,6 +1334,68 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     setShowClearConfirm(false);
   };
 
+  // Custom calendar component with year navigation
+  const CalendarWithYearNav = () => {
+    const [currentMonth, setCurrentMonth] = useState(selectedSkipDate || new Date());
+
+    const handleYearUp = () => {
+      const newDate = new Date(currentMonth);
+      newDate.setFullYear(newDate.getFullYear() + 1);
+      setCurrentMonth(newDate);
+    };
+
+    const handleYearDown = () => {
+      const newDate = new Date(currentMonth);
+      newDate.setFullYear(newDate.getFullYear() - 1);
+      setCurrentMonth(newDate);
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Year navigation */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleYearDown}
+            className="bg-secondary border-border"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+          <div className="text-lg font-semibold">
+            {currentMonth.getFullYear()}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleYearUp}
+            className="bg-secondary border-border"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Calendar */}
+        <Calendar
+          mode="single"
+          selected={selectedSkipDate}
+          onSelect={(date) => {
+            setSelectedSkipDate(date);
+            if (date) setCurrentMonth(date);
+          }}
+          month={currentMonth}
+          onMonthChange={setCurrentMonth}
+          className="rounded-md border-border"
+          disabled={(date) => {
+            // Don't allow dates in the future
+            return date > new Date();
+          }}
+          initialFocus
+        />
+      </div>
+    );
+  };
+
   // Skip to date functionality
   const handleSkipToDate = async () => {
     if (!db || !selectedSkipDate) return;
@@ -1348,7 +1411,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       // Calculate how many days to load based on target date
       const daysDiff = Math.floor((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
-      const daysToLoad = Math.max(7, Math.min(daysDiff + 7, 30)); // Load at least 7 days, up to 30 days
+      const daysToLoad = Math.max(7, Math.min(daysDiff + 7, 50)); // Load at least 7 days, up to 50 days
 
       // Load data starting from today going backwards
       const startDate = new Date(today);
@@ -1371,28 +1434,43 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       setDays(allDays);
 
-      // Scroll to the selected date
+      // Wait a moment for DOM to update, then scroll to the selected date
       setTimeout(() => {
         if (gridRef.current) {
           const targetDateStr = targetDate.toISOString().split('T')[0];
-          const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
 
-          if (targetDayIndex !== -1) {
-            const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
-            if (targetDayElement) {
-              targetDayElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-              });
-            } else {
-              // Fallback: calculate approximate scroll position
+          // Try multiple approaches to find and scroll to the target
+          let scrolled = false;
+
+          // Method 1: Try direct element selection
+          const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
+          if (targetDayElement) {
+            targetDayElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+            scrolled = true;
+            console.log('Scrolled to target element:', targetDateStr);
+          }
+
+          // Method 2: If element selection fails, try index-based calculation
+          if (!scrolled) {
+            const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+            if (targetDayIndex !== -1) {
               const rowHeight = 80; // ROW_HEIGHT constant
               const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
               gridRef.current.scrollTop = estimatedPosition;
+              scrolled = true;
+              console.log('Scrolled using index calculation:', targetDateStr, 'index:', targetDayIndex, 'position:', estimatedPosition);
             }
           }
+
+          if (!scrolled) {
+            console.warn('Could not find target date:', targetDateStr);
+            setError('Target date not found in loaded data. Try loading more days.');
+          }
         }
-      }, 100);
+      }, 500); // Increased timeout to ensure DOM is ready
 
       setShowDateSkipDialog(false);
       setError(`Jumped to ${targetDate.toLocaleDateString()}`);
@@ -1774,20 +1852,10 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground mb-4">
-              Select a date to jump to in your time tracking data. The calendar will show all available dates.
+              Select a date to jump to in your time tracking data. Use the year buttons for faster navigation.
             </p>
             <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={selectedSkipDate}
-                onSelect={setSelectedSkipDate}
-                className="rounded-md border-border"
-                disabled={(date) => {
-                  // Don't allow dates in the future
-                  return date > new Date();
-                }}
-                initialFocus
-              />
+              <CalendarWithYearNav />
             </div>
           </div>
           <div className="flex justify-end space-x-2">
