@@ -99,7 +99,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
    * defaultValues: Default mood values for new events based on last event
    * error: Error message to display to user (null = no error)
    * currentDate: Current date reference for calculations
-   * hasReachedHistoricalLimit: Prevents infinite scroll when we have all historical data
    * showClearConfirm: Controls confirmation dialog for clearing all data
    */
 
@@ -133,9 +132,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   // Current date reference for various calculations
   const [currentDate, setCurrentDate] = useState(new Date());
-
-  // Flag to stop infinite scroll when we've loaded all available historical data
-  const [hasReachedHistoricalLimit, setHasReachedHistoricalLimit] = useState(false);
 
   // Controls visibility of the "clear all data" confirmation dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -308,9 +304,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           const oldestDay = days[days.length - 1];
           if (oldestDay) {
             const loadMoreDays = async () => {
-              // Don't load if we've reached the historical limit
-              if (hasReachedHistoricalLimit) return;
-
               setLoading(true);
               const oldestDay = days[days.length - 1];
               const oldestDate = new Date(oldestDay.date);
@@ -320,7 +313,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
 
               if (oldestDate < tenYearsAgo) {
-                setHasReachedHistoricalLimit(true);
                 setLoading(false);
                 return;
               }
@@ -328,36 +320,34 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               const fromDate = new Date(oldestDay.date);
               fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
 
-              try {
-                // Use optimized query that only returns days with events
-                const moreDays = await db.getEventsByDateRangeOnly(
-                  fromDate.toISOString().split('T')[0],
-                  oldestDay.date
-                );
+              // Use optimized query that only returns days with events
+              const moreDays = await db.getEventsByDateRangeOnly(
+                fromDate.toISOString().split('T')[0],
+                oldestDay.date
+              );
 
-                if (moreDays.length === 0) {
-                  // No more data available
-                  setHasReachedHistoricalLimit(true);
-                  console.log('No more historical data available');
-                } else {
-                  // Filter out any days that are already in our state
-                  const existingDates = new Set(days.map(d => d.date));
-                  const newDays = moreDays.filter(day => !existingDates.has(day.date));
+              if (moreDays.length === 0) {
+                // No more data available
+                console.log('No more historical data available');
+              } else {
+                // Filter out any days that are already in our state
+                const existingDates = new Set(days.map(d => d.date));
+                const newDays = moreDays.filter(day => !existingDates.has(day.date));
 
-                  if (newDays.length > 0) {
-                    setDays(prev => [...prev, ...newDays]);
-                  } else {
-                    // No new unique days found
-                    setHasReachedHistoricalLimit(true);
-                  }
+                if (newDays.length > 0) {
+                  setDays(prev => [...prev, ...newDays]);
                 }
-              } catch (error) {
-                console.error('Error loading more days:', error);
-                setError('Failed to load more days. Please try again.');
-              } finally {
-                setLoading(false);
               }
+
+              setLoading(false);
             };
+
+            loadMoreDays().catch((error) => {
+              console.error('Error in loadMoreDays:', error);
+              setLoading(false);
+              setError('Failed to load more days. Please try again.');
+            });
+          }
         }
       },
       { threshold: 0.1 }
@@ -1174,7 +1164,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
         // Start processing the first batch
         await processBatch(0);
-        setHasReachedHistoricalLimit(false);
 
         setError('Legacy data imported successfully. Categories from multiple tags have been combined.');
 
@@ -1453,7 +1442,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       // Clear the grid display
       const today = new Date().toISOString().split('T')[0];
       setDays([{ date: today, events: [] }]);
-      setHasReachedHistoricalLimit(false);
 
       setError('All data has been cleared successfully');
 
@@ -1890,11 +1878,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           <div ref={loadingRef} className="h-20 flex items-center justify-center">
             {loading && (
               <div className="text-muted-foreground">Loading more days...</div>
-            )}
-            {hasReachedHistoricalLimit && !loading && (
-              <div className="text-muted-foreground text-sm">
-                Reached historical limit (10 years)
-              </div>
             )}
           </div>
         </div>
