@@ -1840,7 +1840,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
 
       // Load days for the date range
-      const newDays = await database.getEventsByDateRange(
+      const newDays = await db.getEventsByDateRange(
         targetDateStr,
         todayStr
       );
