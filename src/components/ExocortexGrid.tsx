@@ -1489,7 +1489,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       }, 500); // Increased timeout to ensure DOM is ready
 
       setShowDateSkipDialog(false);
-      setError(`Jumped to ${targetDate.toLocaleDateString()}`);
+      setError(`Jumping to ${targetDate.toLocaleDateString()}...`);
       setTimeout(() => setError(null), 3000);
     } catch (error) {
       console.error('Failed to skip to date:', error);
