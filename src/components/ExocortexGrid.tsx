@@ -38,6 +38,7 @@ const DayRow = memo<{
   dayIndex: number;
   ROW_HEIGHT: number;
   HOURS_IN_DAY: number;
+  HOUR_WIDTH: number;
   getEventsForDay: (targetDay: DayEvents, allDays: DayEvents[]) => ExocortexEvent[];
   getEventStartTime: (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number) => number;
   getEventPortionType: (event: ExocortexEvent, dayDate: string, dayEvents: ExocortexEvent[], index: number) => 'start' | 'middle' | 'end' | 'full';
@@ -50,6 +51,7 @@ const DayRow = memo<{
   dayIndex,
   ROW_HEIGHT,
   HOURS_IN_DAY,
+  HOUR_WIDTH,
   getEventsForDay,
   getEventStartTime,
   getEventPortionType,
@@ -79,7 +81,7 @@ const DayRow = memo<{
       </div>
 
       {/* Grid lines */}
-      <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
+      <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
         {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
           <div
             key={hourIndex}
@@ -92,7 +94,7 @@ const DayRow = memo<{
       </div>
 
       {/* Events - mobile optimized */}
-      <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
+      <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
         {eventsForDay.map((event, eventIndex) => {
           // For span events, we need to find the original event in its day's events array
           const originalEventId = event.id.replace(/-span-.*$/, '');
@@ -181,11 +183,11 @@ const DayRow = memo<{
 DayRow.displayName = 'DayRow';
 
 // Memoized HourHeaders component for performance
-const HourHeaders = memo<{ HOURS_IN_DAY: number }>(({ HOURS_IN_DAY }) => {
+const HourHeaders = memo<{ HOURS_IN_DAY: number; HOUR_WIDTH: number }>(({ HOURS_IN_DAY, HOUR_WIDTH }) => {
 
 
   return (
-    <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
+    <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
       {hourSlots.map((hour) => (
         <div
           key={hour}
@@ -1978,11 +1980,11 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-card border-b border-border">
-          <HourHeaders HOURS_IN_DAY={HOURS_IN_DAY} />
+          <HourHeaders HOURS_IN_DAY={HOURS_IN_DAY} HOUR_WIDTH={HOUR_WIDTH} />
         </div>
 
         {/* Day rows */}
-        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
+        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
           {days.map((day, dayIndex) => (
             <DayRow
               key={day.date}
@@ -1991,6 +1993,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               dayIndex={dayIndex}
               ROW_HEIGHT={ROW_HEIGHT}
               HOURS_IN_DAY={HOURS_IN_DAY}
+              HOUR_WIDTH={HOUR_WIDTH}
               getEventsForDay={getEventsForDay}
               getEventStartTime={getEventStartTime}
               getEventPortionType={getEventPortionType}
