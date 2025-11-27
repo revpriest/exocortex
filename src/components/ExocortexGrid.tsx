@@ -29,9 +29,11 @@ import { useAppContext } from '@/hooks/useAppContext';
 
 // Import UI components
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { EventDialog } from './EventDialog';
 import { SmileyFace } from './SmileyFace';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Plus, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 
 /**
  * Component Props Interface
@@ -126,6 +128,11 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   // Current date reference for various calculations
   const [currentDate, setCurrentDate] = useState(new Date());
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
+
+  // Skip to date dialog state
+  const [showDateSkipDialog, setShowDateSkipDialog] = useState(false);
+  const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
+  const [isJumpingToDate, setIsJumpingToDate] = useState(false);
 
   /**
    * Drag-to-Scroll State
@@ -1163,15 +1170,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
   return (
     <div className={`relative ${className}`}>
-      {/* Simple header - mobile optimized */}
+      {/* Header with navigation controls - mobile optimized */}
       <div className="mb-4">
-        <h2
-          className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors"
-          onClick={handleScrollToToday}
-          title="Scroll to today"
-        >
-          Time Grid
-        </h2>
+        <div className="flex justify-between items-center gap-4">
+          <h2
+            className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors"
+            onClick={handleScrollToToday}
+            title="Scroll to today"
+          >
+            Time Grid
+          </h2>
+
+          {/* Skip to date button - mobile responsive */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDateSkipDialog(true)}
+            className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
+            disabled={!db}
+            title="Jump to a specific date"
+          >
+            <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden md:inline">Skip to Date</span>
+          </Button>
+        </div>
       </div>
 
       {/* Grid container - mobile optimized */}
