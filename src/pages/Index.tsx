@@ -8,16 +8,20 @@
  * In a single-page app, this is essentially our "home screen".
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
+import { ExocortexDB } from '@/lib/exocortex';
+import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
 import { APP_VERSION } from '../main';
@@ -149,6 +153,418 @@ const CacheResetSection = () => {
           </AlertDialogContent>
         </AlertDialog>
       </CardContent>
+    </Card>
+  );
+};
+
+/**
+ * Database Management Section Component
+ *
+ * Provides database operations including import, export, test data generation,
+ * and database clearing functionality.
+ */
+const DBManagementSection = () => {
+  const [db, setDb] = useState<ExocortexDB | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showTestConfirm, setShowTestConfirm] = useState(false);
+
+  // Initialize database
+  useEffect(() => {
+    const initDb = async () => {
+      const database = new ExocortexDB();
+      await database.init();
+      setDb(database);
+    };
+
+    initDb().catch((error) => {
+      console.error('Failed to initialize database:', error);
+      setError('Failed to initialize database. Please refresh the page.');
+    });
+  }, []);
+
+  const handleExport = async () => {
+    if (!db) return;
+
+    try {
+      await DataExporter.exportDatabase(db);
+      setError('Export completed! Check your downloads folder for the JSON file.');
+      setTimeout(() => setError(null), 5000);
+    } catch (error) {
+      console.error('Export failed:', error);
+      setError('Failed to export database. Please try again.');
+    }
+  };
+
+  const handleImportDatabase = async () => {
+    if (!db) return;
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = async (e) => {
+      try {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        const isValid = await DataExporter.validateExportFile(file);
+        if (!isValid) {
+          setError('Invalid export file. Please select a valid ExocortexLog export file.');
+          return;
+        }
+
+        await DataExporter.importDatabase(db, file);
+        setError(`Successfully imported events from ${file.name}`);
+        setTimeout(() => setError(null), 3000);
+      } catch (error) {
+        console.error('Import failed:', error);
+        setError(error instanceof Error ? error.message : 'Failed to import database. Please try again.');
+      }
+    };
+
+    input.click();
+  };
+
+  const handleImportLegacyDatabase = () => {
+    if (!db) return;
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await DataExporter.importLegacyDatabase(db, file);
+        setError('Legacy data imported successfully. Categories from multiple tags have been combined.');
+        setTimeout(() => setError(null), 5000);
+      } catch (error) {
+        console.error('Failed to import legacy data:', error);
+        setError(`Legacy import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    };
+    input.click();
+  };
+
+  const generateCategoryNotes = (category: string): string => {
+    const notesByCategory: Record<string, string[]> = {
+      'Work': [
+        'Productive morning session',
+        'Good meetings with the team',
+        'Made good progress on the project',
+        'Challenging but rewarding work',
+        'Focus was high today'
+      ],
+      'Exercise': [
+        'Great workout! Feeling energized',
+        'Pushed myself harder than usual',
+        'Nice and relaxing session',
+        'Cardio felt good today',
+        'Strength training was productive'
+      ],
+      'Meal': [
+        'Delicious and satisfying',
+        'Healthy choice, feeling good',
+        'Quick bite between tasks',
+        'Enjoyed this meal',
+        'Felt nourished and ready'
+      ],
+      'Break': [
+        'Needed this rest',
+        'Quick recharge session',
+        'Nice coffee break',
+        'Mindful moment of peace',
+        'Good time to reflect'
+      ],
+      'Study': [
+        'Learned something new',
+        'Deep focus achieved',
+        'Interesting material today',
+        'Productive study session',
+        'Challenging concepts clicked'
+      ],
+      'Slack': [
+        'Good conversation with colleagues',
+        'Team discussion was helpful',
+        'Quick catch-up with friends',
+        'Interesting threads today',
+        'Social time well spent'
+      ]
+    };
+
+    const categoryNotes = notesByCategory[category] || [
+      'Interesting activity',
+      'Good use of time',
+      'Felt productive',
+      'Nice moment today',
+      'Time well spent'
+    ];
+
+    return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
+  };
+
+  const handleGenerateTestData = async () => {
+    if (!db) return;
+
+    try {
+      await db.clearAllEvents();
+
+      const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - 1);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const events: Omit<any, 'id'>[] = [];
+
+      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
+        const dayEvents: Omit<any, 'id'>[] = [];
+
+        const sleepStartHour = 20 + Math.floor(Math.random() * 3);
+        const sleepStartMinute = Math.floor(Math.random() * 60);
+        const sleepDurationHours = 7 + Math.random();
+
+        const sleepStart = new Date(currentDate);
+        sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
+        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (sleepEnd >= today) {
+          const maxDuration = today.getTime() - sleepStart.getTime();
+          const adjustedDurationHours = Math.max(6, (maxDuration / (60 * 60 * 1000)) - 0.5);
+          sleepEnd = new Date(sleepStart.getTime() + adjustedDurationHours * 60 * 60 * 1000);
+        }
+
+        const sleepEvent = {
+          endTime: sleepEnd.getTime(),
+          category: 'Sleep' as const,
+          notes: Math.random() > 0.7 ? [
+            'Had some interesting dreams',
+            'Woke up feeling refreshed',
+            'Slept through the night',
+            'A bit restless but okay',
+            'Deep sleep cycle felt good'
+          ][Math.floor(Math.random() * 5)] : undefined,
+          happiness: 0.8,
+          wakefulness: Math.random() * 0.02,
+          health: 0.9,
+        };
+
+        dayEvents.push(sleepEvent);
+
+        let currentTime = new Date(currentDate);
+        currentTime.setHours(7, 0, 0, 0);
+
+        while (currentTime < sleepStart) {
+          const timeUntilSleep = sleepStart.getTime() - currentTime.getTime();
+          if (timeUntilSleep < 30 * 60 * 1000) break;
+
+          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
+          if (maxDuration <= 0) break;
+
+          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
+          const actualDuration = Math.min(durationMs, maxDuration);
+
+          const category = categories[Math.floor(Math.random() * categories.length)];
+          const happiness = Math.random() * 0.4 + 0.5;
+          const wakefulness = Math.random() * 0.4 + 0.5;
+          const health = Math.random() * 0.3 + 0.6;
+
+          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
+
+          const event = {
+            endTime: eventEndTime.getTime(),
+            category,
+            notes: Math.random() > 0.6 ? generateCategoryNotes(category) : undefined,
+            happiness,
+            wakefulness,
+            health,
+          };
+
+          dayEvents.push(event);
+          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000);
+        }
+
+        events.push(...dayEvents);
+      }
+
+      for (const event of events) {
+        await db.addEvent(event);
+      }
+
+      setError(`Successfully generated ${events.length} test events for the past 30 days with realistic sleep patterns`);
+      setTimeout(() => setError(null), 5000);
+    } catch (error) {
+      console.error('Failed to generate test data:', error);
+      setError('Failed to generate test data. Please try again.');
+    }
+  };
+
+  const confirmGenerateTestData = async () => {
+    await handleGenerateTestData();
+    setShowTestConfirm(false);
+  };
+
+  const cancelGenerateTestData = () => {
+    setShowTestConfirm(false);
+  };
+
+  const handleClearAllData = async () => {
+    if (!db) return;
+
+    try {
+      await db.clearAllEvents();
+      setError('All data has been cleared successfully');
+      setTimeout(() => setError(null), 3000);
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+      setError('Failed to clear data. Please try again.');
+    }
+  };
+
+  const confirmClearAllData = () => {
+    handleClearAllData();
+    setShowClearConfirm(false);
+  };
+
+  const cancelClearAllData = () => {
+    setShowClearConfirm(false);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Database className="h-5 w-5" />
+          Database Management
+        </CardTitle>
+        <CardDescription>
+          Import, export, and manage your time tracking data.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={!db}
+            className="w-full"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleImportDatabase}
+            disabled={!db}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleImportLegacyDatabase}
+            disabled={!db}
+            className="w-full bg-orange-600/20 border-orange-600 text-orange-400 hover:bg-orange-600/30"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Legacy
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowTestConfirm(true)}
+            disabled={!db}
+            className="w-full"
+          >
+            <Database className="h-4 w-4 mr-2" />
+            Test Data
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowClearConfirm(true)}
+            disabled={!db}
+            className="w-full bg-destructive border-destructive text-destructive-foreground"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear All
+          </Button>
+        </div>
+
+        {/* Error/Success messages */}
+        {error && (
+          <div className={`px-3 py-2 rounded-md text-sm ${
+            error.includes('Successfully')
+              ? 'bg-green-900/20 border border-green-600 text-green-400'
+              : 'bg-red-900/20 border border-red-600 text-red-400'
+          }`}>
+            {error}
+          </div>
+        )}
+      </CardContent>
+
+      {/* Clear Database Confirmation Dialog */}
+      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <DialogContent className="sm:max-w-sm bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Delete Entire Database</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              This will delete the entire database. This action cannot be undone.
+            </p>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={cancelClearAllData}
+              className="bg-secondary border-border"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmClearAllData}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Test Data Confirmation Dialog */}
+      <Dialog open={showTestConfirm} onOpenChange={setShowTestConfirm}>
+        <DialogContent className="sm:max-w-sm bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Generate Test Data</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              This will create 30 days of random test data with various activities and diary notes. This will replace any existing data.
+            </p>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={cancelGenerateTestData}
+              className="bg-secondary border-border"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmGenerateTestData}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Generate
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
@@ -298,6 +714,9 @@ const Index = () => {
 
             {/* Cache Management Section */}
             <CacheResetSection />
+
+            {/* Database Management Section */}
+            <DBManagementSection />
 
             {/* About Content */}
             <Card>

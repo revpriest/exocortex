@@ -29,13 +29,9 @@ import { useAppContext } from '@/hooks/useAppContext';
 
 // Import UI components
 import { Button } from '@/components/ui/button';
-import { Plus, Download, Upload, Database, Trash2, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { EventDialog } from './EventDialog';
-import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
-import { ChevronUp, ChevronDown } from 'lucide-react';
 
 /**
  * Component Props Interface
@@ -124,22 +120,12 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     health: 0.9,
   });
 
-  // Error message to display to user (null when no error)
-  const [error, setError] = useState<string | null>(null);
-
   // Mobile responsiveness hook
   const isMobile = useIsMobile() || false;
 
   // Current date reference for various calculations
   const [currentDate, setCurrentDate] = useState(new Date());
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
-
-  // Controls visibility of the "clear all data" confirmation dialog
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [showTestConfirm, setShowTestConfirm] = useState(false);
-  const [showDateSkipDialog, setShowDateSkipDialog] = useState(false);
-  const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
-  const [isJumpingToDate, setIsJumpingToDate] = useState(false);
 
   /**
    * Drag-to-Scroll State
@@ -955,525 +941,11 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     setIsDialogOpen(true);
   };
 
-  const handleExport = async () => {
-    if (!db) return;
 
-    try {
-      await DataExporter.exportDatabase(db);
-      setError('Export completed! Check your downloads folder for the JSON file.');
 
-      // Clear success message after 5 seconds
-      setTimeout(() => setError(null), 5000);
-    } catch (error) {
-      console.error('Export failed:', error);
-      setError('Failed to export database. Please try again.');
-    }
-  };
 
-  const handleImportDatabase = async () => {
-    if (!db) return;
 
-    // Create file input element
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
 
-    input.onchange = async (e) => {
-      try {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file) return;
-
-        // Validate file before importing
-        const isValid = await DataExporter.validateExportFile(file);
-        if (!isValid) {
-          setError('Invalid export file. Please select a valid ExocortexLog export file.');
-          return;
-        }
-
-        await DataExporter.importDatabase(db, file);
-
-        // Refresh the entire grid to show all imported events
-        // Load recent days (similar to initial load)
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7); // Load past 7 days
-
-        const daysWithEvents = await db.getEventsByDateRange(
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0]
-        );
-
-        // Also get today's events (should be included in range, but ensure it's there)
-        const today = new Date().toISOString().split('T')[0];
-        const todayEvents = await db.getEventsByDate(today);
-
-        // Combine and sort: today first, then past days in reverse chronological order
-        const allDays = [
-          { date: today, events: todayEvents }, // Today first (most recent)
-          ...daysWithEvents.filter(day => day.date !== today).reverse() // Past days (excluding duplicate today)
-        ];
-
-        // Load in batches to prevent UI freezing after importing
-        const totalDays = allDays.length;
-        const batchSize = 5; // Process 5 days at a time
-
-        const processBatch = async (batchStartIndex: number): Promise<void> => {
-          const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
-          const batch = allDays.slice(batchStartIndex, batchEndIndex);
-
-          // Add this batch to state
-          setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
-
-          // If we have more batches to process, continue after yielding control
-          if (batchEndIndex < totalDays) {
-            // Use setTimeout to yield control back to the UI thread
-            return new Promise(resolve => {
-              setTimeout(() => {
-                resolve(processBatch(batchEndIndex));
-              }, 0);
-            });
-          }
-        };
-
-        // Start processing the first batch
-        await processBatch(0);
-
-        setError(`Successfully imported events from ${file.name}`);
-
-        // Clear success message after 3 seconds
-        setTimeout(() => setError(null), 3000);
-      } catch (error) {
-        console.error('Import failed:', error);
-        setError(error instanceof Error ? error.message : 'Failed to import database. Please try again.');
-      }
-    };
-
-    input.click();
-  };
-
-  const generateCategoryNotes = (category: string): string => {
-    const notesByCategory: Record<string, string[]> = {
-      'Work': [
-        'Productive morning session',
-        'Good meetings with the team',
-        'Made good progress on the project',
-        'Challenging but rewarding work',
-        'Focus was high today'
-      ],
-      'Exercise': [
-        'Great workout! Feeling energized',
-        'Pushed myself harder than usual',
-        'Nice and relaxing session',
-        'Cardio felt good today',
-        'Strength training was productive'
-      ],
-      'Meal': [
-        'Delicious and satisfying',
-        'Healthy choice, feeling good',
-        'Quick bite between tasks',
-        'Enjoyed this meal',
-        'Felt nourished and ready'
-      ],
-      'Break': [
-        'Needed this rest',
-        'Quick recharge session',
-        'Nice coffee break',
-        'Mindful moment of peace',
-        'Good time to reflect'
-      ],
-      'Study': [
-        'Learned something new',
-        'Deep focus achieved',
-        'Interesting material today',
-        'Productive study session',
-        'Challenging concepts clicked'
-      ],
-      'Slack': [
-        'Good conversation with colleagues',
-        'Team discussion was helpful',
-        'Quick catch-up with friends',
-        'Interesting threads today',
-        'Social time well spent'
-      ]
-    };
-
-    const categoryNotes = notesByCategory[category] || [
-      'Interesting activity',
-      'Good use of time',
-      'Felt productive',
-      'Nice moment today',
-      'Time well spent'
-    ];
-
-    return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
-  };
-
-  const confirmGenerateTestData = async () => {
-    await handleGenerateTestData();
-    setShowTestConfirm(false);
-  };
-
-  const cancelGenerateTestData = () => {
-    setShowTestConfirm(false);
-  };
-
-  const handleImportLegacyDatabase = () => {
-    if (!db) return;
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      try {
-        await DataExporter.importLegacyDatabase(db, file);
-        // Refresh the grid to show imported data
-        const today = new Date().toISOString().split('T')[0];
-        const todayEvents = await db.getEventsByDate(today);
-
-        // Load past 7 days
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7);
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 1);
-
-        const pastDays = await db.getEventsByDateRange(
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0]
-        );
-
-        // Sort past days by date (newest first)
-        pastDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        // Final structure: today first, then past days
-        const allDays = [
-          { date: today, events: todayEvents },
-          ...pastDays
-        ];
-
-        // Load in batches to prevent UI freezing after importing legacy data
-        const totalDays = allDays.length;
-        const batchSize = 5; // Process 5 days at a time
-
-        const processBatch = async (batchStartIndex: number): Promise<void> => {
-          const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
-          const batch = allDays.slice(batchStartIndex, batchEndIndex);
-
-          // Add this batch to state
-          setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
-
-          // If we have more batches to process, continue after yielding control
-          if (batchEndIndex < totalDays) {
-            // Use setTimeout to yield control back to the UI thread
-            return new Promise(resolve => {
-              setTimeout(() => {
-                resolve(processBatch(batchEndIndex));
-              }, 0);
-            });
-          }
-        };
-
-        // Start processing the first batch
-        await processBatch(0);
-
-        setError('Legacy data imported successfully. Categories from multiple tags have been combined.');
-
-        // Clear success message after 5 seconds
-        setTimeout(() => setError(null), 5000);
-      } catch (error) {
-        console.error('Failed to import legacy data:', error);
-        setError(`Legacy import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    };
-    input.click();
-  };
-
-
-
-  const handleGenerateTestData = async () => {
-    if (!db) return;
-
-    try {
-      // Clear existing data first
-      await db.clearAllEvents();
-
-      // Categories for test data (excluding Sleep - we'll handle that specially)
-      const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
-
-      // Generate events for the past 30 days (excluding today)
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() - 1); // Yesterday
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30); // 30 days ago
-
-      const events: Omit<ExocortexEvent, 'id'>[] = [];
-
-      // Generate events for each day
-      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
-        const dayEvents: Omit<ExocortexEvent, 'id'>[] = [];
-
-        // Create sleep event that starts around 22:00 and lasts 7-8 hours
-        const sleepStartHour = 20 + Math.floor(Math.random() * 3); // 20:00, 21:00, or 22:00
-        const sleepStartMinute = Math.floor(Math.random() * 60);
-        const sleepDurationHours = 7 + Math.random(); // 7-8 hours
-
-        const sleepStart = new Date(currentDate);
-        sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
-        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
-
-        // CRITICAL FIX: Ensure sleep events don't cross into today
-        // If this is yesterday's sleep event, make sure it ends before today
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Start of today
-        if (sleepEnd >= today) {
-          // Adjust sleep duration to end before today
-          const maxDuration = today.getTime() - sleepStart.getTime();
-          const adjustedDurationHours = Math.max(6, (maxDuration / (60 * 60 * 1000)) - 0.5); // At least 6 hours
-          sleepEnd = new Date(sleepStart.getTime() + adjustedDurationHours * 60 * 60 * 1000);
-        }
-
-        // Sleep event with typical sleep values
-        const sleepEvent = {
-          endTime: sleepEnd.getTime(),
-          category: 'Sleep' as const,
-          notes: Math.random() > 0.7 ? [
-            'Had some interesting dreams',
-            'Woke up feeling refreshed',
-            'Slept through the night',
-            'A bit restless but okay',
-            'Deep sleep cycle felt good'
-          ][Math.floor(Math.random() * 5)] : undefined,
-          happiness: 0.8, // Generally happy during sleep
-          wakefulness: Math.random() * 0.02, // 0-2% wakefulness during sleep (extremely low)
-          health: 0.9, // Good for health
-        };
-
-        dayEvents.push(sleepEvent);
-
-        // Fill the rest of the day with other activities
-        // We'll work around the sleep period
-
-        // Morning activities (before sleep starts)
-        const morningEnd = sleepStart.getTime();
-        let currentTime = new Date(currentDate);
-        currentTime.setHours(7, 0, 0, 0); // Start at 7:00 AM
-
-        while (currentTime < sleepStart) {
-          const timeUntilSleep = sleepStart.getTime() - currentTime.getTime();
-
-          // Don't create events too close to sleep time
-          if (timeUntilSleep < 30 * 60 * 1000) break; // Less than 30 minutes before sleep
-
-          // Random duration between 30 minutes and 3 hours, but don't exceed time until sleep
-          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
-          if (maxDuration <= 0) break;
-
-          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
-          const actualDuration = Math.min(durationMs, maxDuration);
-
-          const category = categories[Math.floor(Math.random() * categories.length)];
-
-          // Morning mood values (generally good)
-          const happiness = Math.random() * 0.4 + 0.5; // 0.5-0.9
-          const wakefulness = Math.random() * 0.4 + 0.5; // 0.5-0.9
-          const health = Math.random() * 0.3 + 0.6; // 0.6-0.9
-
-          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
-
-          const event = {
-            endTime: eventEndTime.getTime(),
-            category,
-            notes: Math.random() > 0.6 ? generateCategoryNotes(category) : undefined,
-            happiness,
-            wakefulness,
-            health,
-          };
-
-          dayEvents.push(event);
-
-          // Move to next event time with some gap
-          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
-        }
-
-        // Evening activities (after sleep ends, on the next day) - ONLY if the next day is not today
-        const nextDay = new Date(currentDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-
-        // Only add evening activities if the next day is not today
-        if (nextDay < today) {
-          const eveningStart = new Date(Math.max(sleepEnd.getTime(), new Date(nextDay).setHours(7, 0, 0, 0)));
-          const endOfDay = new Date(nextDay);
-          endOfDay.setHours(23, 59, 59, 999);
-
-          currentTime = new Date(eveningStart);
-
-          while (currentTime < endOfDay) {
-            const timeUntilEnd = endOfDay.getTime() - currentTime.getTime();
-
-            // Don't create events too close to next sleep time
-            const nextSleepStart = new Date(nextDay);
-            nextSleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
-            const timeUntilNextSleep = nextSleepStart.getTime() - currentTime.getTime();
-
-            if (timeUntilNextSleep < 60 * 60 * 1000) break; // Less than 1 hour before next sleep
-
-            // Random duration between 30 minutes and 3 hours
-            const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilEnd, timeUntilNextSleep - 30 * 60 * 1000);
-            if (maxDuration <= 0) break;
-
-            const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
-            const actualDuration = Math.min(durationMs, maxDuration);
-
-            const category = categories[Math.floor(Math.random() * categories.length)];
-
-            // Evening mood values (can be more variable)
-            const happiness = Math.random() * 0.6 + 0.3; // 0.3-0.9
-            const wakefulness = Math.random() * 0.5 + 0.3; // 0.3-0.8 (getting tired)
-            const health = Math.random() * 0.4 + 0.5; // 0.5-0.9
-
-            const eventEndTime = new Date(currentTime.getTime() + actualDuration);
-
-            const event = {
-              endTime: eventEndTime.getTime(),
-              category,
-              notes: Math.random() > 0.6 ? generateCategoryNotes(category) : undefined,
-              happiness,
-              wakefulness,
-              health,
-            };
-
-            dayEvents.push(event);
-
-            // Move to next event time with some gap
-            currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
-          }
-        }
-
-        // Add all events for this day
-        events.push(...dayEvents);
-      }
-
-      // Add all events to database
-      for (const event of events) {
-        await db.addEvent(event);
-      }
-
-      // Refresh the grid to show test data - reload past 30 days
-      const testEndDate = new Date();
-      testEndDate.setDate(testEndDate.getDate() - 1); // Yesterday
-      const testStartDate = new Date();
-      testStartDate.setDate(testStartDate.getDate() - 30); // 30 days ago
-
-      const daysWithEvents = await db.getEventsByDateRange(
-        testStartDate.toISOString().split('T')[0],
-        testEndDate.toISOString().split('T')[0]
-      );
-
-      // Also get today's events (should be empty)
-      const today = new Date().toISOString().split('T')[0];
-      const todayEvents = await db.getEventsByDate(today);
-
-      // If today has events, log them for debugging (this should not happen)
-      if (todayEvents.length > 0) {
-        console.log('WARNING: Today has events when it should be empty:', todayEvents);
-        // Clear any events that accidentally got created for today
-        for (const event of todayEvents) {
-          await db.deleteEvent(event.id);
-        }
-        // Refresh today's events after clearing
-        const refreshedTodayEvents = await db.getEventsByDate(today);
-        todayEvents.length = 0;
-        todayEvents.push(...refreshedTodayEvents);
-      }
-
-      // Check if yesterday is missing and load it if needed
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      const hasYesterday = daysWithEvents.some(day => day.date === yesterdayStr);
-
-      if (!hasYesterday) {
-        const yesterdayEvents = await db.getEventsByDate(yesterdayStr);
-        if (yesterdayEvents.length > 0) {
-          daysWithEvents.push({ date: yesterdayStr, events: yesterdayEvents });
-        }
-      }
-
-      // Sort daysWithEvents by date (newest first) before adding today
-      daysWithEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-      // Final structure: today first, then past days in reverse chronological order
-      const allDays = [
-        { date: today, events: todayEvents }, // Today first (most recent)
-        ...daysWithEvents // Then past days (already sorted with yesterday first)
-      ];
-
-      // Load in batches to prevent UI freezing after generating lots of test data
-      const totalDays = allDays.length;
-      const batchSize = 5; // Process 5 days at a time
-
-      const processBatch = async (batchStartIndex: number): Promise<void> => {
-        const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
-        const batch = allDays.slice(batchStartIndex, batchEndIndex);
-
-        // Add this batch to state
-        setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
-
-        // If we have more batches to process, continue after yielding control
-        if (batchEndIndex < totalDays) {
-          // Use setTimeout to yield control back to the UI thread
-          return new Promise(resolve => {
-            setTimeout(() => {
-              resolve(processBatch(batchEndIndex));
-            }, 0);
-          });
-        }
-      };
-
-      // Start processing the first batch
-      await processBatch(0);
-
-      setError(`Successfully generated ${events.length} test events for the past 30 days with realistic sleep patterns`);
-
-      // Clear success message after 5 seconds
-      setTimeout(() => setError(null), 5000);
-    } catch (error) {
-      console.error('Failed to generate test data:', error);
-      setError('Failed to generate test data. Please try again.');
-    }
-  };
-
-  const handleClearAllData = async () => {
-    if (!db) return;
-
-    try {
-      // Clear all events from database
-      await db.clearAllEvents();
-
-      // Clear the grid display
-      const today = new Date().toISOString().split('T')[0];
-      setDays([{ date: today, events: [] }]);
-
-      setError('All data has been cleared successfully');
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setError(null), 3000);
-    } catch (error) {
-      console.error('Failed to clear data:', error);
-      setError('Failed to clear data. Please try again.');
-    }
-  };
-
-  const confirmClearAllData = () => {
-    handleClearAllData();
-    setShowClearConfirm(false);
-  };
-
-  const cancelClearAllData = () => {
-    setShowClearConfirm(false);
-  };
 
   // Scroll to today functionality
   const handleScrollToToday = useCallback(() => {
@@ -1483,10 +955,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       // Update the current date reference
       setCurrentDate(new Date());
-
-      // Show feedback message
-      setError('Scrolled to today');
-      setTimeout(() => setError(null), 2000);
     }
   }, []);
 
@@ -1511,9 +979,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             setLastDayCheck(now);
             return newDays;
           });
-
-          setError('New day detected - added to top of grid');
-          setTimeout(() => setError(null), 3000);
         } else {
           // Just update the date references
           setCurrentDate(now);
@@ -1681,11 +1146,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         }, 100);
       }
 
-      setError(`Jumped to ${targetDate.toLocaleDateString()}`);
-      setTimeout(() => setError(null), 3000);
     } catch (error) {
       console.error('Failed to skip to date:', error);
-      setError('Failed to jump to selected date. Please try again.');
     } finally {
       setIsJumpingToDate(false);
     }
@@ -1701,98 +1163,15 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header with import/export - mobile optimized */}
+      {/* Simple header - mobile optimized */}
       <div className="mb-4">
-        <div className="flex justify-between items-center gap-4">
-          <h2
-            className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors"
-            onClick={handleScrollToToday}
-            title="Scroll to today"
-          >
-            Time Grid
-          </h2>
-
-          {/* Import/Export buttons - mobile responsive */}
-          <div className="flex flex-wrap gap-2 justify-start">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="bg-secondary border-border text-secondary-foreground"
-              disabled={!db}
-              title="Export data to JSON file"
-            >
-              <Download className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Export</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleImportDatabase}
-              className="bg-secondary border-border text-secondary-foreground"
-              disabled={!db}
-              title="Import data from JSON file"
-            >
-              <Upload className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Import</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDateSkipDialog(true)}
-              className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
-              disabled={!db}
-              title="Jump to a specific date"
-            >
-              <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Skip to Date</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleImportLegacyDatabase}
-              className="bg-orange-600/20 border-orange-600 text-orange-400 hover:bg-orange-600/30"
-              disabled={!db}
-              title="Import data from legacy Exocortex format (old app)"
-            >
-              <Upload className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Legacy</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTestConfirm(true)}
-              className="bg-primary border-primary text-primary-foreground"
-              disabled={!db}
-              title="Generate random test data for the past 30 days"
-            >
-              <Database className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Test</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowClearConfirm(true)}
-              className="bg-destructive border-destructive text-destructive-foreground"
-              disabled={!db}
-              title="Clear all events from the database"
-            >
-              <Trash2 className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Clear</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Error/Success messages */}
-        {error && (
-          <div className={`mt-3 px-3 py-2 rounded-md text-sm ${
-            error.includes('Successfully')
-              ? 'bg-green-900/20 border border-green-600 text-green-400'
-              : 'bg-red-900/20 border border-red-600 text-red-400'
-          }`}>
-            {error}
-          </div>
-        )}
+        <h2
+          className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors"
+          onClick={handleScrollToToday}
+          title="Scroll to today"
+        >
+          Time Grid
+        </h2>
       </div>
 
       {/* Grid container - mobile optimized */}
@@ -1992,64 +1371,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         defaultValues={defaultValues}
       />
 
-      {/* Clear Database Confirmation Dialog */}
-      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <DialogContent className="sm:max-w-sm bg-card border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle>Delete Entire Database</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              This will delete the entire database. This action cannot be undone.
-            </p>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={cancelClearAllData}
-              className="bg-secondary border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmClearAllData}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Generate Test Data Confirmation Dialog */}
-      <Dialog open={showTestConfirm} onOpenChange={setShowTestConfirm}>
-        <DialogContent className="sm:max-w-sm bg-card border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle>Generate Test Data</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              This will create 30 days of random test data with various activities and diary notes. This will replace any existing data.
-            </p>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={cancelGenerateTestData}
-              className="bg-secondary border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmGenerateTestData}
-              className="bg-primary hover:bg-primary/90"
-            >
-              Generate
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Skip to Date Dialog */}
       <Dialog open={showDateSkipDialog} onOpenChange={(open) => {
