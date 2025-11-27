@@ -304,8 +304,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               }
 
               const fromDate = new Date(oldestDay.date);
-              fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day (smaller batch)
-              const success = await loadDays(db, fromDate, 5, 2); // Batch size of 2 days for smoother loading
+              fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
+
+              // Use optimized query that only returns days with events
+              const moreDays = await db.getEventsByDateRangeOnly(
+                fromDate.toISOString().split('T')[0],
+                oldestDay.date
+              );
+
+              if (moreDays.length === 0) {
+                // No more data available
+                setHasReachedHistoricalLimit(true);
+                console.log('No more historical data available');
+              } else {
+                // Filter out any days that are already in our state
+                const existingDates = new Set(days.map(d => d.date));
+                const newDays = moreDays.filter(day => !existingDates.has(day.date));
+
+                if (newDays.length > 0) {
+                  setDays(prev => [...prev, ...newDays]);
+                } else {
+                  // No new unique days found
+                  setHasReachedHistoricalLimit(true);
+                }
+              }
 
               if (!success) {
                 // No more data available, we can stop observing or show a message
@@ -1518,7 +1540,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       console.log('Jumping to date:', targetDateStr);
 
       // OPTIMIZED: Only get days with actual events, not all dates
-      const eventsByDate = await db.getEventsByDateRange(
+      const eventsByDate = await db.getEventsByDateRangeOnly(
         targetDateStr,
         todayStr
       );
