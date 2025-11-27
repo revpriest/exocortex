@@ -27,6 +27,62 @@ import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@
 import { APP_VERSION } from '../main';
 
 /**
+ * New User Welcome Dialog Component
+ *
+ * Shows a welcome dialog for first-time users when the database is empty.
+ * Offers to generate sample data to help them understand the app.
+ */
+const NewUserWelcomeDialog = ({ isOpen, onClose, onGenerateTestData }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onGenerateTestData: () => void;
+}) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateTest = async () => {
+    setIsGenerating(true);
+    await onGenerateTestData();
+    setIsGenerating(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+        <DialogHeader>
+          <DialogTitle className="text-lg">Welcome to ExocortexLog!</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          <p className="text-base text-foreground">
+            New user? Would you like some random test data to explore the app?
+          </p>
+          <p className="text-sm text-muted-foreground">
+            The test data can be deleted in the conf screen.
+          </p>
+        </div>
+        <div className="flex justify-end space-x-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isGenerating}
+            className="bg-secondary border-border"
+          >
+            No
+          </Button>
+          <Button
+            onClick={handleGenerateTest}
+            disabled={isGenerating}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {isGenerating ? 'Generating...' : 'Yes'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/**
  * Theme Switch Component
  *
  * A toggle switch that allows users to switch between dark and light themes.
@@ -589,6 +645,10 @@ const Index = () => {
    */
   const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'conf'>('grid');
 
+  // Welcome dialog state for new users
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
+
   /**
    * Set SEO (Search Engine Optimization) metadata
    *
@@ -602,6 +662,42 @@ const Index = () => {
     title: 'ExocortexLog - Time Tracking',
     description: 'A visual time tracking app that displays your daily events in a colorful grid pattern.',
   });
+
+  /**
+   * Check for empty database and show welcome dialog for new users
+   */
+  useEffect(() => {
+    const checkDatabaseEmpty = async () => {
+      try {
+        const database = new ExocortexDB();
+        await database.init();
+
+        // Check if database has any events
+        const today = new Date().toISOString().split('T')[0];
+        const events = await database.getEventsByDate(today);
+
+        setIsCheckingDatabase(false);
+
+        // Show welcome dialog if no events found for today (likely empty database)
+        if (events.length === 0) {
+          // Also check a few past days to be sure
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          const yesterdayEvents = await database.getEventsByDate(yesterdayStr);
+
+          if (yesterdayEvents.length === 0) {
+            setShowWelcomeDialog(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check database:', error);
+        setIsCheckingDatabase(false);
+      }
+    };
+
+    checkDatabaseEmpty();
+  }, []);
 
   /**
    * Navigation Handler Functions
@@ -622,6 +718,113 @@ const Index = () => {
   };
 
   /**
+   * Generate test data for welcome dialog
+   */
+  const handleWelcomeGenerateTestData = async () => {
+    const database = new ExocortexDB();
+    await database.init();
+
+    try {
+      // Clear existing data first
+      await database.clearAllEvents();
+
+      // Categories for test data (excluding Sleep - we'll handle that specially)
+      const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
+
+      // Generate events for the past 7 days (shorter period for new users)
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - 1); // Yesterday
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7); // 7 days ago
+
+      const events: Omit<any, 'id'>[] = [];
+
+      // Generate events for each day
+      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
+        const dayEvents: Omit<any, 'id'>[] = [];
+
+        // Create sleep event that starts around 22:00 and lasts 7-8 hours
+        const sleepStartHour = 20 + Math.floor(Math.random() * 3); // 20:00, 21:00, or 22:00
+        const sleepStartMinute = Math.floor(Math.random() * 60);
+        const sleepDurationHours = 7 + Math.random(); // 7-8 hours
+
+        const sleepStart = new Date(currentDate);
+        sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
+        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
+
+        // Sleep event with typical sleep values
+        const sleepEvent = {
+          endTime: sleepEnd.getTime(),
+          category: 'Sleep' as const,
+          notes: Math.random() > 0.7 ? [
+            'Had some interesting dreams',
+            'Woke up feeling refreshed',
+            'Slept through the night',
+            'A bit restless but okay',
+            'Deep sleep cycle felt good'
+          ][Math.floor(Math.random() * 5)] : undefined,
+          happiness: 0.8,
+          wakefulness: Math.random() * 0.02,
+          health: 0.9,
+        };
+
+        dayEvents.push(sleepEvent);
+
+        // Fill the rest of the day with other activities
+        let currentTime = new Date(currentDate);
+        currentTime.setHours(7, 0, 0, 0); // Start at 7:00 AM
+
+        while (currentTime < sleepStart) {
+          const timeUntilSleep = sleepStart.getTime() - currentTime.getTime();
+          if (timeUntilSleep < 30 * 60 * 1000) break; // Less than 30 minutes before sleep
+
+          // Random duration between 30 minutes and 3 hours
+          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
+          if (maxDuration <= 0) break;
+
+          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
+          const actualDuration = Math.min(durationMs, maxDuration);
+
+          const category = categories[Math.floor(Math.random() * categories.length)];
+          const happiness = Math.random() * 0.4 + 0.5;
+          const wakefulness = Math.random() * 0.4 + 0.5;
+          const health = Math.random() * 0.3 + 0.6;
+
+          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
+
+          const event = {
+            endTime: eventEndTime.getTime(),
+            category,
+            notes: Math.random() > 0.6 ? [
+              'Productive session',
+              'Good progress made',
+              'Felt energized',
+              'Nice break',
+              'Interesting activity'
+            ][Math.floor(Math.random() * 5)] : undefined,
+            happiness,
+            wakefulness,
+            health,
+          };
+
+          dayEvents.push(event);
+          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
+        }
+
+        // Add all events for this day
+        events.push(...dayEvents);
+      }
+
+      // Add all events to database
+      for (const event of events) {
+        await database.addEvent(event);
+      }
+    } catch (error) {
+      console.error('Failed to generate test data:', error);
+    }
+  };
+
+  /**
    * Page Layout Structure
    *
    * We use Tailwind CSS classes for responsive design:
@@ -638,6 +841,14 @@ const Index = () => {
         and centers it horizontally with mx-auto (margin-left: auto; margin-right: auto)
       */}
       <div className="max-w-7xl mx-auto">
+        {/* New User Welcome Dialog */}
+        {!isCheckingDatabase && (
+          <NewUserWelcomeDialog
+            isOpen={showWelcomeDialog}
+            onClose={() => setShowWelcomeDialog(false)}
+            onGenerateTestData={handleWelcomeGenerateTestData}
+          />
+        )}
         {/* Navigation Header */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
