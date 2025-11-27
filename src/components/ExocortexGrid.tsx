@@ -1515,11 +1515,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       const targetDateStr = targetDate.toISOString().split('T')[0];
       const todayStr = today.toISOString().split('T')[0];
 
-      // Clear current days
-      setDays([]);
-      setHasReachedHistoricalLimit(false);
-      setLoading(true);
-
       console.log('Jumping to date:', targetDateStr);
 
       // Create complete range of dates from target date to today (no gaps)
@@ -1556,12 +1551,26 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         }
       });
 
-      // Sort by date (newest first for display)
+      // Sort by date (newest first for display) and find target index
       allDays.sort((a, b) => {
         const aDate = new Date(a.date);
         const bDate = new Date(b.date);
         return bDate.getTime() - aDate.getTime(); // Newest first
       });
+
+      // Find the target date index BEFORE loading any data
+      const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+
+      if (targetDayIndex !== -1) {
+        // IMMEDIATELY scroll to estimated position BEFORE loading data
+        const rowHeight = 80; // ROW_HEIGHT constant
+        const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
+
+        console.log('Immediate scroll to estimated position:', estimatedPosition);
+        if (gridRef.current) {
+          gridRef.current.scrollTop = estimatedPosition;
+        }
+      }
 
       console.log('Final allDays array:', allDays.map(d => ({ date: d.date, events: d.events.length })));
 
@@ -1584,44 +1593,26 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               resolve(processBatch(batchEndIndex));
             }, 0);
           });
+        } else {
+          // FINAL BATCH: Do precise scroll to ensure exact position
+          setTimeout(() => {
+            if (gridRef.current && targetDayIndex !== -1) {
+              // Try direct element selection for precise positioning
+              const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
+              if (targetDayElement) {
+                console.log('Final precise scroll to target element');
+                targetDayElement.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'center'
+                });
+              }
+            }
+          }, 50); // Small delay for DOM to be ready
         }
       };
 
       // Start processing the first batch
       await processBatch(0);
-
-      // Wait for all batches to complete, then scroll to the selected date
-      setTimeout(() => {
-        if (gridRef.current) {
-          console.log('Attempting to scroll to target date:', targetDateStr);
-
-          // Find the target date in the sorted array
-          const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
-
-          if (targetDayIndex !== -1) {
-            // Wait a bit more for the DOM to be fully updated with all batches
-            setTimeout(() => {
-              // Try direct element selection first
-              const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
-              if (targetDayElement) {
-                console.log('Found target element, scrolling...');
-                targetDayElement.scrollIntoView({
-                  behavior: 'smooth',
-                  block: 'center'
-                });
-              } else {
-                // Fallback to index-based calculation
-                const rowHeight = 80; // ROW_HEIGHT constant
-                const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
-                console.log('Scrolling using index calculation to position:', estimatedPosition);
-                gridRef.current.scrollTop = estimatedPosition;
-              }
-            }, 100); // Small additional delay to ensure DOM is ready
-          } else {
-            console.error('Target date not found in allDays array:', targetDateStr);
-          }
-        }
-      }, 100); // Reduced timeout since we now wait for all batches
 
       setError(`Jumping to ${targetDate.toLocaleDateString()}...`);
       setTimeout(() => setError(null), 3000);
