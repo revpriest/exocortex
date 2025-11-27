@@ -185,7 +185,7 @@ DayRow.displayName = 'DayRow';
 // Memoized HourHeaders component for performance
 const HourHeaders = memo<{ HOURS_IN_DAY: number; HOUR_WIDTH: number }>(({ HOURS_IN_DAY, HOUR_WIDTH }) => {
 
-
+  const hourSlots = getHourSlots();
   return (
     <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
       {hourSlots.map((hour) => (
@@ -1007,7 +1007,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     // Return black for bright backgrounds (lightness > 50%), white for dark backgrounds
     return lightness > 50 ? '#000000' : '#ffffff';
   };
-
 
 
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
