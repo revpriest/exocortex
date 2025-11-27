@@ -258,7 +258,7 @@ useEffect(() => {
  * @param count - Number of days to load before fromDate
  * @param batchSize - Number of days to process in each batch (default: 3)
  */
-const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 3) => {
+const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 5) => {
     /**
      * Date Range Calculation
      *
@@ -289,24 +289,41 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     let processedCount = 0;
     const totalDays = reversedDays.length;
 
-    const processBatch = async (batchStartIndex: number): Promise<void> => {
-      const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
-      const batch = reversedDays.slice(batchStartIndex, batchEndIndex);
+    const processBatch = (batchStartIndex: number): Promise<void> => {
+      return new Promise((resolve) => {
+        const processStep = (deadline?: IdleDeadline) => {
+          const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
+          const batch = reversedDays.slice(batchStartIndex, batchEndIndex);
 
-      // Add this batch to the state
-      setDays(prev => [...prev, ...batch]);
+          // Add this batch to the state
+          setDays(prev => [...prev, ...batch]);
 
-      processedCount = batchEndIndex;
+          processedCount = batchEndIndex;
 
-      // If we have more batches to process, continue after yielding control
-      if (processedCount < totalDays) {
-        // Use setTimeout to yield control back to the UI thread
-        return new Promise(resolve => {
-          setTimeout(() => {
-            resolve(processBatch(processedCount));
-          }, 0);
-        });
-      }
+          // If we have more batches to process, continue after yielding control
+          if (processedCount < totalDays) {
+            // Use requestIdleCallback to process during browser idle time
+            const nextStep = () => {
+              if ('requestIdleCallback' in window) {
+                requestIdleCallback(processStep, { timeout: 100 });
+              } else {
+                setTimeout(() => processStep(), 0);
+              }
+            };
+
+            // Small delay to ensure UI remains responsive
+            setTimeout(nextStep, 1);
+          } else {
+            resolve();
+          }
+        };
+
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(processStep, { timeout: 100 });
+        } else {
+          setTimeout(processStep, 0);
+        }
+      });
     };
 
     // Start processing the first batch
