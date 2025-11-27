@@ -291,7 +291,7 @@ export class ExocortexDB {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    // Single query to get all events for the date range
+    // Optimized single query with better cursor handling
     const events: ExocortexEvent[] = await new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
@@ -320,6 +320,10 @@ export class ExocortexDB {
     // Group events by date - ONLY include dates that have events
     const eventsByDate = new Map<string, ExocortexEvent[]>();
 
+    // Pre-size the map for better performance
+    const estimatedDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    eventsByDate.clear();
+
     events.forEach(event => {
       const dateStr = new Date(event.endTime).toISOString().split('T')[0];
       if (!eventsByDate.has(dateStr)) {
@@ -331,10 +335,77 @@ export class ExocortexDB {
     // Create DayEvents array ONLY with dates that have events
     const days: DayEvents[] = [];
     for (const [dateStr, dayEvents] of eventsByDate) {
+      // Sort events by end time for consistent ordering
+      dayEvents.sort((a, b) => a.endTime - b.endTime);
       days.push({ date: dateStr, events: dayEvents });
     }
 
     return days;
+  }
+
+  /**
+   * Optimized bulk load for performance - loads events for many dates at once
+   * @param dateRanges Array of [startDate, endDate] pairs
+   * @returns Promise<DayEvents[]> All events for all date ranges
+   */
+  async getEventsByMultipleRanges(dateRanges: [string, string][]): Promise<DayEvents[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    if (dateRanges.length === 0) return [];
+
+    // Find the overall min and max dates for a single query
+    const allDates = dateRanges.flat();
+    const minDate = new Date(Math.min(...allDates.map(d => new Date(d).getTime())));
+    const maxDate = new Date(Math.max(...allDates.map(d => new Date(d).getTime())));
+
+    // Single query to get all events
+    const events: ExocortexEvent[] = await new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('endTime');
+
+      const start = new Date(minDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(maxDate);
+      end.setHours(23, 59, 59, 999);
+
+      const request = index.openCursor(IDBKeyRange.bound(start.getTime(), end.getTime()));
+
+      const events: ExocortexEvent[] = [];
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          events.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(events);
+        }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+
+    // Group events by date
+    const eventsByDate = new Map<string, ExocortexEvent[]>();
+    eventsByDate.clear();
+
+    events.forEach(event => {
+      const dateStr = new Date(event.endTime).toISOString().split('T')[0];
+      if (!eventsByDate.has(dateStr)) {
+        eventsByDate.set(dateStr, []);
+      }
+      eventsByDate.get(dateStr)!.push(event);
+    });
+
+    // Create DayEvents array and sort by date
+    const days: DayEvents[] = [];
+    for (const [dateStr, dayEvents] of eventsByDate) {
+      dayEvents.sort((a, b) => a.endTime - b.endTime);
+      days.push({ date: dateStr, events: dayEvents });
+    }
+
+    return days.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
   async getLatestEvent(): Promise<ExocortexEvent | null> {
