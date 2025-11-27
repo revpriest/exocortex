@@ -18,7 +18,7 @@
  */
 
 // React hooks for managing state and lifecycle
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 
 // Import our data types and utilities
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
@@ -30,6 +30,155 @@ import { useAppContext } from '@/hooks/useAppContext';
 // Import UI components
 import { Button } from '@/components/ui/button';
 import { Plus, Download, Upload, Database, Trash2, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
+
+// Memoized DayRow component for performance
+const DayRow = memo<{
+  day: DayEvents;
+  allDays: DayEvents[];
+  dayIndex: number;
+  ROW_HEIGHT: number;
+  HOURS_IN_DAY: number;
+  getEventsForDay: (targetDay: DayEvents, allDays: DayEvents[]) => ExocortexEvent[];
+  getEventStartTime: (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number) => number;
+  getEventPortionType: (event: ExocortexEvent, dayDate: string, dayEvents: ExocortexEvent[], index: number) => 'start' | 'middle' | 'end' | 'full';
+  calculateEventPortionWithStartTime: (event: ExocortexEvent, dayDate: string, startTime: number, endTime: number, portion: 'start' | 'middle' | 'end' | 'full') => any;
+  getTextColor: (event: ExocortexEvent) => string;
+  handleEventClickWithDragCheck: (event: ExocortexEvent) => void;
+}>(({
+  day,
+  allDays,
+  dayIndex,
+  ROW_HEIGHT,
+  HOURS_IN_DAY,
+  getEventsForDay,
+  getEventStartTime,
+  getEventPortionType,
+  calculateEventPortionWithStartTime,
+  getTextColor,
+  handleEventClickWithDragCheck
+}) => {
+  const eventsForDay = getEventsForDay(day, allDays);
+
+  return (
+    <div
+      key={day.date}
+      data-day={day.date}
+      className="relative border-b border-border"
+      style={{
+        height: `${ROW_HEIGHT}px`,
+      }}
+    >
+      {/* Date label - mobile optimized */}
+      <div className="absolute left-2 -top-1 text-xs md:text-sm text-muted-foreground z-20 select-none">
+        {new Date(day.date).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        })}
+      </div>
+
+      {/* Grid lines */}
+      <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
+        {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
+          <div
+            key={hourIndex}
+            className="border-r border-border flex-shrink-0"
+            style={{
+              width: 'var(--hour-width)',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Events - mobile optimized */}
+      <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
+        {eventsForDay.map((event, eventIndex) => {
+          // For span events, we need to find the original event in its day's events array
+          const originalEventId = event.id.replace(/-span-.*$/, '');
+          const originalDay = allDays.find(d => d.events.some(e => e.id === originalEventId));
+          const originalEvents = originalDay?.events || [];
+          const originalEventIndex = originalEvents.findIndex(e => e.id === originalEventId);
+
+          // Calculate the actual start time for this event
+          let eventStartTime: number;
+          if (eventIndex === 0) {
+            eventStartTime = getEventStartTime(
+              { ...event, id: originalEventId },
+              originalEvents,
+              originalEventIndex
+            );
+          } else {
+            eventStartTime = eventsForDay[eventIndex - 1].endTime;
+          }
+
+          const portionType = getEventPortionType(
+            { ...event, id: originalEventId },
+            day.date,
+            originalEvents,
+            originalEventIndex
+          );
+
+          // Only render the event portion if it's relevant for this day
+          if (portionType === 'middle') {
+            return null;
+          }
+
+          const eventStyle = calculateEventPortionWithStartTime(
+            { ...event, id: originalEventId },
+            day.date,
+            eventStartTime,
+            event.endTime,
+            portionType
+          );
+
+          return (
+            <div
+              key={`${event.id}-${day.date}`}
+              className="absolute top-2 h-16 rounded-md border border-border shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
+              style={eventStyle}
+              onClick={() => handleEventClickWithDragCheck({ ...event, id: originalEventId })}
+            >
+              <div className="p-0 h-full flex flex-col items-center justify-center text-center">
+                <div className="text-xs font-medium truncate w-full mb-0.5" style={{ color: getTextColor(event) }}>
+                  {event.category}
+                  {portionType !== 'full' && (
+                    <span className="ml-1 opacity-70">
+                      ({portionType === 'start' ? '→' : portionType === 'end' ? '←' : '↔'})
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <SmileyFace
+                    health={event.health}
+                    wakefulness={event.wakefulness}
+                    happiness={event.happiness}
+                    size={27}
+                  />
+                </div>
+                {event.notes ? (
+                  <div
+                    className="text-xs truncate w-full mt-0.5 leading-tight"
+                    style={{ color: getTextColor(event), opacity: 0.9 }}
+                    title={event.notes}
+                  >
+                    {event.notes.length > 20 ? `${event.notes.slice(0, 20)}…` : event.notes}
+                  </div>
+                ) : (
+                  <div className="text-xs truncate w-full mt-0.5 leading-tight">
+                    &nbsp;
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+DayRow.displayName = 'DayRow';
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
@@ -1822,131 +1971,22 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         </div>
 
         {/* Day rows */}
-        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
           {days.map((day, dayIndex) => (
-            <div
+            <DayRow
               key={day.date}
-              data-day={day.date}
-              className="relative border-b border-border"
-              style={{
-                height: `${ROW_HEIGHT}px`,
-              }}
-            >
-              {/* Date label - mobile optimized */}
-              <div className="absolute left-2 -top-1 text-xs md:text-sm text-muted-foreground z-20 select-none">
-                {new Date(day.date).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </div>
-
-              {/* Grid lines */}
-              <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-                {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
-                  <div
-                    key={hourIndex}
-                    className="border-r border-border flex-shrink-0"
-                    style={{
-                      width: `var(--hour-width)`,
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Events - mobile optimized */}
-              <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-                {getEventsForDay(day, days).map((event, eventIndex) => {
-                  // For span events, we need to find the original event in its day's events array
-                  const originalEventId = event.id.replace(/-span-.*$/, '');
-                  const originalDay = days.find(d => d.events.some(e => e.id === originalEventId));
-                  const originalEvents = originalDay?.events || [];
-                  const originalEventIndex = originalEvents.findIndex(e => e.id === originalEventId);
-
-                  // Get all events for this day for proper timing calculation
-                  const dayEvents = getEventsForDay(day, days);
-
-                  // Calculate the actual start time for this event
-                  let eventStartTime: number;
-                  if (eventIndex === 0) {
-                    // First event of the day - use the calculated start time
-                    eventStartTime = getEventStartTime(
-                      { ...event, id: originalEventId },
-                      originalEvents,
-                      originalEventIndex
-                    );
-                  } else {
-                    // Subsequent events - start immediately after the previous event ends
-                    eventStartTime = dayEvents[eventIndex - 1].endTime;
-                  }
-
-                  const portionType = getEventPortionType(
-                    { ...event, id: originalEventId }, // Use original ID for portion calculation
-                    day.date,
-                    originalEvents,
-                    originalEventIndex
-                  );
-
-                  // Only render the event portion if it's relevant for this day
-                  if (portionType === 'middle') {
-                    // Skip middle portions for now to avoid visual clutter
-                    // We could show them with a different style if needed
-                    return null;
-                  }
-
-                  // Calculate the style with the proper start time
-                  const eventStyle = calculateEventPortionWithStartTime(
-                    { ...event, id: originalEventId },
-                    day.date,
-                    eventStartTime,
-                    event.endTime,
-                    portionType
-                  );
-
-                  return (
-                    <div
-                      key={`${event.id}-${day.date}`}
-                      className="absolute top-2 h-16 rounded-md border border-border shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
-                      style={eventStyle}
-                      onClick={() => handleEventClickWithDragCheck({ ...event, id: originalEventId })} // Use drag-aware click handler
-                    >
-                      <div className="p-0 h-full flex flex-col items-center justify-center text-center">
-                        <div className="text-xs font-medium truncate w-full mb-0.5" style={{ color: getTextColor(event) }}>
-                          {event.category}
-                          {portionType !== 'full' && (
-                            <span className="ml-1 opacity-70">
-                              ({portionType === 'start' ? '→' : portionType === 'end' ? '←' : '↔'})
-                            </span>
-                          )}
-                        </div>
-                        <div className="relative">
-                          <SmileyFace
-                            health={event.health}
-                            wakefulness={event.wakefulness}
-                            happiness={event.happiness}
-                            size={27}
-                          />
-                        </div>
-                        {event.notes ? (
-                          <div
-                            className="text-xs truncate w-full mt-0.5 leading-tight"
-                            style={{ color: getTextColor(event), opacity: 0.9 }}
-                            title={event.notes}
-                          >
-                            {event.notes.length > 20 ? `${event.notes.slice(0, 20)}…` : event.notes}
-                          </div>
-                        ) : (
-                          <div className="text-xs truncate w-full mt-0.5 leading-tight">
-                            &nbsp;
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+              day={day}
+              allDays={days}
+              dayIndex={dayIndex}
+              ROW_HEIGHT={ROW_HEIGHT}
+              HOURS_IN_DAY={HOURS_IN_DAY}
+              getEventsForDay={getEventsForDay}
+              getEventStartTime={getEventStartTime}
+              getEventPortionType={getEventPortionType}
+              calculateEventPortionWithStartTime={calculateEventPortionWithStartTime}
+              getTextColor={getTextColor}
+              handleEventClickWithDragCheck={handleEventClickWithDragCheck}
+            />
           ))}
 
           {/* Loading trigger for infinite scroll */}
