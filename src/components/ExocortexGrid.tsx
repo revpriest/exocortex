@@ -1403,19 +1403,28 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     try {
       const targetDate = selectedSkipDate;
       const today = new Date();
+      const targetDateStr = targetDate.toISOString().split('T')[0];
 
       // Clear current days
       setDays([]);
       setHasReachedHistoricalLimit(false);
       setLoading(true);
 
+      console.log('Jumping to date:', targetDateStr);
+
+      // Get events for the specific target date - this searches the entire database
+      const targetDateEvents = await db.getEventsByDate(targetDateStr);
+      console.log('Events on target date:', targetDateEvents.length);
+
       // Calculate how many days to load based on target date
       const daysDiff = Math.floor((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
-      const daysToLoad = Math.max(7, Math.min(daysDiff + 7, 50)); // Load at least 7 days, up to 50 days
+      const daysToLoad = Math.max(30, Math.min(daysDiff + 30, 100)); // Load at least 30 days, up to 100 days
 
-      // Load data starting from today going backwards
+      // Load data starting from today going backwards - this searches entire database range
       const startDate = new Date(today);
       startDate.setDate(startDate.getDate() - daysToLoad);
+
+      console.log('Loading days from', startDate.toISOString().split('T')[0], 'to', today.toISOString().split('T')[0]);
 
       const daysWithEvents = await db.getEventsByDateRange(
         startDate.toISOString().split('T')[0],
@@ -1426,18 +1435,40 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       const todayStr = today.toISOString().split('T')[0];
       const todayEvents = await db.getEventsByDate(todayStr);
 
-      // Combine and sort: today first, then past days in reverse chronological order
-      const allDays = [
-        { date: todayStr, events: todayEvents }, // Today first (most recent)
-        ...daysWithEvents.filter(day => day.date !== todayStr).reverse() // Past days (excluding duplicate today)
-      ];
+      // Create all days array: include target date even if no events
+      const allDays = [];
+
+      // Add target date first (most important)
+      allDays.push({ date: targetDateStr, events: targetDateEvents });
+      console.log('Added target date:', targetDateStr, 'with', targetDateEvents.length, 'events');
+
+      // Add today if it's different from target date
+      if (todayStr !== targetDateStr) {
+        allDays.push({ date: todayStr, events: todayEvents });
+      }
+
+      // Add other days from the loaded range (excluding duplicates)
+      daysWithEvents.forEach(day => {
+        if (!allDays.some(existingDay => existingDay.date === day.date)) {
+          allDays.push(day);
+        }
+      });
+
+      // Sort: target date first if it's in the past, otherwise today first
+      allDays.sort((a, b) => {
+        const aDate = new Date(a.date);
+        const bDate = new Date(b.date);
+        return bDate.getTime() - aDate.getTime(); // Newest first
+      });
+
+      console.log('Final allDays array:', allDays.map(d => ({ date: d.date, events: d.events.length })));
 
       setDays(allDays);
 
       // Wait a moment for DOM to update, then scroll to the selected date
       setTimeout(() => {
         if (gridRef.current) {
-          const targetDateStr = targetDate.toISOString().split('T')[0];
+          console.log('Attempting to scroll to target date:', targetDateStr);
 
           // Try multiple approaches to find and scroll to the target
           let scrolled = false;
@@ -1445,29 +1476,34 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           // Method 1: Try direct element selection
           const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
           if (targetDayElement) {
+            console.log('Found target element, scrolling...');
             targetDayElement.scrollIntoView({
               behavior: 'smooth',
               block: 'center'
             });
             scrolled = true;
-            console.log('Scrolled to target element:', targetDateStr);
+          } else {
+            console.log('Target element not found with selector');
           }
 
           // Method 2: If element selection fails, try index-based calculation
           if (!scrolled) {
             const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+            console.log('Target date index:', targetDayIndex);
             if (targetDayIndex !== -1) {
               const rowHeight = 80; // ROW_HEIGHT constant
               const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
+              console.log('Scrolling using index calculation to position:', estimatedPosition);
               gridRef.current.scrollTop = estimatedPosition;
               scrolled = true;
-              console.log('Scrolled using index calculation:', targetDateStr, 'index:', targetDayIndex, 'position:', estimatedPosition);
             }
           }
 
           if (!scrolled) {
-            console.warn('Could not find target date:', targetDateStr);
-            setError('Target date not found in loaded data. Try loading more days.');
+            console.error('Could not find or scroll to target date:', targetDateStr);
+            setError('Failed to scroll to target date. Please try again.');
+          } else {
+            console.log('Successfully scrolled to target date');
           }
         }
       }, 500); // Increased timeout to ensure DOM is ready
