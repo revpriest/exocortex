@@ -311,19 +311,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return true; // Indicate successful load
   }, []);
 
-  // Function to generate empty days for a date range
-  const generateEmptyDays = useCallback((fromDate: Date, toDate: Date, count: number): DayEvents[] => {
-    const emptyDays: DayEvents[] = [];
-    let currentDate = new Date(fromDate);
 
-    for (let i = 0; i < count; i++) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      emptyDays.push({ date: dateStr, events: [] });
-      currentDate.setDate(currentDate.getDate() - 1);
-    }
-
-    return emptyDays;
-  }, []);
 
   // Setup infinite scroll
   useEffect(() => {
@@ -346,45 +334,23 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               return;
             }
 
-            // Always generate empty days first to ensure scrolling works
+            // Calculate the range for new days (load 7 days for better coverage)
+            const daysToLoad = 7;
             const fromDate = new Date(oldestDate);
-            fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
+            fromDate.setDate(fromDate.getDate() - daysToLoad + 1); // Go back N-1 days from oldest
 
-            // Try to load days with events
-            const daysWithEvents = await db.getEventsByDateRangeOnly(
+            // Get ALL days in the range (both with and without events)
+            const allDaysInRange = await db.getEventsByDateRange(
               fromDate.toISOString().split('T')[0],
               oldestDate.toISOString().split('T')[0]
             );
 
-            // Generate empty days for the range
-            const emptyDays = generateEmptyDays(fromDate, oldestDate, 5);
-
-            // Merge empty days with days that have events
+            // Filter out days we already have
             const existingDates = new Set(days.map(d => d.date));
-            const allNewDays = [...emptyDays];
+            const newDays = allDaysInRange.filter(day => !existingDates.has(day.date));
 
-            // Add any days with events that we found
-            daysWithEvents.forEach(dayWithEvents => {
-              if (!existingDates.has(dayWithEvents.date)) {
-                // Find the corresponding empty day and replace it
-                const emptyDayIndex = allNewDays.findIndex(d => d.date === dayWithEvents.date);
-                if (emptyDayIndex !== -1) {
-                  allNewDays[emptyDayIndex] = dayWithEvents;
-                } else {
-                  allNewDays.push(dayWithEvents);
-                }
-              }
-            });
-
-            // Sort by date (newest first)
-            allNewDays.sort((a, b) => {
-              const aDate = new Date(a.date);
-              const bDate = new Date(b.date);
-              return bDate.getTime() - aDate.getTime();
-            });
-
-            if (allNewDays.length > 0) {
-              setDays(prev => [...prev, ...allNewDays]);
+            if (newDays.length > 0) {
+              setDays(prev => [...prev, ...newDays]);
             }
 
             setLoading(false);
@@ -407,7 +373,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         observerRef.current.disconnect();
       }
     };
-  }, [loading, days, db, generateEmptyDays]);
+  }, [loading, days, db]);
 
   /**
    * Drag-to-Scroll Event Handlers
