@@ -189,31 +189,47 @@ useEffect(() => {
       // Store database instance in state so other functions can use it
       setDb(database);
 
-      // Load initial data - try to get recent days with events
+      // Calculate how many days we need to fill the screen
+      // Assuming each row is 80px tall and screen height is available
+      const screenHeight = window.innerHeight - 100; // Account for header and button
+      const rowsNeeded = Math.ceil(screenHeight / 80) + 2; // +2 for extra scroll buffer
+      const daysToLoad = Math.max(7, rowsNeeded); // At least 7 days
+
       const today = new Date();
       const startDate = new Date(today);
-      startDate.setDate(startDate.getDate() - 7); // Look back 7 days
+      startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
 
-      const recentDays = await database.getEventsByDateRangeOnly(
+      // Try to get days with events
+      const daysWithEvents = await database.getEventsByDateRangeOnly(
         startDate.toISOString().split('T')[0],
         today.toISOString().split('T')[0]
       );
 
-      // Always include today even if empty
-      const todayStr = today.toISOString().split('T')[0];
-      const hasToday = recentDays.some(day => day.date === todayStr);
-      if (!hasToday) {
-        recentDays.unshift({ date: todayStr, events: [] });
+      // Generate all days in the range
+      const allDays: DayEvents[] = [];
+      for (let i = 0; i < daysToLoad; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(currentDate.getDate() - i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+
+        // Check if we have events for this day
+        const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
+
+        if (dayWithEvents) {
+          allDays.push(dayWithEvents);
+        } else {
+          allDays.push({ date: dateStr, events: [] });
+        }
       }
 
       // Sort by date (newest first)
-      recentDays.sort((a, b) => {
+      allDays.sort((a, b) => {
         const aDate = new Date(a.date);
         const bDate = new Date(b.date);
         return bDate.getTime() - aDate.getTime();
       });
 
-      setDays(recentDays);
+      setDays(allDays);
 
       // Hide loading indicator once data is loaded
       setLoading(false);
@@ -294,6 +310,20 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return true; // Indicate successful load
   }, []);
 
+  // Function to generate empty days for a date range
+  const generateEmptyDays = useCallback((fromDate: Date, toDate: Date, count: number): DayEvents[] => {
+    const emptyDays: DayEvents[] = [];
+    let currentDate = new Date(fromDate);
+
+    for (let i = 0; i < count; i++) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      emptyDays.push({ date: dateStr, events: [] });
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+
+    return emptyDays;
+  }, []);
+
   // Setup infinite scroll
   useEffect(() => {
     if (!loadingRef.current || !db) return;
@@ -301,50 +331,69 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !loading) {
-          const oldestDay = days[days.length - 1];
-          if (oldestDay) {
-            const loadMoreDays = async () => {
-              setLoading(true);
-              const oldestDay = days[days.length - 1];
-              const oldestDate = new Date(oldestDay.date);
+          const loadMoreDays = async () => {
+            setLoading(true);
+            const oldestDay = days[days.length - 1];
+            let oldestDate = oldestDay ? new Date(oldestDay.date) : new Date();
 
-              // Don't load data from more than 10 years ago
-              const tenYearsAgo = new Date();
-              tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+            // Don't load data from more than 10 years ago
+            const tenYearsAgo = new Date();
+            tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
 
-              if (oldestDate < tenYearsAgo) {
-                setLoading(false);
-                return;
-              }
+            if (oldestDate < tenYearsAgo) {
+              setLoading(false);
+              return;
+            }
 
-              const fromDate = new Date(oldestDay.date);
-              fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
+            // Always generate empty days first to ensure scrolling works
+            const fromDate = new Date(oldestDate);
+            fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
 
-              // Use optimized query that only returns days with events
-              const moreDays = await db.getEventsByDateRangeOnly(
-                fromDate.toISOString().split('T')[0],
-                oldestDay.date
-              );
+            // Try to load days with events
+            const daysWithEvents = await db.getEventsByDateRangeOnly(
+              fromDate.toISOString().split('T')[0],
+              oldestDate.toISOString().split('T')[0]
+            );
 
-              if (moreDays.length > 0) {
-                // Filter out any days that are already in our state
-                const existingDates = new Set(days.map(d => d.date));
-                const newDays = moreDays.filter(day => !existingDates.has(day.date));
+            // Generate empty days for the range
+            const emptyDays = generateEmptyDays(fromDate, oldestDate, 5);
 
-                if (newDays.length > 0) {
-                  setDays(prev => [...prev, ...newDays]);
+            // Merge empty days with days that have events
+            const existingDates = new Set(days.map(d => d.date));
+            const allNewDays = [...emptyDays];
+
+            // Add any days with events that we found
+            daysWithEvents.forEach(dayWithEvents => {
+              if (!existingDates.has(dayWithEvents.date)) {
+                // Find the corresponding empty day and replace it
+                const emptyDayIndex = allNewDays.findIndex(d => d.date === dayWithEvents.date);
+                if (emptyDayIndex !== -1) {
+                  allNewDays[emptyDayIndex] = dayWithEvents;
+                } else {
+                  allNewDays.push(dayWithEvents);
                 }
               }
-
-              setLoading(false);
-            };
-
-            loadMoreDays().catch((error) => {
-              console.error('Error in loadMoreDays:', error);
-              setLoading(false);
-              setError('Failed to load more days. Please try again.');
             });
-          }
+
+            // Sort by date (newest first)
+            allNewDays.sort((a, b) => {
+              const aDate = new Date(a.date);
+              const bDate = new Date(b.date);
+              return bDate.getTime() - aDate.getTime();
+            });
+
+            if (allNewDays.length > 0) {
+              setDays(prev => [...prev, ...allNewDays]);
+            }
+
+            setLoading(false);
+          };
+
+          loadMoreDays().catch((error) => {
+            console.error('Error in loadMoreDays:', error);
+            setLoading(false);
+            setError('Failed to load more days. Please try again.');
+          });
         }
       },
       { threshold: 0.1 }
@@ -357,7 +406,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         observerRef.current.disconnect();
       }
     };
-  }, [loading, days, db, loadDays]);
+  }, [loading, days, db, generateEmptyDays]);
 
   /**
    * Drag-to-Scroll Event Handlers
@@ -1537,7 +1586,20 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Jumping to date:', targetDateStr);
 
-      // OPTIMIZED: Only get days with actual events, not all dates
+      // Calculate how many days between target and today
+      const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+      const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
+
+      // Generate all days from target to today
+      const allDays: DayEvents[] = [];
+      for (let i = 0; i < totalDays; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(currentDate.getDate() - i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        allDays.push({ date: dateStr, events: [] }); // Start with empty days
+      }
+
+      // Try to get days with events
       const eventsByDate = await db.getEventsByDateRangeOnly(
         targetDateStr,
         todayStr
@@ -1545,46 +1607,42 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Found events for', eventsByDate.length, 'dates');
 
-      // Add today if not in range (for context)
-      const hasToday = eventsByDate.some(day => day.date === todayStr);
-      if (!hasToday) {
-        const todayEvents = await db.getEventsByDate(todayStr);
-        eventsByDate.push({ date: todayStr, events: todayEvents });
-      }
-
-      // Add target date if not in range (to ensure it's visible)
-      const hasTargetDate = eventsByDate.some(day => day.date === targetDateStr);
-      if (!hasTargetDate) {
-        const targetEvents = await db.getEventsByDate(targetDateStr);
-        eventsByDate.push({ date: targetDateStr, events: targetEvents });
-      }
+      // Merge events with our generated days
+      eventsByDate.forEach(dayWithEvents => {
+        const dayIndex = allDays.findIndex(day => day.date === dayWithEvents.date);
+        if (dayIndex !== -1) {
+          allDays[dayIndex] = dayWithEvents; // Replace empty day with day that has events
+        }
+      });
 
       // Sort by date (newest first for display)
-      eventsByDate.sort((a, b) => {
+      allDays.sort((a, b) => {
         const aDate = new Date(a.date);
         const bDate = new Date(b.date);
         return bDate.getTime() - aDate.getTime(); // Newest first
       });
 
       // Find the target date index in the sorted array
-      const targetDayIndex = eventsByDate.findIndex(day => day.date === targetDateStr);
+      const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
 
       // Create a spacer element to ensure the target position is reachable
       const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
 
       console.log('Target date index:', targetDayIndex, 'Spacer height:', spacerHeight);
-      console.log('Days with events:', eventsByDate.map(d => ({ date: d.date, events: d.events.length })));
+      console.log('Total days loaded:', allDays.length);
 
-      // Load days with events immediately (small dataset)
-      setDays(eventsByDate);
+      // Load all days immediately
+      setDays(allDays);
 
-      // Add temporary spacer at bottom to make scrolling possible
-      if (spacerHeight > 0 && gridRef.current) {
-        // Create a temporary div to extend scrollable area
-        const tempSpacer = document.createElement('div');
-        tempSpacer.style.height = `${spacerHeight}px`;
-        tempSpacer.className = 'temp-jump-spacer';
-        gridRef.current.appendChild(tempSpacer);
+      // Scroll to the target position
+      if (gridRef.current) {
+        // Create a temporary div to extend scrollable area if needed
+        if (spacerHeight > 0) {
+          const tempSpacer = document.createElement('div');
+          tempSpacer.style.height = `${spacerHeight}px`;
+          tempSpacer.className = 'temp-jump-spacer';
+          gridRef.current.appendChild(tempSpacer);
+        }
 
         // Scroll to the target position
         const scrollTarget = gridRef.current.scrollHeight - spacerHeight + ROW_HEIGHT / 2;
@@ -1593,8 +1651,9 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
         // Remove spacer after scroll animation
         setTimeout(() => {
-          if (tempSpacer.parentNode) {
-            tempSpacer.parentNode.removeChild(tempSpacer);
+          const spacer = gridRef.current?.querySelector('.temp-jump-spacer');
+          if (spacer && spacer.parentNode) {
+            spacer.parentNode.removeChild(spacer);
           }
         }, 100);
       }
