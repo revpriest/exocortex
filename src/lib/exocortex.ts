@@ -222,14 +222,60 @@ export class ExocortexDB {
   }
 
   async getEventsByDateRange(startDate: string, endDate: string): Promise<DayEvents[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    // Single query to get all events for the date range
+    const events: ExocortexEvent[] = await new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('endTime');
+
+      const request = index.openCursor(IDBKeyRange.bound(
+        start.getTime(),
+        end.getTime()
+      ));
+
+      const events: ExocortexEvent[] = [];
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          events.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(events);
+        }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+
+    // Group events by date in JavaScript (more efficient than multiple DB queries)
+    const eventsByDate = new Map<string, ExocortexEvent[]>();
+
+    events.forEach(event => {
+      const dateStr = new Date(event.endTime).toISOString().split('T')[0];
+      if (!eventsByDate.has(dateStr)) {
+        eventsByDate.set(dateStr, []);
+      }
+      eventsByDate.get(dateStr)!.push(event);
+    });
+
+    // Create DayEvents array with all dates in range (even those without events)
     const days: DayEvents[] = [];
     const current = new Date(startDate);
-    const end = new Date(endDate);
+    const endDateObj = new Date(endDate);
 
-    while (current <= end) {
+    while (current <= endDateObj) {
       const dateStr = current.toISOString().split('T')[0];
-      const events = await this.getEventsByDate(dateStr);
-      days.push({ date: dateStr, events });
+      const dayEvents = eventsByDate.get(dateStr) || [];
+      days.push({ date: dateStr, events: dayEvents });
       current.setDate(current.getDate() + 1);
     }
 

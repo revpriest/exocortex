@@ -192,9 +192,9 @@ useEffect(() => {
       // Store database instance in state so other functions can use it
       setDb(database);
 
-      // Load initial data for display (today + past 7 days)
+      // Load initial data for display (today + past 5 days)
       // This gives users immediate content to see
-      await loadDays(database, new Date(), 7);
+      await loadDays(database, new Date(), 5, 2); // Small batches for initial load
 
       // Hide loading indicator once data is loaded
       setLoading(false);
@@ -208,16 +208,17 @@ useEffect(() => {
   }, []); // Empty dependency array means this runs only once on mount
 
 /**
- * Load Days Function
+ * Load Days Function with Batch Processing
  *
- * This function loads a range of days from the database.
- * It's a callback (wrapped in useCallback) to optimize performance.
+ * This function loads days in batches to prevent UI freezing.
+ * It processes data in chunks and yields control back to the UI thread.
  *
  * @param database - The ExocortexDB instance to query
  * @param fromDate - The newest date to load (going backwards from here)
  * @param count - Number of days to load before fromDate
+ * @param batchSize - Number of days to process in each batch (default: 3)
  */
-const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number) => {
+const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 3) => {
     /**
      * Date Range Calculation
      *
@@ -230,17 +231,48 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     const endDate = new Date(fromDate);
     endDate.setDate(endDate.getDate() - count + 1); // This becomes the oldest date in the range
 
-    const newDays = await database.getEventsByDateRange(
+    // Get all data in a single query (much more efficient)
+    const allDays = await database.getEventsByDateRange(
       endDate.toISOString().split('T')[0], // Oldest date (start of range)
       fromDate.toISOString().split('T')[0]   // Newest date (end of range)
     );
 
-    // Only add new days if we actually got data
-    if (newDays.length > 0) {
-      setDays(prev => [...prev, ...newDays.reverse()]);
-      return true; // Indicate successful load
+    // Only proceed if we got data
+    if (allDays.length === 0) {
+      return false; // Indicate no more data available
     }
-    return false; // Indicate no more data available
+
+    // Reverse to show newest first
+    const reversedDays = allDays.reverse();
+
+    // Process in batches to prevent UI freezing
+    let processedCount = 0;
+    const totalDays = reversedDays.length;
+
+    const processBatch = async (batchStartIndex: number): Promise<void> => {
+      const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
+      const batch = reversedDays.slice(batchStartIndex, batchEndIndex);
+
+      // Add this batch to the state
+      setDays(prev => [...prev, ...batch]);
+
+      processedCount = batchEndIndex;
+
+      // If we have more batches to process, continue after yielding control
+      if (processedCount < totalDays) {
+        // Use setTimeout to yield control back to the UI thread
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve(processBatch(processedCount));
+          }, 0);
+        });
+      }
+    };
+
+    // Start processing the first batch
+    await processBatch(0);
+
+    return true; // Indicate successful load
   }, []);
 
   // Setup infinite scroll
@@ -271,8 +303,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               }
 
               const fromDate = new Date(oldestDay.date);
-              fromDate.setDate(fromDate.getDate() - 7); // Load 7 days before the oldest day
-              const success = await loadDays(db, fromDate, 7);
+              fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day (smaller batch)
+              const success = await loadDays(db, fromDate, 5, 2); // Batch size of 2 days for smoother loading
 
               if (!success) {
                 // No more data available, we can stop observing or show a message
@@ -939,7 +971,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           ...daysWithEvents.filter(day => day.date !== today).reverse() // Past days (excluding duplicate today)
         ];
 
-        setDays(allDays);
+        // Load in batches to prevent UI freezing after importing
+        const totalDays = allDays.length;
+        const batchSize = 5; // Process 5 days at a time
+
+        const processBatch = async (batchStartIndex: number): Promise<void> => {
+          const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
+          const batch = allDays.slice(batchStartIndex, batchEndIndex);
+
+          // Add this batch to state
+          setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
+
+          // If we have more batches to process, continue after yielding control
+          if (batchEndIndex < totalDays) {
+            // Use setTimeout to yield control back to the UI thread
+            return new Promise(resolve => {
+              setTimeout(() => {
+                resolve(processBatch(batchEndIndex));
+              }, 0);
+            });
+          }
+        };
+
+        // Start processing the first batch
+        await processBatch(0);
 
         setError(`Successfully imported events from ${file.name}`);
 
@@ -1056,7 +1111,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           ...pastDays
         ];
 
-        setDays(allDays);
+        // Load in batches to prevent UI freezing after importing legacy data
+        const totalDays = allDays.length;
+        const batchSize = 5; // Process 5 days at a time
+
+        const processBatch = async (batchStartIndex: number): Promise<void> => {
+          const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
+          const batch = allDays.slice(batchStartIndex, batchEndIndex);
+
+          // Add this batch to state
+          setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
+
+          // If we have more batches to process, continue after yielding control
+          if (batchEndIndex < totalDays) {
+            // Use setTimeout to yield control back to the UI thread
+            return new Promise(resolve => {
+              setTimeout(() => {
+                resolve(processBatch(batchEndIndex));
+              }, 0);
+            });
+          }
+        };
+
+        // Start processing the first batch
+        await processBatch(0);
         setHasReachedHistoricalLimit(false);
 
         setError('Legacy data imported successfully. Categories from multiple tags have been combined.');
@@ -1291,7 +1369,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         ...daysWithEvents // Then past days (already sorted with yesterday first)
       ];
 
-      setDays(allDays);
+      // Load in batches to prevent UI freezing after generating lots of test data
+      const totalDays = allDays.length;
+      const batchSize = 5; // Process 5 days at a time
+
+      const processBatch = async (batchStartIndex: number): Promise<void> => {
+        const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
+        const batch = allDays.slice(batchStartIndex, batchEndIndex);
+
+        // Add this batch to state
+        setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
+
+        // If we have more batches to process, continue after yielding control
+        if (batchEndIndex < totalDays) {
+          // Use setTimeout to yield control back to the UI thread
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve(processBatch(batchEndIndex));
+            }, 0);
+          });
+        }
+      };
+
+      // Start processing the first batch
+      await processBatch(0);
 
       setError(`Successfully generated ${events.length} test events for the past 30 days with realistic sleep patterns`);
 
@@ -1431,7 +1532,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Created date range:', allDays.length, 'days from', allDays[0]?.date, 'to', allDays[allDays.length - 1]?.date);
 
-      // Get events for all dates in the range
+      // Get events for all dates in the range (using optimized batch query)
       const eventsByDate = await db.getEventsByDateRange(
         targetDateStr,
         todayStr
@@ -1456,7 +1557,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Final allDays array:', allDays.map(d => ({ date: d.date, events: d.events.length })));
 
-      setDays(allDays);
+      // Load in batches to prevent UI freezing for large ranges
+      const totalDays = allDays.length;
+      const batchSize = 5; // Process 5 days at a time
+
+      const processBatch = async (batchStartIndex: number): Promise<void> => {
+        const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
+        const batch = allDays.slice(batchStartIndex, batchEndIndex);
+
+        // Add this batch to state
+        setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
+
+        // If we have more batches to process, continue after yielding control
+        if (batchEndIndex < totalDays) {
+          // Use setTimeout to yield control back to the UI thread
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve(processBatch(batchEndIndex));
+            }, 0);
+          });
+        }
+      };
+
+      // Start processing the first batch
+      await processBatch(0);
 
       // Wait a moment for DOM to update, then scroll to the selected date
       setTimeout(() => {
