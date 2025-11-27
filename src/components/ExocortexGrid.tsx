@@ -1627,7 +1627,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     );
   };
 
-  // Skip to date functionality
+  // Skip to date functionality - use same loading pattern as infinite scroll
   const handleSkipToDate = async () => {
     if (!db || !selectedSkipDate || isJumpingToDate) {
       return;
@@ -1647,73 +1647,18 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
       const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
 
-      // Generate all days from target to today
-      const allDays: DayEvents[] = [];
-      for (let i = 0; i < totalDays; i++) {
-        const currentDate = new Date(today);
-        currentDate.setDate(currentDate.getDate() - i);
-        const dateStr = currentDate.toISOString().split('T')[0];
-        allDays.push({ date: dateStr, events: [] }); // Start with empty days
-      }
+      // Use the same loadDays function as infinite scroll
+      await loadDays(db, today, totalDays, 5);
 
-      // Try to get days with events
-      const eventsByDate = await db.getEventsByDateRangeOnly(
-        targetDateStr,
-        todayStr
-      );
-
-      console.log('Found events for', eventsByDate.length, 'dates');
-
-      // Merge events with our generated days
-      eventsByDate.forEach(dayWithEvents => {
-        const dayIndex = allDays.findIndex(day => day.date === dayWithEvents.date);
-        if (dayIndex !== -1) {
-          allDays[dayIndex] = dayWithEvents; // Replace empty day with day that has events
+      // Now scroll to the target date
+      setTimeout(() => {
+        const targetDay = days.find(day => day.date === targetDateStr);
+        if (targetDay && gridRef.current) {
+          const targetDayIndex = days.findIndex(day => day.date === targetDateStr);
+          const scrollTarget = targetDayIndex * ROW_HEIGHT;
+          gridRef.current.scrollTop = scrollTarget;
         }
-      });
-
-      // Sort by date (newest first for display)
-      allDays.sort((a, b) => {
-        const aDate = new Date(a.date);
-        const bDate = new Date(b.date);
-        return bDate.getTime() - aDate.getTime(); // Newest first
-      });
-
-      // Find the target date index in the sorted array
-      const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
-
-      // Create a spacer element to ensure the target position is reachable
-      const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
-
-      console.log('Target date index:', targetDayIndex, 'Spacer height:', spacerHeight);
-      console.log('Total days loaded:', allDays.length);
-
-      // Load all days immediately
-      setDays(allDays);
-
-      // Scroll to the target position
-      if (gridRef.current) {
-        // Create a temporary div to extend scrollable area if needed
-        if (spacerHeight > 0) {
-          const tempSpacer = document.createElement('div');
-          tempSpacer.style.height = `${spacerHeight}px`;
-          tempSpacer.className = 'temp-jump-spacer';
-          gridRef.current.appendChild(tempSpacer);
-        }
-
-        // Scroll to the target position
-        const scrollTarget = gridRef.current.scrollHeight - spacerHeight + ROW_HEIGHT / 2;
-        console.log('Scrolling to position:', scrollTarget);
-        gridRef.current.scrollTop = scrollTarget;
-
-        // Remove spacer after scroll animation
-        setTimeout(() => {
-          const spacer = gridRef.current?.querySelector('.temp-jump-spacer');
-          if (spacer && spacer.parentNode) {
-            spacer.parentNode.removeChild(spacer);
-          }
-        }, 100);
-      }
+      }, 100);
 
       setError(`Jumped to ${targetDate.toLocaleDateString()}`);
       setTimeout(() => setError(null), 3000);
