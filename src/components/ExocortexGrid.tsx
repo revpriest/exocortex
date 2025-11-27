@@ -193,9 +193,31 @@ useEffect(() => {
       // Store database instance in state so other functions can use it
       setDb(database);
 
-      // Load initial data for display (today + past 5 days)
-      // This gives users immediate content to see
-      await loadDays(database, new Date(), 5, 2); // Small batches for initial load
+      // Load initial data - try to get recent days with events
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - 7); // Look back 7 days
+
+      const recentDays = await database.getEventsByDateRangeOnly(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+      );
+
+      // Always include today even if empty
+      const todayStr = today.toISOString().split('T')[0];
+      const hasToday = recentDays.some(day => day.date === todayStr);
+      if (!hasToday) {
+        recentDays.unshift({ date: todayStr, events: [] });
+      }
+
+      // Sort by date (newest first)
+      recentDays.sort((a, b) => {
+        const aDate = new Date(a.date);
+        const bDate = new Date(b.date);
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      setDays(recentDays);
 
       // Hide loading indicator once data is loaded
       setLoading(false);
@@ -328,21 +350,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                   setHasReachedHistoricalLimit(true);
                 }
               }
-
-              if (!success) {
-                // No more data available, we can stop observing or show a message
-                setHasReachedHistoricalLimit(true);
-                console.log('No more historical data available');
-              }
-
-              setLoading(false);
-            };
-
-            loadMoreDays().catch((error) => {
-              console.error('Error in loadMoreDays:', error);
-              setLoading(false);
+            } catch (error) {
+              console.error('Error loading more days:', error);
               setError('Failed to load more days. Please try again.');
-            });
+            } finally {
+              setLoading(false);
+            }
           }
         }
       },
