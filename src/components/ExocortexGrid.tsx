@@ -328,29 +328,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               const fromDate = new Date(oldestDay.date);
               fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
 
-              // Use optimized query that only returns days with events
-              const moreDays = await db.getEventsByDateRangeOnly(
-                fromDate.toISOString().split('T')[0],
-                oldestDay.date
-              );
+              try {
+                // Use optimized query that only returns days with events
+                const moreDays = await db.getEventsByDateRangeOnly(
+                  fromDate.toISOString().split('T')[0],
+                  oldestDay.date
+                );
 
-              if (moreDays.length === 0) {
-                // No more data available
-                setHasReachedHistoricalLimit(true);
-                console.log('No more historical data available');
-              } else {
-                // Filter out any days that are already in our state
-                const existingDates = new Set(days.map(d => d.date));
-                const newDays = moreDays.filter(day => !existingDates.has(day.date));
-
-                if (newDays.length > 0) {
-                  setDays(prev => [...prev, ...newDays]);
-                } else {
-                  // No new unique days found
+                if (moreDays.length === 0) {
+                  // No more data available
                   setHasReachedHistoricalLimit(true);
+                  console.log('No more historical data available');
+                } else {
+                  // Filter out any days that are already in our state
+                  const existingDates = new Set(days.map(d => d.date));
+                  const newDays = moreDays.filter(day => !existingDates.has(day.date));
+
+                  if (newDays.length > 0) {
+                    setDays(prev => [...prev, ...newDays]);
+                  } else {
+                    // No new unique days found
+                    setHasReachedHistoricalLimit(true);
+                  }
                 }
-              }
-            } catch (error) {
+              } catch (error) {
               console.error('Error loading more days:', error);
               setError('Failed to load more days. Please try again.');
             } finally {
