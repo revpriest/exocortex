@@ -1727,7 +1727,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           {/* Only render visible rows */}
           {days.slice(visibleRows.startIndex, visibleRows.endIndex).map((day, visibleIndex) => {
             const actualDayIndex = visibleRows.startIndex + visibleIndex;
-            <div
+            return (
+              <div
               key={day.date}
               data-day={day.date}
               className="relative border-b border-border"
@@ -1850,6 +1851,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                 })}
               </div>
             </div>
+            );
           })}
 
           {/* Loading trigger for infinite scroll - positioned at the end */}
@@ -1880,6 +1882,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             </div>
           )}
         </div>
+            );
+          })}
         </div>
       </div>
 
