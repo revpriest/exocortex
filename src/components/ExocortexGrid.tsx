@@ -142,6 +142,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [showTestConfirm, setShowTestConfirm] = useState(false);
   const [showDateSkipDialog, setShowDateSkipDialog] = useState(false);
   const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
+  const [isJumpingToDate, setIsJumpingToDate] = useState(false);
 
   /**
    * Drag-to-Scroll State
@@ -1501,7 +1502,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
   // Skip to date functionality
   const handleSkipToDate = async () => {
-    if (!db || !selectedSkipDate) return;
+    if (!db || !selectedSkipDate || isJumpingToDate) {
+      console.log('handleSkipToDate early return:', { db: !!db, selectedSkipDate: !!selectedSkipDate, isJumpingToDate });
+      return;
+    }
+
+    setIsJumpingToDate(true);
 
     try {
       const targetDate = selectedSkipDate;
@@ -1617,7 +1623,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         }
       }, 100); // Reduced timeout since we now wait for all batches
 
-      setShowDateSkipDialog(false);
       setError(`Jumping to ${targetDate.toLocaleDateString()}...`);
       setTimeout(() => setError(null), 3000);
     } catch (error) {
@@ -1625,6 +1630,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       setError('Failed to jump to selected date. Please try again.');
     } finally {
       setLoading(false);
+      setIsJumpingToDate(false);
     }
   };
 
@@ -1990,7 +1996,11 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       </Dialog>
 
       {/* Skip to Date Dialog */}
-      <Dialog open={showDateSkipDialog} onOpenChange={setShowDateSkipDialog}>
+      <Dialog open={showDateSkipDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowDateSkipDialog(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Jump to Date</DialogTitle>
@@ -1999,9 +2009,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Select a date to jump to in your time tracking data. Use the year buttons for faster navigation.
-            </p>
             <div className="flex justify-center">
               <CalendarWithYearNav />
             </div>
@@ -2009,14 +2016,25 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           <div className="flex justify-end space-x-2">
             <Button
               variant="outline"
-              onClick={() => setShowDateSkipDialog(false)}
+              onClick={() => {
+                setShowDateSkipDialog(false);
+                setSelectedSkipDate(undefined);
+              }}
               className="bg-secondary border-border"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSkipToDate}
-              disabled={!selectedSkipDate || loading}
+              onClick={async () => {
+                if (!selectedSkipDate || loading || isJumpingToDate) return;
+
+                // Close dialog immediately
+                setShowDateSkipDialog(false);
+
+                // Then handle the date jump
+                await handleSkipToDate();
+              }}
+              disabled={!selectedSkipDate || loading || isJumpingToDate}
               className="bg-primary hover:bg-primary/90"
             >
               Jump to Date
