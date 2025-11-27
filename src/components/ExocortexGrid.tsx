@@ -132,6 +132,7 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   // Current date reference for various calculations
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
   // Controls visibility of the "clear all data" confirmation dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -1508,6 +1509,62 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     setShowClearConfirm(false);
   };
 
+  // Scroll to today functionality
+  const handleScrollToToday = useCallback(() => {
+    if (gridRef.current) {
+      // Scroll to the very top (today is at the top)
+      gridRef.current.scrollTop = 0;
+
+      // Update the current date reference
+      setCurrentDate(new Date());
+
+      // Show feedback message
+      setError('Scrolled to today');
+      setTimeout(() => setError(null), 2000);
+    }
+  }, []);
+
+  // Check for day changes and update grid accordingly
+  useEffect(() => {
+    const checkDayChange = () => {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+
+      // Check if day has changed since last check
+      if (now.getDate() !== lastDayCheck.getDate() || now.getMonth() !== lastDayCheck.getMonth() || now.getFullYear() !== lastDayCheck.getFullYear()) {
+
+        // Check if today's date is already in our days array
+        const hasToday = days.some(day => day.date === today);
+
+        if (!hasToday && db) {
+          // Add today's date to the top of the array
+          setDays(prev => {
+            const newDays = [{ date: today, events: [] }, ...prev];
+            // Update the current date reference
+            setCurrentDate(now);
+            setLastDayCheck(now);
+            return newDays;
+          });
+
+          setError('New day detected - added to top of grid');
+          setTimeout(() => setError(null), 3000);
+        } else {
+          // Just update the date references
+          setCurrentDate(now);
+          setLastDayCheck(now);
+        }
+      }
+    };
+
+    // Check every minute for day changes
+    const interval = setInterval(checkDayChange, 60000); // Check every minute
+
+    // Also check immediately on mount
+    checkDayChange();
+
+    return () => clearInterval(interval);
+  }, [days, db, lastDayCheck]);
+
   // Custom calendar component with year navigation
   const CalendarWithYearNav = () => {
     const [currentMonth, setCurrentMonth] = useState(selectedSkipDate || new Date());
@@ -1681,7 +1738,11 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       {/* Header with import/export - mobile optimized */}
       <div className="mb-4">
         <div className="flex justify-between items-center gap-4">
-          <h2 className="text-lg font-semibold text-white">
+          <h2
+            className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors"
+            onClick={handleScrollToToday}
+            title="Scroll to today"
+          >
             Time Grid
           </h2>
 
