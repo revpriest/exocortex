@@ -199,13 +199,12 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     }
 
     // Calculate the range of rows that should be visible
-    // Reduce buffer to make virtualization more visible
     const visibleRowCount = Math.ceil(containerHeight / ROW_HEIGHT);
-    const bufferSize = Math.max(2, visibleRowCount + 1); // Only 1 extra row buffer above and below
-    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT)); // Start from first visible row
+    const bufferRows = Math.max(1, Math.floor(ROW_HEIGHT * 2 / ROW_HEIGHT)); // Show rows that are ~80px from edge
+    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - bufferRows);
     const endIndex = Math.min(
       days.length,
-      startIndex + bufferSize // Only show exactly what's visible + small buffer
+      Math.ceil(scrollTop / ROW_HEIGHT) + visibleRowCount + bufferRows
     );
 
     return {
@@ -1534,6 +1533,11 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       setDays(allDays);
 
+      setShowDateSkipDialog(false);
+
+      // Set initial message
+      setError(`Skipping to ${targetDate.toLocaleDateString()}`);
+
       // Wait a moment for DOM to update, then scroll to the selected date
       setTimeout(() => {
         if (gridRef.current) {
@@ -1552,15 +1556,17 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
             // Update scrollTop state to match the new scroll position
             setScrollTop(estimatedPosition);
+
+            // Update message to show completion
+            setError(`Jumped to ${targetDate.toLocaleDateString()}`);
+            setTimeout(() => setError(null), 2000);
           } else {
             console.error('Target date not found in allDays array:', targetDateStr);
+            setError('Target date not found');
+            setTimeout(() => setError(null), 2000);
           }
         }
       }, 500); // Increased timeout to ensure DOM is ready
-
-      setShowDateSkipDialog(false);
-      setError(`Jumped to ${targetDate.toLocaleDateString()}`);
-      setTimeout(() => setError(null), 3000);
     } catch (error) {
       console.error('Failed to skip to date:', error);
       setError('Failed to jump to selected date. Please try again.');
