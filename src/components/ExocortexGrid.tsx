@@ -18,7 +18,7 @@
  */
 
 // React hooks for managing state and lifecycle
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // Import our data types and utilities
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
@@ -30,183 +30,6 @@ import { useAppContext } from '@/hooks/useAppContext';
 // Import UI components
 import { Button } from '@/components/ui/button';
 import { Plus, Download, Upload, Database, Trash2, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
-
-// Memoized DayRow component for performance
-const DayRow = memo<{
-  day: DayEvents;
-  allDays: DayEvents[];
-  dayIndex: number;
-  ROW_HEIGHT: number;
-  HOURS_IN_DAY: number;
-  HOUR_WIDTH: number;
-  getEventsForDay: (targetDay: DayEvents, allDays: DayEvents[]) => ExocortexEvent[];
-  getEventStartTime: (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number) => number;
-  getEventPortionType: (event: ExocortexEvent, dayDate: string, dayEvents: ExocortexEvent[], index: number) => 'start' | 'middle' | 'end' | 'full';
-  calculateEventPortionWithStartTime: (event: ExocortexEvent, dayDate: string, startTime: number, endTime: number, portion: 'start' | 'middle' | 'end' | 'full') => any;
-  getTextColor: (event: ExocortexEvent) => string;
-  handleEventClickWithDragCheck: (event: ExocortexEvent) => void;
-}>(({
-  day,
-  allDays,
-  dayIndex,
-  ROW_HEIGHT,
-  HOURS_IN_DAY,
-  HOUR_WIDTH,
-  getEventsForDay,
-  getEventStartTime,
-  getEventPortionType,
-  calculateEventPortionWithStartTime,
-  getTextColor,
-  handleEventClickWithDragCheck
-}) => {
-  const eventsForDay = getEventsForDay(day, allDays);
-
-  return (
-    <div
-      key={day.date}
-      data-day={day.date}
-      className="relative border-b border-border"
-      style={{
-        height: `${ROW_HEIGHT}px`,
-      }}
-    >
-      {/* Date label - mobile optimized */}
-      <div className="absolute left-2 -top-1 text-xs md:text-sm text-muted-foreground z-20 select-none">
-        {new Date(day.date).toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        })}
-      </div>
-
-      {/* Grid lines */}
-      <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-        {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
-          <div
-            key={hourIndex}
-            className="border-r border-border flex-shrink-0"
-            style={{
-              width: 'var(--hour-width)',
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Events - mobile optimized */}
-      <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-        {eventsForDay.map((event, eventIndex) => {
-          // For span events, we need to find the original event in its day's events array
-          const originalEventId = event.id.replace(/-span-.*$/, '');
-          const originalDay = allDays.find(d => d.events.some(e => e.id === originalEventId));
-          const originalEvents = originalDay?.events || [];
-          const originalEventIndex = originalEvents.findIndex(e => e.id === originalEventId);
-
-          // Calculate the actual start time for this event
-          let eventStartTime: number;
-          if (eventIndex === 0) {
-            eventStartTime = getEventStartTime(
-              { ...event, id: originalEventId },
-              originalEvents,
-              originalEventIndex
-            );
-          } else {
-            eventStartTime = eventsForDay[eventIndex - 1].endTime;
-          }
-
-          const portionType = getEventPortionType(
-            { ...event, id: originalEventId },
-            day.date,
-            originalEvents,
-            originalEventIndex
-          );
-
-          // Only render the event portion if it's relevant for this day
-          if (portionType === 'middle') {
-            return null;
-          }
-
-          const eventStyle = calculateEventPortionWithStartTime(
-            { ...event, id: originalEventId },
-            day.date,
-            eventStartTime,
-            event.endTime,
-            portionType
-          );
-
-          return (
-            <div
-              key={`${event.id}-${day.date}`}
-              className="absolute top-2 h-16 rounded-md border border-border shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
-              style={eventStyle}
-              onClick={() => handleEventClickWithDragCheck({ ...event, id: originalEventId })}
-            >
-              <div className="p-0 h-full flex flex-col items-center justify-center text-center">
-                <div className="text-xs font-medium truncate w-full mb-0.5" style={{ color: getTextColor(event) }}>
-                  {event.category}
-                  {portionType !== 'full' && (
-                    <span className="ml-1 opacity-70">
-                      ({portionType === 'start' ? '→' : portionType === 'end' ? '←' : '↔'})
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <SmileyFace
-                    health={event.health}
-                    wakefulness={event.wakefulness}
-                    happiness={event.happiness}
-                    size={27}
-                  />
-                </div>
-                {event.notes ? (
-                  <div
-                    className="text-xs truncate w-full mt-0.5 leading-tight"
-                    style={{ color: getTextColor(event), opacity: 0.9 }}
-                    title={event.notes}
-                  >
-                    {event.notes.length > 20 ? `${event.notes.slice(0, 20)}…` : event.notes}
-                  </div>
-                ) : (
-                  <div className="text-xs truncate w-full mt-0.5 leading-tight">
-                    &nbsp;
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-});
-
-DayRow.displayName = 'DayRow';
-
-// Memoized HourHeaders component for performance
-const HourHeaders = memo<{ HOURS_IN_DAY: number; HOUR_WIDTH: number }>(({ HOURS_IN_DAY, HOUR_WIDTH }) => {
-
-  // Generate hour slots locally to avoid dependency issues
-  const hourSlots = Array.from({ length: HOURS_IN_DAY }, (_, i) =>
-    `${i.toString().padStart(2, '0')}:00`
-  );
-  return (
-    <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-      {hourSlots.map((hour) => (
-        <div
-          key={hour}
-          className="text-xs md:text-sm text-muted-foreground border-r border-border px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
-          style={{
-            width: 'var(--hour-width)',
-          }}
-        >
-          {hour}
-        </div>
-      ))}
-    </div>
-  );
-});
-
-HourHeaders.displayName = 'HourHeaders';
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
@@ -317,10 +140,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [showDateSkipDialog, setShowDateSkipDialog] = useState(false);
   const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
   const [isJumpingToDate, setIsJumpingToDate] = useState(false);
-
-  // Performance optimization: Cache expensive calculations
-  const eventStyleCache = useRef(new Map<string, any>());
-  const eventStartTimeCache = useRef(new Map<string, number>());
 
   /**
    * Drag-to-Scroll State
@@ -435,7 +254,7 @@ useEffect(() => {
  * @param count - Number of days to load before fromDate
  * @param batchSize - Number of days to process in each batch (default: 3)
  */
-const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 5) => {
+const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 3) => {
     /**
      * Date Range Calculation
      *
@@ -466,41 +285,24 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     let processedCount = 0;
     const totalDays = reversedDays.length;
 
-    const processBatch = (batchStartIndex: number): Promise<void> => {
-      return new Promise((resolve) => {
-        const processStep = (deadline?: IdleDeadline) => {
-          const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
-          const batch = reversedDays.slice(batchStartIndex, batchEndIndex);
+    const processBatch = async (batchStartIndex: number): Promise<void> => {
+      const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
+      const batch = reversedDays.slice(batchStartIndex, batchEndIndex);
 
-          // Add this batch to the state
-          setDays(prev => [...prev, ...batch]);
+      // Add this batch to the state
+      setDays(prev => [...prev, ...batch]);
 
-          processedCount = batchEndIndex;
+      processedCount = batchEndIndex;
 
-          // If we have more batches to process, continue after yielding control
-          if (processedCount < totalDays) {
-            // Use requestIdleCallback to process during browser idle time
-            const nextStep = () => {
-              if ('requestIdleCallback' in window) {
-                requestIdleCallback(processStep, { timeout: 100 });
-              } else {
-                setTimeout(() => processStep(), 0);
-              }
-            };
-
-            // Small delay to ensure UI remains responsive
-            setTimeout(nextStep, 1);
-          } else {
-            resolve();
-          }
-        };
-
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(processStep, { timeout: 100 });
-        } else {
-          setTimeout(processStep, 0);
-        }
-      });
+      // If we have more batches to process, continue after yielding control
+      if (processedCount < totalDays) {
+        // Use setTimeout to yield control back to the UI thread
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve(processBatch(processedCount));
+          }, 0);
+        });
+      }
     };
 
     // Start processing the first batch
@@ -523,7 +325,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return emptyDays;
   }, []);
 
-  // Setup infinite scroll with optimized single query loading
+  // Setup infinite scroll
   useEffect(() => {
     if (!loadingRef.current || !db) return;
 
@@ -544,12 +346,46 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               return;
             }
 
-            // Load 10 days at once with single query
+            // Always generate empty days first to ensure scrolling works
             const fromDate = new Date(oldestDate);
-            fromDate.setDate(fromDate.getDate() - 10); // Load 10 days before oldest
+            fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
 
-            // Use optimized loadDays function (already efficient)
-            await loadDays(db, oldestDate, 10, 5);
+            // Try to load days with events
+            const daysWithEvents = await db.getEventsByDateRangeOnly(
+              fromDate.toISOString().split('T')[0],
+              oldestDate.toISOString().split('T')[0]
+            );
+
+            // Generate empty days for the range
+            const emptyDays = generateEmptyDays(fromDate, oldestDate, 5);
+
+            // Merge empty days with days that have events
+            const existingDates = new Set(days.map(d => d.date));
+            const allNewDays = [...emptyDays];
+
+            // Add any days with events that we found
+            daysWithEvents.forEach(dayWithEvents => {
+              if (!existingDates.has(dayWithEvents.date)) {
+                // Find the corresponding empty day and replace it
+                const emptyDayIndex = allNewDays.findIndex(d => d.date === dayWithEvents.date);
+                if (emptyDayIndex !== -1) {
+                  allNewDays[emptyDayIndex] = dayWithEvents;
+                } else {
+                  allNewDays.push(dayWithEvents);
+                }
+              }
+            });
+
+            // Sort by date (newest first)
+            allNewDays.sort((a, b) => {
+              const aDate = new Date(a.date);
+              const bDate = new Date(b.date);
+              return bDate.getTime() - aDate.getTime();
+            });
+
+            if (allNewDays.length > 0) {
+              setDays(prev => [...prev, ...allNewDays]);
+            }
 
             setLoading(false);
           };
@@ -571,7 +407,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         observerRef.current.disconnect();
       }
     };
-  }, [loading, days, db, loadDays]);
+  }, [loading, days, db, generateEmptyDays]);
 
   /**
    * Drag-to-Scroll Event Handlers
@@ -717,15 +553,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     };
   }, [isDragging, handleMouseUp]);
 
-  // Helper function to calculate the actual start time of an event (with caching)
-  const getEventStartTime = useCallback((event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): number => {
-    const cacheKey = `${event.id}-${index}`;
-    if (eventStartTimeCache.current.has(cacheKey)) {
-      return eventStartTimeCache.current.get(cacheKey)!;
-    }
-
-    let startTime: number;
-
+  // Helper function to calculate the actual start time of an event
+  const getEventStartTime = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): number => {
     if (index === 0) {
       // For the first event of the day, we need to handle special cases
 
@@ -739,72 +568,64 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
         // Calculate exact start time: 7-8 hours before end time
         const sleepDuration = 7.5 * 60 * 60 * 1000; // 7.5 hours average
-        startTime = sleepEndTime.getTime() - sleepDuration;
+        return sleepEndTime.getTime() - sleepDuration;
       }
+
       // For other events in early morning, they might be continuations from previous day
-      else if (new Date(event.endTime).getHours() < 7 && event.category !== 'Sleep') {
+      if (new Date(event.endTime).getHours() < 7 && event.category !== 'Sleep') {
         // Estimate they started in the evening of previous day
         const estimatedStartTime = new Date(event.endTime);
         estimatedStartTime.setDate(estimatedStartTime.getDate() - 1);
         estimatedStartTime.setHours(21, 0, 0, 0); // 9:00 PM previous day
-        startTime = estimatedStartTime.getTime();
+        return estimatedStartTime.getTime();
       }
-      else {
-        // EDGE CASE FIX: Check if there's a previous day with events that this should connect to
-        const currentDayDate = new Date(event.endTime).toISOString().split('T')[0];
-        const previousDay = new Date(currentDayDate);
-        previousDay.setDate(previousDay.getDate() - 1);
-        const previousDayDate = previousDay.toISOString().split('T')[0];
 
-        // Find the previous day in our days array
-        const previousDayData = days.find(day => day.date === previousDayDate);
+      // EDGE CASE FIX: Check if there's a previous day with events that this should connect to
+      const currentDayDate = new Date(event.endTime).toISOString().split('T')[0];
+      const previousDay = new Date(currentDayDate);
+      previousDay.setDate(previousDay.getDate() - 1);
+      const previousDayDate = previousDay.toISOString().split('T')[0];
 
-        if (previousDayData && previousDayData.events.length > 0) {
-          // Get the last event from the previous day
-          const lastEventOfPreviousDay = previousDayData.events[previousDayData.events.length - 1];
-          const lastEventEndTime = lastEventOfPreviousDay.endTime;
+      // Find the previous day in our days array
+      const previousDayData = days.find(day => day.date === previousDayDate);
 
-          // If the last event of previous day ended before midnight, start this event right after it
-          const midnightOfCurrentDay = new Date(currentDayDate);
-          midnightOfCurrentDay.setHours(0, 0, 0, 0);
+      if (previousDayData && previousDayData.events.length > 0) {
+        // Get the last event from the previous day
+        const lastEventOfPreviousDay = previousDayData.events[previousDayData.events.length - 1];
+        const lastEventEndTime = lastEventOfPreviousDay.endTime;
 
-          if (lastEventEndTime < midnightOfCurrentDay.getTime()) {
-            // Start right after the previous day's last event ended
-            startTime = lastEventEndTime;
-          } else {
-            startTime = midnightOfCurrentDay.getTime();
-          }
-        } else {
-          // Default: For regular events, assume they start at midnight (00:00) if they're the first event
-          const eventEndTime = new Date(event.endTime);
-          const eventDate = new Date(eventEndTime);
-          eventDate.setHours(0, 0, 0, 0); // 00:00 (midnight) start of day
-          startTime = eventDate.getTime();
+        // If the last event of previous day ended before midnight, start this event right after it
+        const midnightOfCurrentDay = new Date(currentDayDate);
+        midnightOfCurrentDay.setHours(0, 0, 0, 0);
+
+        if (lastEventEndTime < midnightOfCurrentDay.getTime()) {
+          // Start right after the previous day's last event ended
+          return lastEventEndTime;
         }
       }
+
+      // Default: For regular events, assume they start at midnight (00:00) if they're the first event
+      // This makes more sense since the day starts at midnight, not 7:00 AM
+      const eventEndTime = new Date(event.endTime);
+      const eventDate = new Date(eventEndTime);
+      eventDate.setHours(0, 0, 0, 0); // 00:00 (midnight) start of day
+
+      return eventDate.getTime();
     } else {
       // For all other events, start immediately after the previous event ends
       // This ensures no gaps between events
-      startTime = dayEvents[index - 1].endTime;
+      return dayEvents[index - 1].endTime;
     }
+  };
 
-    eventStartTimeCache.current.set(cacheKey, startTime);
-    return startTime;
-  }, [days]);
-
-  // Calculate event position and width for a specific day portion with explicit start time (with caching)
-  const calculateEventPortionWithStartTime = useCallback((
+  // Calculate event position and width for a specific day portion with explicit start time
+  const calculateEventPortionWithStartTime = (
     event: ExocortexEvent,
     dayDate: string,
     startTime: number,
     endTime: number,
     portion: 'start' | 'middle' | 'end' | 'full'
   ) => {
-    const cacheKey = `${event.id}-${dayDate}-${startTime}-${endTime}-${portion}`;
-    if (eventStyleCache.current.has(cacheKey)) {
-      return eventStyleCache.current.get(cacheKey);
-    }
-
     const eventEndTime = new Date(endTime);
     const eventStartTime = new Date(startTime);
     const dayStart = new Date(dayDate);
@@ -848,15 +669,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     const startHour = (portionStartTime.getTime() - dayStart.getTime()) / (1000 * 60 * 60);
     const durationHours = (portionEndTime.getTime() - portionStartTime.getTime()) / (1000 * 60 * 60);
 
-    const result = {
+    return {
       left: `calc(${startHour} * var(--hour-width))`,
       width: `calc(${durationHours} * var(--hour-width))`,
       backgroundColor: getEventColor(event, config.colorOverrides),
     };
-
-    eventStyleCache.current.set(cacheKey, result);
-    return result;
-  }, [config.colorOverrides]);
+  };
 
   // Calculate event position and width for a specific day portion
   const calculateEventPortionStyle = (
@@ -1011,6 +829,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return lightness > 50 ? '#000000' : '#ffffff';
   };
 
+  const hourSlots = getHourSlots();
 
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
@@ -1746,17 +1565,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return () => clearInterval(interval);
   }, [days, db, lastDayCheck]);
 
-  // Clear caches when days array changes significantly
-  useEffect(() => {
-    // Only clear cache if we have more than 50 cached items (prevent memory leaks)
-    if (eventStyleCache.current.size > 50 || eventStartTimeCache.current.size > 50) {
-      eventStyleCache.current.clear();
-      eventStartTimeCache.current.clear();
-    }
-  }, [days]);
-
-  // Memoized calendar component with year navigation
-  const CalendarWithYearNav = memo(() => {
+  // Custom calendar component with year navigation
+  const CalendarWithYearNav = () => {
     const [currentMonth, setCurrentMonth] = useState(selectedSkipDate || new Date());
 
     const handleYearUp = () => {
@@ -1815,11 +1625,9 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         />
       </div>
     );
-  });
+  };
 
-  CalendarWithYearNav.displayName = 'CalendarWithYearNav';
-
-  // Skip to date functionality - optimized incremental loading
+  // Skip to date functionality
   const handleSkipToDate = async () => {
     if (!db || !selectedSkipDate || isJumpingToDate) {
       return;
@@ -1835,70 +1643,77 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Jumping to date:', targetDateStr);
 
-      // Check if target date is already loaded
-      const isTargetLoaded = days.some(day => day.date === targetDateStr);
+      // Calculate how many days between target and today
+      const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+      const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
 
-      if (isTargetLoaded) {
-        // Already loaded - just scroll to it
-        const targetDayIndex = days.findIndex(day => day.date === targetDateStr);
-        if (targetDayIndex !== -1 && gridRef.current) {
-          const scrollTarget = targetDayIndex * ROW_HEIGHT;
-          console.log('Scrolling to existing target:', scrollTarget);
-          gridRef.current.scrollTop = scrollTarget;
-        }
-      } else {
-        // Not loaded - load incrementally from current oldest to target
-        const currentOldestDay = days[days.length - 1];
-        const currentOldestDate = currentOldestDay ? new Date(currentOldestDay.date) : new Date();
-
-        // If target is older than current oldest, load in batches
-        if (targetDate < currentOldestDate) {
-          const daysToLoad = Math.ceil((currentOldestDate.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
-          const batchesToLoad = Math.ceil(daysToLoad / 10); // 10 days per batch
-
-          // Load batches incrementally to avoid blocking
-          for (let i = 0; i < batchesToLoad; i++) {
-            const batchStartDate = new Date(targetDate);
-            batchStartDate.setDate(batchStartDate.getDate() + (i * 10));
-
-            const batchEndDate = new Date(batchStartDate);
-            batchEndDate.setDate(batchEndDate.getDate() + 9);
-
-            // Don't go past current oldest date
-            const actualBatchEnd = batchEndDate > currentOldestDate ? currentOldestDate : batchEndDate;
-
-            const batchDays = await db.getEventsByDateRange(
-              batchStartDate.toISOString().split('T')[0],
-              actualBatchEnd.toISOString().split('T')[0]
-            );
-
-            // Sort and append to existing days
-            batchDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            setDays(prev => {
-              const allDays = [...prev, ...batchDays];
-              // Remove duplicates and sort
-              const uniqueDays = Array.from(new Map(allDays.map(d => [d.date, d])).values());
-              return uniqueDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            });
-
-            // Small delay between batches to keep UI responsive
-            if (i < batchesToLoad - 1) {
-              await new Promise(resolve => setTimeout(resolve, 10));
-            }
-          }
-        }
+      // Generate all days from target to today
+      const allDays: DayEvents[] = [];
+      for (let i = 0; i < totalDays; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(currentDate.getDate() - i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        allDays.push({ date: dateStr, events: [] }); // Start with empty days
       }
 
-      // Final scroll to target after all loading is done
-      setTimeout(() => {
-        const finalTargetIndex = days.findIndex(day => day.date === targetDateStr);
-        if (finalTargetIndex !== -1 && gridRef.current) {
-          const scrollTarget = finalTargetIndex * ROW_HEIGHT;
-          console.log('Final scroll to target:', scrollTarget);
-          gridRef.current.scrollTop = scrollTarget;
+      // Try to get days with events
+      const eventsByDate = await db.getEventsByDateRangeOnly(
+        targetDateStr,
+        todayStr
+      );
+
+      console.log('Found events for', eventsByDate.length, 'dates');
+
+      // Merge events with our generated days
+      eventsByDate.forEach(dayWithEvents => {
+        const dayIndex = allDays.findIndex(day => day.date === dayWithEvents.date);
+        if (dayIndex !== -1) {
+          allDays[dayIndex] = dayWithEvents; // Replace empty day with day that has events
         }
-      }, 100);
+      });
+
+      // Sort by date (newest first for display)
+      allDays.sort((a, b) => {
+        const aDate = new Date(a.date);
+        const bDate = new Date(b.date);
+        return bDate.getTime() - aDate.getTime(); // Newest first
+      });
+
+      // Find the target date index in the sorted array
+      const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+
+      // Create a spacer element to ensure the target position is reachable
+      const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
+
+      console.log('Target date index:', targetDayIndex, 'Spacer height:', spacerHeight);
+      console.log('Total days loaded:', allDays.length);
+
+      // Load all days immediately
+      setDays(allDays);
+
+      // Scroll to the target position
+      if (gridRef.current) {
+        // Create a temporary div to extend scrollable area if needed
+        if (spacerHeight > 0) {
+          const tempSpacer = document.createElement('div');
+          tempSpacer.style.height = `${spacerHeight}px`;
+          tempSpacer.className = 'temp-jump-spacer';
+          gridRef.current.appendChild(tempSpacer);
+        }
+
+        // Scroll to the target position
+        const scrollTarget = gridRef.current.scrollHeight - spacerHeight + ROW_HEIGHT / 2;
+        console.log('Scrolling to position:', scrollTarget);
+        gridRef.current.scrollTop = scrollTarget;
+
+        // Remove spacer after scroll animation
+        setTimeout(() => {
+          const spacer = gridRef.current?.querySelector('.temp-jump-spacer');
+          if (spacer && spacer.parentNode) {
+            spacer.parentNode.removeChild(spacer);
+          }
+        }, 100);
+      }
 
       setError(`Jumped to ${targetDate.toLocaleDateString()}`);
       setTimeout(() => setError(null), 3000);
@@ -2032,27 +1847,147 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-card border-b border-border">
-          <HourHeaders HOURS_IN_DAY={HOURS_IN_DAY} HOUR_WIDTH={HOUR_WIDTH} />
+          <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+            {hourSlots.map((hour, index) => (
+              <div
+                key={hour}
+                className="text-xs md:text-sm text-muted-foreground border-r border-border px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
+                style={{
+                  width: `var(--hour-width)`,
+                }}
+              >
+                {hour}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Day rows */}
         <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
           {days.map((day, dayIndex) => (
-            <DayRow
+            <div
               key={day.date}
-              day={day}
-              allDays={days}
-              dayIndex={dayIndex}
-              ROW_HEIGHT={ROW_HEIGHT}
-              HOURS_IN_DAY={HOURS_IN_DAY}
-              HOUR_WIDTH={HOUR_WIDTH}
-              getEventsForDay={getEventsForDay}
-              getEventStartTime={getEventStartTime}
-              getEventPortionType={getEventPortionType}
-              calculateEventPortionWithStartTime={calculateEventPortionWithStartTime}
-              getTextColor={getTextColor}
-              handleEventClickWithDragCheck={handleEventClickWithDragCheck}
-            />
+              data-day={day.date}
+              className="relative border-b border-border"
+              style={{
+                height: `${ROW_HEIGHT}px`,
+              }}
+            >
+              {/* Date label - mobile optimized */}
+              <div className="absolute left-2 -top-1 text-xs md:text-sm text-muted-foreground z-20 select-none">
+                {new Date(day.date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </div>
+
+              {/* Grid lines */}
+              <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+                {Array.from({ length: HOURS_IN_DAY }).map((_, hourIndex) => (
+                  <div
+                    key={hourIndex}
+                    className="border-r border-border flex-shrink-0"
+                    style={{
+                      width: `var(--hour-width)`,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Events - mobile optimized */}
+              <div className="absolute inset-0" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+                {getEventsForDay(day, days).map((event, eventIndex) => {
+                  // For span events, we need to find the original event in its day's events array
+                  const originalEventId = event.id.replace(/-span-.*$/, '');
+                  const originalDay = days.find(d => d.events.some(e => e.id === originalEventId));
+                  const originalEvents = originalDay?.events || [];
+                  const originalEventIndex = originalEvents.findIndex(e => e.id === originalEventId);
+
+                  // Get all events for this day for proper timing calculation
+                  const dayEvents = getEventsForDay(day, days);
+
+                  // Calculate the actual start time for this event
+                  let eventStartTime: number;
+                  if (eventIndex === 0) {
+                    // First event of the day - use the calculated start time
+                    eventStartTime = getEventStartTime(
+                      { ...event, id: originalEventId },
+                      originalEvents,
+                      originalEventIndex
+                    );
+                  } else {
+                    // Subsequent events - start immediately after the previous event ends
+                    eventStartTime = dayEvents[eventIndex - 1].endTime;
+                  }
+
+                  const portionType = getEventPortionType(
+                    { ...event, id: originalEventId }, // Use original ID for portion calculation
+                    day.date,
+                    originalEvents,
+                    originalEventIndex
+                  );
+
+                  // Only render the event portion if it's relevant for this day
+                  if (portionType === 'middle') {
+                    // Skip middle portions for now to avoid visual clutter
+                    // We could show them with a different style if needed
+                    return null;
+                  }
+
+                  // Calculate the style with the proper start time
+                  const eventStyle = calculateEventPortionWithStartTime(
+                    { ...event, id: originalEventId },
+                    day.date,
+                    eventStartTime,
+                    event.endTime,
+                    portionType
+                  );
+
+                  return (
+                    <div
+                      key={`${event.id}-${day.date}`}
+                      className="absolute top-2 h-16 rounded-md border border-border shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow touch-manipulation"
+                      style={eventStyle}
+                      onClick={() => handleEventClickWithDragCheck({ ...event, id: originalEventId })} // Use drag-aware click handler
+                    >
+                      <div className="p-0 h-full flex flex-col items-center justify-center text-center">
+                        <div className="text-xs font-medium truncate w-full mb-0.5" style={{ color: getTextColor(event) }}>
+                          {event.category}
+                          {portionType !== 'full' && (
+                            <span className="ml-1 opacity-70">
+                              ({portionType === 'start' ? '→' : portionType === 'end' ? '←' : '↔'})
+                            </span>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <SmileyFace
+                            health={event.health}
+                            wakefulness={event.wakefulness}
+                            happiness={event.happiness}
+                            size={27}
+                          />
+                        </div>
+                        {event.notes ? (
+                          <div
+                            className="text-xs truncate w-full mt-0.5 leading-tight"
+                            style={{ color: getTextColor(event), opacity: 0.9 }}
+                            title={event.notes}
+                          >
+                            {event.notes.length > 20 ? `${event.notes.slice(0, 20)}…` : event.notes}
+                          </div>
+                        ) : (
+                          <div className="text-xs truncate w-full mt-0.5 leading-tight">
+                            &nbsp;
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ))}
 
           {/* Loading trigger for infinite scroll */}
