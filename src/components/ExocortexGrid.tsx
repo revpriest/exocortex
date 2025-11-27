@@ -325,7 +325,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return emptyDays;
   }, []);
 
-  // Setup infinite scroll
+  // Setup infinite scroll with optimized single query loading
   useEffect(() => {
     if (!loadingRef.current || !db) return;
 
@@ -346,46 +346,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
               return;
             }
 
-            // Always generate empty days first to ensure scrolling works
+            // Load 10 days at once with single query
             const fromDate = new Date(oldestDate);
-            fromDate.setDate(fromDate.getDate() - 5); // Load 5 days before the oldest day
+            fromDate.setDate(fromDate.getDate() - 10); // Load 10 days before oldest
 
-            // Try to load days with events
-            const daysWithEvents = await db.getEventsByDateRangeOnly(
-              fromDate.toISOString().split('T')[0],
-              oldestDate.toISOString().split('T')[0]
-            );
-
-            // Generate empty days for the range
-            const emptyDays = generateEmptyDays(fromDate, oldestDate, 5);
-
-            // Merge empty days with days that have events
-            const existingDates = new Set(days.map(d => d.date));
-            const allNewDays = [...emptyDays];
-
-            // Add any days with events that we found
-            daysWithEvents.forEach(dayWithEvents => {
-              if (!existingDates.has(dayWithEvents.date)) {
-                // Find the corresponding empty day and replace it
-                const emptyDayIndex = allNewDays.findIndex(d => d.date === dayWithEvents.date);
-                if (emptyDayIndex !== -1) {
-                  allNewDays[emptyDayIndex] = dayWithEvents;
-                } else {
-                  allNewDays.push(dayWithEvents);
-                }
-              }
-            });
-
-            // Sort by date (newest first)
-            allNewDays.sort((a, b) => {
-              const aDate = new Date(a.date);
-              const bDate = new Date(b.date);
-              return bDate.getTime() - aDate.getTime();
-            });
-
-            if (allNewDays.length > 0) {
-              setDays(prev => [...prev, ...allNewDays]);
-            }
+            // Use optimized loadDays function (already efficient)
+            await loadDays(db, oldestDate, 10, 5);
 
             setLoading(false);
           };
@@ -407,7 +373,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         observerRef.current.disconnect();
       }
     };
-  }, [loading, days, db, generateEmptyDays]);
+  }, [loading, days, db, loadDays]);
 
   /**
    * Drag-to-Scroll Event Handlers
