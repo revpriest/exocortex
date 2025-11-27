@@ -1839,18 +1839,31 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
       const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
 
-      // Use the same loadDays function as infinite scroll
-      await loadDays(db, today, totalDays, 5);
+      // Load days for the date range
+      const newDays = await database.getEventsByDateRange(
+        targetDateStr,
+        todayStr
+      );
 
-      // Now scroll to the target date
+      // Sort by date (newest first for display)
+      newDays.sort((a, b) => {
+        const aDate = new Date(a.date);
+        const bDate = new Date(b.date);
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      // Set the new days array
+      setDays(newDays);
+
+      // Now scroll to the target date immediately after state update
       setTimeout(() => {
-        const targetDay = days.find(day => day.date === targetDateStr);
-        if (targetDay && gridRef.current) {
-          const targetDayIndex = days.findIndex(day => day.date === targetDateStr);
+        const targetDayIndex = newDays.findIndex(day => day.date === targetDateStr);
+        if (targetDayIndex !== -1 && gridRef.current) {
           const scrollTarget = targetDayIndex * ROW_HEIGHT;
+          console.log('Scrolling to position:', scrollTarget, 'Target date index:', targetDayIndex);
           gridRef.current.scrollTop = scrollTarget;
         }
-      }, 100);
+      }, 50);
 
       setError(`Jumped to ${targetDate.toLocaleDateString()}`);
       setTimeout(() => setError(null), 3000);
