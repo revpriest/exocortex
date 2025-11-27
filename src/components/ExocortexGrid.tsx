@@ -199,11 +199,13 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
     }
 
     // Calculate the range of rows that should be visible
-    const bufferSize = Math.ceil(containerHeight / ROW_HEIGHT) + 5; // 5 rows buffer above and below
-    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 3); // 3 rows buffer above
+    // Reduce buffer to make virtualization more visible
+    const visibleRowCount = Math.ceil(containerHeight / ROW_HEIGHT);
+    const bufferSize = Math.max(2, visibleRowCount + 1); // Only 1 extra row buffer above and below
+    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT)); // Start from first visible row
     const endIndex = Math.min(
       days.length,
-      startIndex + bufferSize + 6 // 3 rows buffer below + extra buffer
+      startIndex + bufferSize // Only show exactly what's visible + small buffer
     );
 
     return {
