@@ -141,6 +141,10 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
   const [isJumpingToDate, setIsJumpingToDate] = useState(false);
 
+  // Performance optimization: Cache expensive calculations
+  const eventStyleCache = useRef(new Map<string, any>());
+  const eventStartTimeCache = useRef(new Map<string, number>());
+
   /**
    * Drag-to-Scroll State
    *
@@ -519,8 +523,15 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     };
   }, [isDragging, handleMouseUp]);
 
-  // Helper function to calculate the actual start time of an event
-  const getEventStartTime = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): number => {
+  // Helper function to calculate the actual start time of an event (with caching)
+  const getEventStartTime = useCallback((event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): number => {
+    const cacheKey = `${event.id}-${index}`;
+    if (eventStartTimeCache.current.has(cacheKey)) {
+      return eventStartTimeCache.current.get(cacheKey)!;
+    }
+
+    let startTime: number;
+
     if (index === 0) {
       // For the first event of the day, we need to handle special cases
 
@@ -534,64 +545,72 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
         // Calculate exact start time: 7-8 hours before end time
         const sleepDuration = 7.5 * 60 * 60 * 1000; // 7.5 hours average
-        return sleepEndTime.getTime() - sleepDuration;
+        startTime = sleepEndTime.getTime() - sleepDuration;
       }
-
       // For other events in early morning, they might be continuations from previous day
-      if (new Date(event.endTime).getHours() < 7 && event.category !== 'Sleep') {
+      else if (new Date(event.endTime).getHours() < 7 && event.category !== 'Sleep') {
         // Estimate they started in the evening of previous day
         const estimatedStartTime = new Date(event.endTime);
         estimatedStartTime.setDate(estimatedStartTime.getDate() - 1);
         estimatedStartTime.setHours(21, 0, 0, 0); // 9:00 PM previous day
-        return estimatedStartTime.getTime();
+        startTime = estimatedStartTime.getTime();
       }
+      else {
+        // EDGE CASE FIX: Check if there's a previous day with events that this should connect to
+        const currentDayDate = new Date(event.endTime).toISOString().split('T')[0];
+        const previousDay = new Date(currentDayDate);
+        previousDay.setDate(previousDay.getDate() - 1);
+        const previousDayDate = previousDay.toISOString().split('T')[0];
 
-      // EDGE CASE FIX: Check if there's a previous day with events that this should connect to
-      const currentDayDate = new Date(event.endTime).toISOString().split('T')[0];
-      const previousDay = new Date(currentDayDate);
-      previousDay.setDate(previousDay.getDate() - 1);
-      const previousDayDate = previousDay.toISOString().split('T')[0];
+        // Find the previous day in our days array
+        const previousDayData = days.find(day => day.date === previousDayDate);
 
-      // Find the previous day in our days array
-      const previousDayData = days.find(day => day.date === previousDayDate);
+        if (previousDayData && previousDayData.events.length > 0) {
+          // Get the last event from the previous day
+          const lastEventOfPreviousDay = previousDayData.events[previousDayData.events.length - 1];
+          const lastEventEndTime = lastEventOfPreviousDay.endTime;
 
-      if (previousDayData && previousDayData.events.length > 0) {
-        // Get the last event from the previous day
-        const lastEventOfPreviousDay = previousDayData.events[previousDayData.events.length - 1];
-        const lastEventEndTime = lastEventOfPreviousDay.endTime;
+          // If the last event of previous day ended before midnight, start this event right after it
+          const midnightOfCurrentDay = new Date(currentDayDate);
+          midnightOfCurrentDay.setHours(0, 0, 0, 0);
 
-        // If the last event of previous day ended before midnight, start this event right after it
-        const midnightOfCurrentDay = new Date(currentDayDate);
-        midnightOfCurrentDay.setHours(0, 0, 0, 0);
-
-        if (lastEventEndTime < midnightOfCurrentDay.getTime()) {
-          // Start right after the previous day's last event ended
-          return lastEventEndTime;
+          if (lastEventEndTime < midnightOfCurrentDay.getTime()) {
+            // Start right after the previous day's last event ended
+            startTime = lastEventEndTime;
+          } else {
+            startTime = midnightOfCurrentDay.getTime();
+          }
+        } else {
+          // Default: For regular events, assume they start at midnight (00:00) if they're the first event
+          const eventEndTime = new Date(event.endTime);
+          const eventDate = new Date(eventEndTime);
+          eventDate.setHours(0, 0, 0, 0); // 00:00 (midnight) start of day
+          startTime = eventDate.getTime();
         }
       }
-
-      // Default: For regular events, assume they start at midnight (00:00) if they're the first event
-      // This makes more sense since the day starts at midnight, not 7:00 AM
-      const eventEndTime = new Date(event.endTime);
-      const eventDate = new Date(eventEndTime);
-      eventDate.setHours(0, 0, 0, 0); // 00:00 (midnight) start of day
-
-      return eventDate.getTime();
     } else {
       // For all other events, start immediately after the previous event ends
       // This ensures no gaps between events
-      return dayEvents[index - 1].endTime;
+      startTime = dayEvents[index - 1].endTime;
     }
-  };
 
-  // Calculate event position and width for a specific day portion with explicit start time
-  const calculateEventPortionWithStartTime = (
+    eventStartTimeCache.current.set(cacheKey, startTime);
+    return startTime;
+  }, [days]);
+
+  // Calculate event position and width for a specific day portion with explicit start time (with caching)
+  const calculateEventPortionWithStartTime = useCallback((
     event: ExocortexEvent,
     dayDate: string,
     startTime: number,
     endTime: number,
     portion: 'start' | 'middle' | 'end' | 'full'
   ) => {
+    const cacheKey = `${event.id}-${dayDate}-${startTime}-${endTime}-${portion}`;
+    if (eventStyleCache.current.has(cacheKey)) {
+      return eventStyleCache.current.get(cacheKey);
+    }
+
     const eventEndTime = new Date(endTime);
     const eventStartTime = new Date(startTime);
     const dayStart = new Date(dayDate);
@@ -635,12 +654,15 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     const startHour = (portionStartTime.getTime() - dayStart.getTime()) / (1000 * 60 * 60);
     const durationHours = (portionEndTime.getTime() - portionStartTime.getTime()) / (1000 * 60 * 60);
 
-    return {
+    const result = {
       left: `calc(${startHour} * var(--hour-width))`,
       width: `calc(${durationHours} * var(--hour-width))`,
       backgroundColor: getEventColor(event, config.colorOverrides),
     };
-  };
+
+    eventStyleCache.current.set(cacheKey, result);
+    return result;
+  }, [config.colorOverrides]);
 
   // Calculate event position and width for a specific day portion
   const calculateEventPortionStyle = (
@@ -1530,6 +1552,15 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
     return () => clearInterval(interval);
   }, [days, db, lastDayCheck]);
+
+  // Clear caches when days array changes significantly
+  useEffect(() => {
+    // Only clear cache if we have more than 50 cached items (prevent memory leaks)
+    if (eventStyleCache.current.size > 50 || eventStartTimeCache.current.size > 50) {
+      eventStyleCache.current.clear();
+      eventStartTimeCache.current.clear();
+    }
+  }, [days]);
 
   // Custom calendar component with year navigation
   const CalendarWithYearNav = () => {
