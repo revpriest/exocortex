@@ -1582,7 +1582,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       // Start processing the first batch
       await processBatch(0);
 
-      // Wait a moment for DOM to update, then scroll to the selected date
+      // Wait for all batches to complete, then scroll to the selected date
       setTimeout(() => {
         if (gridRef.current) {
           console.log('Attempting to scroll to target date:', targetDateStr);
@@ -1591,26 +1591,29 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
 
           if (targetDayIndex !== -1) {
-            // Try direct element selection first
-            const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
-            if (targetDayElement) {
-              console.log('Found target element, scrolling...');
-              targetDayElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-              });
-            } else {
-              // Fallback to index-based calculation
-              const rowHeight = 80; // ROW_HEIGHT constant
-              const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
-              console.log('Scrolling using index calculation to position:', estimatedPosition);
-              gridRef.current.scrollTop = estimatedPosition;
-            }
+            // Wait a bit more for the DOM to be fully updated with all batches
+            setTimeout(() => {
+              // Try direct element selection first
+              const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
+              if (targetDayElement) {
+                console.log('Found target element, scrolling...');
+                targetDayElement.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'center'
+                });
+              } else {
+                // Fallback to index-based calculation
+                const rowHeight = 80; // ROW_HEIGHT constant
+                const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
+                console.log('Scrolling using index calculation to position:', estimatedPosition);
+                gridRef.current.scrollTop = estimatedPosition;
+              }
+            }, 100); // Small additional delay to ensure DOM is ready
           } else {
             console.error('Target date not found in allDays array:', targetDateStr);
           }
         }
-      }, 500); // Increased timeout to ensure DOM is ready
+      }, 100); // Reduced timeout since we now wait for all batches
 
       setShowDateSkipDialog(false);
       setError(`Jumping to ${targetDate.toLocaleDateString()}...`);
@@ -1989,6 +1992,9 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Jump to Date</DialogTitle>
+            <DialogDescription>
+              Select a date to jump to in your time tracking data. Use the year buttons for faster navigation.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground mb-4">
