@@ -326,10 +326,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                 oldestDay.date
               );
 
-              if (moreDays.length === 0) {
-                // No more data available
-                console.log('No more historical data available');
-              } else {
+              if (moreDays.length > 0) {
                 // Filter out any days that are already in our state
                 const existingDates = new Set(days.map(d => d.date));
                 const newDays = moreDays.filter(day => !existingDates.has(day.date));
@@ -1527,7 +1524,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
   // Skip to date functionality
   const handleSkipToDate = async () => {
     if (!db || !selectedSkipDate || isJumpingToDate) {
-      console.log('handleSkipToDate early return:', { db: !!db, selectedSkipDate: !!selectedSkipDate, isJumpingToDate });
       return;
     }
 
