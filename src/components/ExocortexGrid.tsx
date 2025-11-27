@@ -352,12 +352,12 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                   }
                 }
               } catch (error) {
-              console.error('Error loading more days:', error);
-              setError('Failed to load more days. Please try again.');
-            } finally {
-              setLoading(false);
-            }
-          }
+                console.error('Error loading more days:', error);
+                setError('Failed to load more days. Please try again.');
+              } finally {
+                setLoading(false);
+              }
+            };
         }
       },
       { threshold: 0.1 }
