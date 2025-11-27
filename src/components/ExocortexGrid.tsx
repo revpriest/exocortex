@@ -185,7 +185,10 @@ DayRow.displayName = 'DayRow';
 // Memoized HourHeaders component for performance
 const HourHeaders = memo<{ HOURS_IN_DAY: number; HOUR_WIDTH: number }>(({ HOURS_IN_DAY, HOUR_WIDTH }) => {
 
-  const hourSlots = getHourSlots();
+  // Generate hour slots locally to avoid dependency issues
+  const hourSlots = Array.from({ length: HOURS_IN_DAY }, (_, i) =>
+    `${i.toString().padStart(2, '0')}:00`
+  );
   return (
     <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
       {hourSlots.map((hour) => (
@@ -1752,8 +1755,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     }
   }, [days]);
 
-  // Custom calendar component with year navigation
-  const CalendarWithYearNav = () => {
+  // Memoized calendar component with year navigation
+  const CalendarWithYearNav = memo(() => {
     const [currentMonth, setCurrentMonth] = useState(selectedSkipDate || new Date());
 
     const handleYearUp = () => {
@@ -1812,7 +1815,9 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         />
       </div>
     );
-  };
+  });
+
+  CalendarWithYearNav.displayName = 'CalendarWithYearNav';
 
   // Skip to date functionality - use same loading pattern as infinite scroll
   const handleSkipToDate = async () => {
