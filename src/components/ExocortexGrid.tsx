@@ -39,10 +39,10 @@ import { Plus, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-r
  * Component Props Interface
  *
  * TypeScript interface that defines what props this component accepts.
- * Currently only accepts optional className for additional styling.
  */
 interface ExocortexGridProps {
   className?: string;
+  refreshTrigger?: number;
 }
 
 /**
@@ -367,6 +367,86 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       }
     };
   }, [loading, days, db]);
+
+  // Refresh grid when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger && db) {
+      const refreshData = async () => {
+        setLoading(true);
+
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const todayEvents = await db.getEventsByDate(today);
+
+          if (todayEvents.length === 0) {
+            // Database was empty, load initial data
+            const screenHeight = window.innerHeight - 100;
+            const rowsNeeded = Math.ceil(screenHeight / 80) + 2;
+            const daysToLoad = Math.max(7, rowsNeeded);
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - daysToLoad + 1);
+            const todayDate = new Date();
+            const todayStr = todayDate.toISOString().split('T')[0];
+
+            const daysWithEvents = await db.getEventsByDateRangeOnly(
+              startDate.toISOString().split('T')[0],
+              todayStr
+            );
+
+            const allDays: DayEvents[] = [];
+            for (let i = 0; i < daysToLoad; i++) {
+              const currentDate = new Date(todayDate);
+              currentDate.setDate(currentDate.getDate() - i);
+              const dateStr = currentDate.toISOString().split('T')[0];
+
+              const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
+
+              if (dayWithEvents) {
+                allDays.push(dayWithEvents);
+              } else {
+                allDays.push({ date: dateStr, events: [] });
+              }
+            }
+
+            allDays.sort((a, b) => {
+              const aDate = new Date(a.date);
+              const bDate = new Date(b.date);
+              return bDate.getTime() - aDate.getTime();
+            });
+
+            setDays(allDays);
+          } else {
+            // Database has data, just refresh current view
+            const currentDayDates = days.map(d => d.date);
+            const refreshFrom = new Date();
+            refreshFrom.setDate(refreshFrom.getDate() - 30);
+
+            const daysWithEvents = await db.getEventsByDateRange(
+              refreshFrom.toISOString().split('T')[0],
+              today
+            );
+
+            const updatedDays = daysWithEvents
+              .filter(day => currentDayDates.includes(day.date))
+              .sort((a, b) => {
+                const aDate = new Date(a.date);
+                const bDate = new Date(b.date);
+                return bDate.getTime() - aDate.getTime();
+              });
+
+            setDays(updatedDays);
+          }
+        } catch (error) {
+          console.error('Failed to refresh grid:', error);
+          setError('Failed to refresh data. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      refreshData();
+    }
+  }, [refreshTrigger, db]);
 
   /**
    * Drag-to-Scroll Event Handlers

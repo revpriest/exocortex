@@ -649,6 +649,9 @@ const Index = () => {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
 
+  // Force grid refresh trigger
+  const [forceGridRefresh, setForceGridRefresh] = useState(0);
+
   /**
    * Set SEO (Search Engine Optimization) metadata
    *
@@ -846,7 +849,12 @@ const Index = () => {
           <NewUserWelcomeDialog
             isOpen={showWelcomeDialog}
             onClose={() => setShowWelcomeDialog(false)}
-            onGenerateTestData={handleWelcomeGenerateTestData}
+            onGenerateTestData={async () => {
+              await handleWelcomeGenerateTestData();
+              // Trigger grid refresh
+              setForceGridRefresh(prev => prev + 1);
+              setShowWelcomeDialog(false);
+            }}
           />
         )}
         {/* Navigation Header */}
@@ -892,7 +900,7 @@ const Index = () => {
           The className="w-full" ensures the component takes full width of container.
         */}
         {currentView === 'grid' ? (
-          <ExocortexGrid className="w-full" />
+          <ExocortexGrid className="w-full" refreshTrigger={forceGridRefresh} />
         ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
         ) : (
