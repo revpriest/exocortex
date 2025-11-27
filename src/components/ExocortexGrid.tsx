@@ -18,7 +18,7 @@
  */
 
 // React hooks for managing state and lifecycle
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // Import our data types and utilities
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
@@ -144,17 +144,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
   const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
 
   /**
-   * Virtualization State
-   *
-   * These state variables manage the virtualization of the grid:
-   * - scrollTop: Current scroll position of the grid container
-   * - containerHeight: Height of the visible viewport
-   * - totalHeight: Total height of all rows (including off-screen ones)
-   */
-  const [scrollTop, setScrollTop] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
-
-  /**
    * Drag-to-Scroll State
    *
    * These state variables manage the drag-to-scroll functionality:
@@ -185,34 +174,6 @@ export function ExocortexGrid({ className }: ExocortexGridProps) {
 
   // Reference to the loading trigger element at bottom of grid
   const loadingRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * Virtualization Calculations
-   *
-   * Memoized calculation of which rows should be visible based on scroll position.
-   * This uses a buffer to ensure smooth scrolling.
-   */
-  const visibleRows = useMemo(() => {
-    if (containerHeight === 0 || days.length === 0) {
-      // Fallback to showing all rows if we don't have measurements yet
-      return { startIndex: 0, endIndex: days.length, offsetY: 0 };
-    }
-
-    // Calculate the range of rows that should be visible
-    const visibleRowCount = Math.ceil(containerHeight / ROW_HEIGHT);
-    const bufferRows = Math.max(1, Math.floor(ROW_HEIGHT * 2 / ROW_HEIGHT)); // Show rows that are ~80px from edge
-    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - bufferRows);
-    const endIndex = Math.min(
-      days.length,
-      Math.ceil(scrollTop / ROW_HEIGHT) + visibleRowCount + bufferRows
-    );
-
-    return {
-      startIndex,
-      endIndex,
-      offsetY: startIndex * ROW_HEIGHT
-    };
-  }, [scrollTop, containerHeight, days.length]);
 
   /**
  * Database Initialization Effect
@@ -280,42 +241,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       return true; // Indicate successful load
     }
     return false; // Indicate no more data available
-  }, []);
-
-  // Setup container measurement and scroll tracking
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-
-    // Measure container height
-    const measureContainer = () => {
-      const height = grid.clientHeight;
-      setContainerHeight(height);
-    };
-
-    // Handle scroll events
-    const handleScroll = () => {
-      setScrollTop(grid.scrollTop);
-    };
-
-    // Initial measurement
-    measureContainer();
-
-    // Add event listeners
-    grid.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', measureContainer);
-
-    // Create a ResizeObserver to detect container size changes
-    const resizeObserver = new ResizeObserver(() => {
-      measureContainer();
-    });
-    resizeObserver.observe(grid);
-
-    return () => {
-      grid.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', measureContainer);
-      resizeObserver.disconnect();
-    };
   }, []);
 
   // Setup infinite scroll
@@ -1533,11 +1458,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       setDays(allDays);
 
-      setShowDateSkipDialog(false);
-
-      // Set initial message
-      setError(`Skipping to ${targetDate.toLocaleDateString()}`);
-
       // Wait a moment for DOM to update, then scroll to the selected date
       setTimeout(() => {
         if (gridRef.current) {
@@ -1547,26 +1467,30 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
 
           if (targetDayIndex !== -1) {
-            // Calculate scroll position using ROW_HEIGHT
-            const estimatedPosition = targetDayIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
-            console.log('Scrolling to position:', estimatedPosition, 'for day index:', targetDayIndex);
-
-            // Set scroll position directly (without smooth scrolling for immediate update)
-            gridRef.current.scrollTop = estimatedPosition;
-
-            // Update scrollTop state to match the new scroll position
-            setScrollTop(estimatedPosition);
-
-            // Update message to show completion
-            setError(`Jumped to ${targetDate.toLocaleDateString()}`);
-            setTimeout(() => setError(null), 2000);
+            // Try direct element selection first
+            const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
+            if (targetDayElement) {
+              console.log('Found target element, scrolling...');
+              targetDayElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+            } else {
+              // Fallback to index-based calculation
+              const rowHeight = 80; // ROW_HEIGHT constant
+              const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
+              console.log('Scrolling using index calculation to position:', estimatedPosition);
+              gridRef.current.scrollTop = estimatedPosition;
+            }
           } else {
             console.error('Target date not found in allDays array:', targetDateStr);
-            setError('Target date not found');
-            setTimeout(() => setError(null), 2000);
           }
         }
       }, 500); // Increased timeout to ensure DOM is ready
+
+      setShowDateSkipDialog(false);
+      setError(`Jumped to ${targetDate.toLocaleDateString()}`);
+      setTimeout(() => setError(null), 3000);
     } catch (error) {
       console.error('Failed to skip to date:', error);
       setError('Failed to jump to selected date. Please try again.');
@@ -1708,27 +1632,10 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
           </div>
         </div>
 
-        {/* Day rows - Virtualized */}
-        <div
-          className="relative"
-          style={{
-            minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px`,
-            height: `${days.length * ROW_HEIGHT}px` // Total height for proper scrolling
-          }}
-        >
-          {/* Spacer to maintain scroll position */}
-          <div
-            style={{
-              height: `${visibleRows.offsetY}px`,
-              width: '100%'
-            }}
-          />
-
-          {/* Only render visible rows */}
-          {days.slice(visibleRows.startIndex, visibleRows.endIndex).map((day, visibleIndex) => {
-            const actualDayIndex = visibleRows.startIndex + visibleIndex;
-            return (
-              <div
+        {/* Day rows */}
+        <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
+          {days.map((day, dayIndex) => (
+            <div
               key={day.date}
               data-day={day.date}
               className="relative border-b border-border"
@@ -1851,39 +1758,19 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
                 })}
               </div>
             </div>
-            );
-          })}
+          ))}
 
-          {/* Loading trigger for infinite scroll - positioned at the end */}
-          {days.length > visibleRows.endIndex && (
-            <div
-              ref={loadingRef}
-              className="absolute w-full h-20 flex items-center justify-center"
-              style={{
-                top: `${days.length * ROW_HEIGHT}px`,
-                transform: 'translateY(-100%)'
-              }}
-            >
-              {loading && (
-                <div className="text-muted-foreground">Loading more days...</div>
-              )}
-              {hasReachedHistoricalLimit && !loading && (
-                <div className="text-muted-foreground text-sm">
-                  Reached historical limit (10 years)
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Fallback loading state when no rows are visible */}
-          {visibleRows.startIndex === 0 && visibleRows.endIndex === 0 && loading && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-muted-foreground">Loading...</div>
-            </div>
-          )}
-        </div>
-            );
-          })}
+          {/* Loading trigger for infinite scroll */}
+          <div ref={loadingRef} className="h-20 flex items-center justify-center">
+            {loading && (
+              <div className="text-muted-foreground">Loading more days...</div>
+            )}
+            {hasReachedHistoricalLimit && !loading && (
+              <div className="text-muted-foreground text-sm">
+                Reached historical limit (10 years)
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
