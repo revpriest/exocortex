@@ -1517,25 +1517,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Jumping to date:', targetDateStr);
 
-      // Create complete range of dates from target date to today (no gaps)
-      const allDays: Array<{ date: string; events: ExocortexEvent[] }> = [];
-
-      // Start from target date and go to today
-      const currentDate = new Date(targetDate);
-      currentDate.setHours(0, 0, 0, 0); // Start at beginning of day
-
-      while (currentDate <= today) {
-        const dateStr = currentDate.toISOString().split('T')[0];
-        allDays.push({
-          date: dateStr,
-          events: [] // Will be filled below
-        });
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      console.log('Created date range:', allDays.length, 'days from', allDays[0]?.date, 'to', allDays[allDays.length - 1]?.date);
-
-      // Get events for all dates in the range (using optimized batch query)
+      // OPTIMIZED: Only get days with actual events, not all dates
       const eventsByDate = await db.getEventsByDateRange(
         targetDateStr,
         todayStr
@@ -1543,84 +1525,66 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Found events for', eventsByDate.length, 'dates');
 
-      // Merge events into the date range
-      eventsByDate.forEach(dayWithEvents => {
-        const dayIndex = allDays.findIndex(day => day.date === dayWithEvents.date);
-        if (dayIndex !== -1) {
-          allDays[dayIndex] = dayWithEvents; // Replace empty day with events
-        }
-      });
+      // Add today if not in range (for context)
+      const hasToday = eventsByDate.some(day => day.date === todayStr);
+      if (!hasToday) {
+        const todayEvents = await db.getEventsByDate(todayStr);
+        eventsByDate.push({ date: todayStr, events: todayEvents });
+      }
 
-      // Sort by date (newest first for display) and find target index
-      allDays.sort((a, b) => {
+      // Add target date if not in range (to ensure it's visible)
+      const hasTargetDate = eventsByDate.some(day => day.date === targetDateStr);
+      if (!hasTargetDate) {
+        const targetEvents = await db.getEventsByDate(targetDateStr);
+        eventsByDate.push({ date: targetDateStr, events: targetEvents });
+      }
+
+      // Sort by date (newest first for display)
+      eventsByDate.sort((a, b) => {
         const aDate = new Date(a.date);
         const bDate = new Date(b.date);
         return bDate.getTime() - aDate.getTime(); // Newest first
       });
 
-      // Find the target date index BEFORE loading any data
-      const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+      // Find the target date index in the sorted array
+      const targetDayIndex = eventsByDate.findIndex(day => day.date === targetDateStr);
 
-      if (targetDayIndex !== -1) {
-        // IMMEDIATELY scroll to estimated position BEFORE loading data
-        const rowHeight = 80; // ROW_HEIGHT constant
-        const estimatedPosition = targetDayIndex * rowHeight + rowHeight / 2;
+      // Create a spacer element to ensure the target position is reachable
+      const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
 
-        console.log('Immediate scroll to estimated position:', estimatedPosition);
-        if (gridRef.current) {
-          gridRef.current.scrollTop = estimatedPosition;
-        }
+      console.log('Target date index:', targetDayIndex, 'Spacer height:', spacerHeight);
+      console.log('Days with events:', eventsByDate.map(d => ({ date: d.date, events: d.events.length })));
+
+      // Load days with events immediately (small dataset)
+      setDays(eventsByDate);
+
+      // Add temporary spacer at bottom to make scrolling possible
+      if (spacerHeight > 0 && gridRef.current) {
+        // Create a temporary div to extend scrollable area
+        const tempSpacer = document.createElement('div');
+        tempSpacer.style.height = `${spacerHeight}px`;
+        tempSpacer.className = 'temp-jump-spacer';
+        gridRef.current.appendChild(tempSpacer);
+
+        // Scroll to the target position
+        const scrollTarget = gridRef.current.scrollHeight - spacerHeight + ROW_HEIGHT / 2;
+        console.log('Scrolling to position:', scrollTarget);
+        gridRef.current.scrollTop = scrollTarget;
+
+        // Remove spacer after scroll animation
+        setTimeout(() => {
+          if (tempSpacer.parentNode) {
+            tempSpacer.parentNode.removeChild(tempSpacer);
+          }
+        }, 100);
       }
 
-      console.log('Final allDays array:', allDays.map(d => ({ date: d.date, events: d.events.length })));
-
-      // Load in batches to prevent UI freezing for large ranges
-      const totalDays = allDays.length;
-      const batchSize = 5; // Process 5 days at a time
-
-      const processBatch = async (batchStartIndex: number): Promise<void> => {
-        const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
-        const batch = allDays.slice(batchStartIndex, batchEndIndex);
-
-        // Add this batch to state
-        setDays(prev => batchStartIndex === 0 ? batch : [...prev, ...batch]);
-
-        // If we have more batches to process, continue after yielding control
-        if (batchEndIndex < totalDays) {
-          // Use setTimeout to yield control back to the UI thread
-          return new Promise(resolve => {
-            setTimeout(() => {
-              resolve(processBatch(batchEndIndex));
-            }, 0);
-          });
-        } else {
-          // FINAL BATCH: Do precise scroll to ensure exact position
-          setTimeout(() => {
-            if (gridRef.current && targetDayIndex !== -1) {
-              // Try direct element selection for precise positioning
-              const targetDayElement = gridRef.current.querySelector(`[data-day="${targetDateStr}"]`);
-              if (targetDayElement) {
-                console.log('Final precise scroll to target element');
-                targetDayElement.scrollIntoView({
-                  behavior: 'smooth',
-                  block: 'center'
-                });
-              }
-            }
-          }, 50); // Small delay for DOM to be ready
-        }
-      };
-
-      // Start processing the first batch
-      await processBatch(0);
-
-      setError(`Jumping to ${targetDate.toLocaleDateString()}...`);
+      setError(`Jumped to ${targetDate.toLocaleDateString()}`);
       setTimeout(() => setError(null), 3000);
     } catch (error) {
       console.error('Failed to skip to date:', error);
       setError('Failed to jump to selected date. Please try again.');
     } finally {
-      setLoading(false);
       setIsJumpingToDate(false);
     }
   };
