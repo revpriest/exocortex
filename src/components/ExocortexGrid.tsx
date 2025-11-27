@@ -179,6 +179,29 @@ const DayRow = memo<{
 });
 
 DayRow.displayName = 'DayRow';
+
+// Memoized HourHeaders component for performance
+const HourHeaders = memo<{ HOURS_IN_DAY: number }>(({ HOURS_IN_DAY }) => {
+
+
+  return (
+    <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * 60}px` }}>
+      {hourSlots.map((hour) => (
+        <div
+          key={hour}
+          className="text-xs md:text-sm text-muted-foreground border-r border-border px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
+          style={{
+            width: 'var(--hour-width)',
+          }}
+        >
+          {hour}
+        </div>
+      ))}
+    </div>
+  );
+});
+
+HourHeaders.displayName = 'HourHeaders';
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
@@ -983,7 +1006,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     return lightness > 50 ? '#000000' : '#ffffff';
   };
 
-  const hourSlots = getHourSlots();
+
 
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
@@ -1955,19 +1978,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         <style>{responsiveStyles}</style>
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-card border-b border-border">
-          <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-            {hourSlots.map((hour, index) => (
-              <div
-                key={hour}
-                className="text-xs md:text-sm text-muted-foreground border-r border-border px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
-                style={{
-                  width: `var(--hour-width)`,
-                }}
-              >
-                {hour}
-              </div>
-            ))}
-          </div>
+          <HourHeaders HOURS_IN_DAY={HOURS_IN_DAY} />
         </div>
 
         {/* Day rows */}
