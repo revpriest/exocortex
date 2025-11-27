@@ -82,7 +82,7 @@ const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both m
  * This is the main component function that renders our time tracking grid.
  * It manages all state related to events, database operations, and UI interactions.
  */
-export function ExocortexGrid({ className }: ExocortexGridProps) {
+export function ExocortexGrid({ className, refreshTrigger }: ExocortexGridProps) {
   const { config } = useAppContext();
   /**
    * Component State Variables
