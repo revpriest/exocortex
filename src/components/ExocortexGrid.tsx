@@ -33,7 +33,7 @@ import { Plus, Download, Upload, Database, Trash2, AlertCircle, Calendar as Cale
 import { EventDialog } from './EventDialog';
 import { DataExporter } from '@/lib/dataExport';
 import { SmileyFace } from './SmileyFace';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -883,18 +883,20 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     }
   };
 
-  const handleEventClick = (event: ExocortexEvent) => {
-    setEditingEvent(event);
-    setIsDialogOpen(true);
-  };
-
   // Handle click on events - only trigger if it's a true click, not a drag
   const handleEventClickWithDragCheck = useCallback((event: ExocortexEvent) => {
     // Only trigger event click if we haven't just finished dragging
     if (!hasDragged) {
-      handleEventClick(event);
+      // Define the click handler inline to avoid hoisting issues
+      setEditingEvent(event);
+      setIsDialogOpen(true);
     }
-  }, [hasDragged, handleEventClick]);
+  }, [hasDragged]);
+
+  const handleEventClick = (event: ExocortexEvent) => {
+    setEditingEvent(event);
+    setIsDialogOpen(true);
+  };
 
   const handleDialogClose = () => {
     setIsDialogOpen(false);
