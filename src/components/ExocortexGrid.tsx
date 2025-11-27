@@ -1819,7 +1819,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
   CalendarWithYearNav.displayName = 'CalendarWithYearNav';
 
-  // Skip to date functionality - use same loading pattern as infinite scroll
+  // Skip to date functionality - optimized incremental loading
   const handleSkipToDate = async () => {
     if (!db || !selectedSkipDate || isJumpingToDate) {
       return;
@@ -1835,35 +1835,70 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
 
       console.log('Jumping to date:', targetDateStr);
 
-      // Calculate how many days between target and today
-      const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
-      const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
+      // Check if target date is already loaded
+      const isTargetLoaded = days.some(day => day.date === targetDateStr);
 
-      // Load days for the date range
-      const newDays = await db.getEventsByDateRange(
-        targetDateStr,
-        todayStr
-      );
-
-      // Sort by date (newest first for display)
-      newDays.sort((a, b) => {
-        const aDate = new Date(a.date);
-        const bDate = new Date(b.date);
-        return bDate.getTime() - aDate.getTime();
-      });
-
-      // Set the new days array
-      setDays(newDays);
-
-      // Now scroll to the target date immediately after state update
-      setTimeout(() => {
-        const targetDayIndex = newDays.findIndex(day => day.date === targetDateStr);
+      if (isTargetLoaded) {
+        // Already loaded - just scroll to it
+        const targetDayIndex = days.findIndex(day => day.date === targetDateStr);
         if (targetDayIndex !== -1 && gridRef.current) {
           const scrollTarget = targetDayIndex * ROW_HEIGHT;
-          console.log('Scrolling to position:', scrollTarget, 'Target date index:', targetDayIndex);
+          console.log('Scrolling to existing target:', scrollTarget);
           gridRef.current.scrollTop = scrollTarget;
         }
-      }, 50);
+      } else {
+        // Not loaded - load incrementally from current oldest to target
+        const currentOldestDay = days[days.length - 1];
+        const currentOldestDate = currentOldestDay ? new Date(currentOldestDay.date) : new Date();
+
+        // If target is older than current oldest, load in batches
+        if (targetDate < currentOldestDate) {
+          const daysToLoad = Math.ceil((currentOldestDate.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+          const batchesToLoad = Math.ceil(daysToLoad / 10); // 10 days per batch
+
+          // Load batches incrementally to avoid blocking
+          for (let i = 0; i < batchesToLoad; i++) {
+            const batchStartDate = new Date(targetDate);
+            batchStartDate.setDate(batchStartDate.getDate() + (i * 10));
+
+            const batchEndDate = new Date(batchStartDate);
+            batchEndDate.setDate(batchEndDate.getDate() + 9);
+
+            // Don't go past current oldest date
+            const actualBatchEnd = batchEndDate > currentOldestDate ? currentOldestDate : batchEndDate;
+
+            const batchDays = await db.getEventsByDateRange(
+              batchStartDate.toISOString().split('T')[0],
+              actualBatchEnd.toISOString().split('T')[0]
+            );
+
+            // Sort and append to existing days
+            batchDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            setDays(prev => {
+              const allDays = [...prev, ...batchDays];
+              // Remove duplicates and sort
+              const uniqueDays = Array.from(new Map(allDays.map(d => [d.date, d])).values());
+              return uniqueDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            });
+
+            // Small delay between batches to keep UI responsive
+            if (i < batchesToLoad - 1) {
+              await new Promise(resolve => setTimeout(resolve, 10));
+            }
+          }
+        }
+      }
+
+      // Final scroll to target after all loading is done
+      setTimeout(() => {
+        const finalTargetIndex = days.findIndex(day => day.date === targetDateStr);
+        if (finalTargetIndex !== -1 && gridRef.current) {
+          const scrollTarget = finalTargetIndex * ROW_HEIGHT;
+          console.log('Final scroll to target:', scrollTarget);
+          gridRef.current.scrollTop = scrollTarget;
+        }
+      }, 100);
 
       setError(`Jumped to ${targetDate.toLocaleDateString()}`);
       setTimeout(() => setError(null), 3000);
