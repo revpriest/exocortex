@@ -993,9 +993,10 @@ const Index = () => {
                         shakespeare
                       </a>
                       <Button
-                        variant="link"
+                        variant="outline"
+                        size="sm"
                         onClick={() => navigate('/about')}
-                        className="p-0 h-auto font-normal text-base md:text-lg text-primary hover:text-primary/80 underline transition-colors ml-1"
+                        className="ml-2 h-6 px-2 text-xs"
                       >
                         about
                       </Button>
