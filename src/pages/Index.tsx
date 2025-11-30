@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
@@ -33,10 +33,11 @@ import { APP_VERSION } from '../main';
  * Shows a welcome dialog for first-time users when the database is empty.
  * Offers to generate sample data to help them understand the app.
  */
-const NewUserWelcomeDialog = ({ isOpen, onClose, onGenerateTestData }: {
+const NewUserWelcomeDialog = ({ isOpen, onClose, onGenerateTestData, onAbout }: {
   isOpen: boolean;
   onClose: () => void;
   onGenerateTestData: () => void;
+  onAbout: () => void;
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -44,6 +45,11 @@ const NewUserWelcomeDialog = ({ isOpen, onClose, onGenerateTestData }: {
     setIsGenerating(true);
     await onGenerateTestData();
     setIsGenerating(false);
+    onClose();
+  };
+
+  const handleAbout = () => {
+    onAbout();
     onClose();
   };
 
@@ -61,7 +67,15 @@ const NewUserWelcomeDialog = ({ isOpen, onClose, onGenerateTestData }: {
             The test data can be deleted in the conf screen.
           </p>
         </div>
-        <div className="flex justify-end space-x-3">
+        <DialogFooter className="flex justify-end space-x-3">
+          <Button
+            variant="outline"
+            onClick={onAbout}
+            disabled={isGenerating}
+            className="bg-secondary border-border"
+          >
+            About
+          </Button>
           <Button
             variant="outline"
             onClick={onClose}
@@ -77,7 +91,7 @@ const NewUserWelcomeDialog = ({ isOpen, onClose, onGenerateTestData }: {
           >
             {isGenerating ? 'Generating...' : 'Yes'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -865,6 +879,9 @@ const Index = () => {
               setForceGridRefresh(prev => prev + 1);
               setShowWelcomeDialog(false);
             }}
+            onAbout={() => {
+              navigate('/about');
+            }}
           />
         )}
         {/* Navigation Header */}
@@ -975,16 +992,13 @@ const Index = () => {
                       >
                         shakespeare
                       </a>
-                      , <a
-                        href="/about"
-                        className="text-primary hover:text-primary/80 underline transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate('/about');
-                        }}
+                      <Button
+                        variant="link"
+                        onClick={() => navigate('/about')}
+                        className="p-0 h-auto font-normal text-base md:text-lg text-primary hover:text-primary/80 underline transition-colors ml-1"
                       >
                         about
-                      </a>
+                      </Button>
                     </p>
                   </div>
 
