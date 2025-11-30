@@ -26,6 +26,7 @@ import { ExocortexEvent, ExocortexDB } from './exocortex';
  * - version: Export format version (for migration support)
  * - exportDate: When the export was created (ISO string)
  * - events: Array of all events in the database
+ * - settings: Application settings from localStorage
  */
 export interface ExportData {
   /** Export format version for compatibility checking */
@@ -34,6 +35,29 @@ export interface ExportData {
   exportDate: string;
   /** All events from the database at time of export */
   events: ExocortexEvent[];
+  /** Application settings from localStorage */
+  settings?: AppSettings;
+}
+
+/**
+ * Application Settings Interface
+ *
+ * Defines the structure for localStorage-based app settings
+ * that should be included in exports and imports.
+ */
+export interface AppSettings {
+  /** Theme preference (light, dark, system) */
+  theme?: string;
+  /** Category color overrides */
+  categoryColorOverrides?: { category: string; hue: number }[];
+  /** Notification settings */
+  notificationSettings?: {
+    frequency: 'never' | 'hourly' | 'every-2-hours';
+    exceptAtNight: boolean;
+    nightStartHour: number;
+    nightEndHour: number;
+    silent: boolean;
+  };
 }
 
 /**
@@ -64,16 +88,95 @@ export class DataImporter {
 
 export class DataExporter {
   /**
+   * Get Application Settings from localStorage
+   *
+   * Safely extracts all relevant app settings from localStorage.
+   * Handles errors gracefully if localStorage is unavailable or data is corrupted.
+   *
+   * @returns AppSettings object with all available settings
+   */
+  private static getAppSettings(): AppSettings {
+    const settings: AppSettings = {};
+
+    try {
+      // Theme settings
+      const theme = localStorage.getItem('exocortex-theme');
+      if (theme) {
+        settings.theme = theme;
+      }
+
+      // Category color overrides
+      const colorOverrides = localStorage.getItem('exocortex-color-overrides');
+      if (colorOverrides) {
+        try {
+          settings.categoryColorOverrides = JSON.parse(colorOverrides);
+        } catch (e) {
+          console.warn('Failed to parse color overrides from localStorage:', e);
+        }
+      }
+
+      // Notification settings
+      const notificationSettings = localStorage.getItem('exocortex-notification-settings');
+      if (notificationSettings) {
+        try {
+          settings.notificationSettings = JSON.parse(notificationSettings);
+        } catch (e) {
+          console.warn('Failed to parse notification settings from localStorage:', e);
+        }
+      }
+
+    } catch (error) {
+      console.warn('Failed to access localStorage for settings export:', error);
+    }
+
+    return settings;
+  }
+
+  /**
+   * Restore Application Settings to localStorage
+   *
+   * Safely restores app settings from an import to localStorage.
+   * Only updates settings that are present in the import data.
+   *
+   * @param settings - AppSettings object to restore
+   */
+  private static restoreAppSettings(settings: AppSettings): void {
+    if (!settings) return;
+
+    try {
+      // Restore theme settings
+      if (settings.theme !== undefined) {
+        localStorage.setItem('exocortex-theme', settings.theme);
+      }
+
+      // Restore category color overrides
+      if (settings.categoryColorOverrides) {
+        localStorage.setItem('exocortex-color-overrides', JSON.stringify(settings.categoryColorOverrides));
+      }
+
+      // Restore notification settings
+      if (settings.notificationSettings) {
+        localStorage.setItem('exocortex-notification-settings', JSON.stringify(settings.notificationSettings));
+      }
+
+    } catch (error) {
+      console.warn('Failed to restore settings to localStorage:', error);
+    }
+  }
+
+  /**
    * Export Database to JSON File
    *
    * This method exports all events from the database to a downloadable JSON file.
    * It includes metadata for version tracking and export date information.
+   * It also exports application settings from localStorage.
    *
    * Process:
    * 1. Query all events from database (wide date range for completeness)
-   * 2. Create structured export data with metadata
-   * 3. Convert to formatted JSON string
-   * 4. Create Blob and trigger browser download
+   * 2. Collect application settings from localStorage
+   * 3. Create structured export data with metadata
+   * 4. Convert to formatted JSON string
+   * 5. Create Blob and trigger browser download
    *
    * @param db - The ExocortexDB instance to export from
    * @returns Promise that resolves when export is complete
@@ -113,11 +216,13 @@ export class DataExporter {
        * - Version: Allows us to handle format changes in future imports
        * - Export date: Helps users track when backup was made
        * - Events: The actual data array
+       * - Settings: Application settings from localStorage
        */
       const exportData: ExportData = {
-        version: '1.0',
+        version: '2.0', // Updated version for settings inclusion
         exportDate: new Date().toISOString(),
-        events: allEvents
+        events: allEvents,
+        settings: this.getAppSettings()
       };
 
       // Convert JavaScript object to formatted JSON string
@@ -164,6 +269,7 @@ export class DataExporter {
       }
 
       // Import all events
+      let successCount = 0;
       for (const event of jsonData.events) {
         try {
           await db.addEvent({
@@ -174,13 +280,22 @@ export class DataExporter {
             wakefulness: event.wakefulness,
             health: event.health
           });
+          successCount++;
         } catch (error) {
           console.warn('Failed to import event:', event, error);
           // Continue with other events even if one fails
         }
       }
 
-      console.log(`Successfully imported ${jsonData.events.length} events`);
+      console.log(`Successfully imported ${successCount} of ${jsonData.events.length} events`);
+
+      // Restore settings if they exist (version 2.0+)
+      if (jsonData.version === '2.0' && jsonData.settings) {
+        this.restoreAppSettings(jsonData.settings);
+        console.log('Successfully restored application settings');
+      } else if (jsonData.version === '1.0') {
+        console.log('Imported version 1.0 file (settings not included in old format)');
+      }
 
     } catch (error) {
       console.error('Failed to import database:', error);
@@ -198,8 +313,14 @@ export class DataExporter {
       reader.onload = (e) => {
         try {
           const jsonData = JSON.parse(e.target?.result as string);
-          const isValid = jsonData.version && jsonData.events && Array.isArray(jsonData.events);
-          resolve(isValid);
+          // Basic validation - must have version and events array
+          const hasBasicStructure = jsonData.version && jsonData.events && Array.isArray(jsonData.events);
+
+          // Additional validation for version 2.0+ if settings are present
+          const hasValidSettings = jsonData.version === '2.0' ?
+            (jsonData.settings === undefined || typeof jsonData.settings === 'object') : true;
+
+          resolve(hasBasicStructure && hasValidSettings);
         } catch {
           resolve(false);
         }
