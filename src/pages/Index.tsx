@@ -14,6 +14,7 @@ import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import { ExocortexDB } from '@/lib/exocortex';
 import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
@@ -957,6 +958,9 @@ const Index = () => {
                 <ColorOverrideWidget />
               </CardContent>
             </Card>
+
+            {/* Notification Settings Section */}
+            <NotificationSettings />
 
             {/* Cache Management Section */}
             <CacheResetSection />
