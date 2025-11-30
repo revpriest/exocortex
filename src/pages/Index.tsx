@@ -992,15 +992,17 @@ const Index = () => {
                       >
                         shakespeare
                       </a>
+                    </p>
+                    <div className="mt-3">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => navigate('/about')}
-                        className="ml-2 h-6 px-2 text-xs"
+                        className="h-8 px-3 text-sm"
                       >
                         about
                       </Button>
-                    </p>
+                    </div>
                   </div>
 
                   <div className="mt-6 pt-6 border-t border-border">
