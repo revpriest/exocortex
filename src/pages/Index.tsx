@@ -690,30 +690,39 @@ const Index = () => {
 
   /**
    * Check for empty database and show welcome dialog for new users
+   * Only runs on grid view, not on stats, conf, or about pages
    */
   useEffect(() => {
+    // Only check for new user dialog when on grid view
+    if (currentView !== 'grid') {
+      setIsCheckingDatabase(false);
+      return;
+    }
+
     const checkDatabaseEmpty = async () => {
       try {
         const database = new ExocortexDB();
         await database.init();
 
-        // Check if database has any events
-        const today = new Date().toISOString().split('T')[0];
-        const events = await database.getEventsByDate(today);
+        // Check if database has any events by querying a wider date range
+        // This is more reliable than just checking today
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7); // Check last 7 days
+
+        const days = await database.getEventsByDateRangeOnly(
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        );
 
         setIsCheckingDatabase(false);
 
-        // Show welcome dialog if no events found for today (likely empty database)
-        if (events.length === 0) {
-          // Also check a few past days to be sure
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
-          const yesterdayEvents = await database.getEventsByDate(yesterdayStr);
+        // Check if any events exist in the last 7 days
+        const hasEvents = days.some(day => day.events.length > 0);
 
-          if (yesterdayEvents.length === 0) {
-            setShowWelcomeDialog(true);
-          }
+        // Show welcome dialog if no events found in the last week (truly empty database)
+        if (!hasEvents) {
+          setShowWelcomeDialog(true);
         }
       } catch (error) {
         console.error('Failed to check database:', error);
@@ -722,7 +731,7 @@ const Index = () => {
     };
 
     checkDatabaseEmpty();
-  }, []);
+  }, [currentView]); // Dependency on currentView
 
   /**
    * Navigation Handler Functions
