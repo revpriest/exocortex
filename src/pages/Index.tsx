@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
@@ -631,19 +632,25 @@ const DBManagementSection = () => {
  * This is the main page component that:
  * 1. Sets SEO metadata for search engines and browser tabs
  * 2. Provides navigation between grid, stats, and help views
- * 3. Renders the appropriate view based on user selection
+ * 3. Renders the appropriate view based on URL query parameters
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
+  // React Router hooks for URL-based navigation
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   /**
-   * State Management
-   *
-   * currentView: Controls which interface is displayed
-   * - 'grid': Shows the time tracking grid
-   * - 'stats': Shows the statistics and analytics
-   * - 'conf': Shows the configuration and about information
+   * Get current view from URL query parameter
+   * Defaults to 'grid' if no view parameter is provided
    */
-  const [currentView, setCurrentView] = useState<'grid' | 'stats' | 'conf'>('grid');
+  const getCurrentView = (): 'grid' | 'stats' | 'conf' => {
+    const view = searchParams.get('view');
+    return (view === 'stats' || view === 'conf') ? view : 'grid';
+  };
+
+  const currentView = getCurrentView();
 
   // Welcome dialog state for new users
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
@@ -706,18 +713,21 @@ const Index = () => {
    * Navigation Handler Functions
    *
    * These functions handle switching between the different views.
-   * They update the state which triggers a re-render with the new view.
+   * They update the URL which triggers a re-render with the new view.
    */
   const handleGridClick = () => {
-    setCurrentView('grid');
+    // Navigate to root URL without query parameters for grid view
+    navigate('/');
   };
 
   const handleStatsClick = () => {
-    setCurrentView('stats');
+    // Navigate to stats view using query parameter
+    navigate('/?view=stats');
   };
 
   const handleConfClick = () => {
-    setCurrentView('conf');
+    // Navigate to conf view using query parameter
+    navigate('/?view=conf');
   };
 
   /**
@@ -964,6 +974,16 @@ const Index = () => {
                         rel="noopener noreferrer"
                       >
                         shakespeare
+                      </a>
+                      , <a
+                        href="/about"
+                        className="text-primary hover:text-primary/80 underline transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate('/about');
+                        }}
+                      >
+                        about
                       </a>
                     </p>
                   </div>

@@ -15,6 +15,7 @@ import { ScrollToTop } from "./components/ScrollToTop";
 
 // Import page components
 import Index from "./pages/Index";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 /**
@@ -48,6 +49,12 @@ export function AppRouter() {
           This shows the main time tracking interface
         */}
         <Route path="/" element={<Index />} />
+
+        {/*
+          About route: Matches the "/about" URL
+          Shows information about the app and how to use it
+        */}
+        <Route path="/about" element={<About />} />
 
         {/*
           IMPORTANT: Add all custom routes ABOVE this catch-all route.
