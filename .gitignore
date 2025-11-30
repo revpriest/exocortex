@@ -31,3 +31,5 @@ yarn.lock
 .env
 .env.*
 !.env.example
+
+publish.sh
