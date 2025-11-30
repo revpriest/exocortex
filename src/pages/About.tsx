@@ -132,7 +132,7 @@ const About = () => {
               <h3 className="font-semibold text-foreground">Set Up Reminders</h3>
               <p className="text-muted-foreground">
                 Enable notification reminders in the <span className="font-mono bg-muted px-2 py-1 rounded">Conf</span> section
-                to get periodic prompts to update your log. You can choose hourly or every-2-hour reminders,
+                to get periodic prompts to update your log. You can choose from 15-minute, 30-minute, hourly, or every-2-hour reminders,
                 set night hours to avoid sleep interruptions, and configure silent vs sound notifications.
                 Never miss logging an important activity again!
               </p>
@@ -180,7 +180,7 @@ const About = () => {
                 Flexible Scheduling
               </h3>
               <p className="text-sm text-muted-foreground">
-                Choose between hourly, every-2-hours, or disable reminders entirely.
+                Choose from 15-minute, 30-minute, hourly, or every-2-hours reminders, or disable entirely.
                 Settings are saved automatically and persist across sessions.
               </p>
             </div>

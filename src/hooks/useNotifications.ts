@@ -18,12 +18,12 @@ import { ExocortexDB, ExocortexEvent, formatTime } from '@/lib/exocortex';
 
 /**
  * Notification Settings Interface
- * 
+ *
  * Defines the structure for notification preferences
  */
 interface NotificationSettings {
   /** How often to send reminders */
-  frequency: 'never' | 'hourly' | 'every-2-hours';
+  frequency: 'never' | '15-minutes' | '30-minutes' | 'hourly' | 'every-2-hours';
   /** Whether to pause notifications at night */
   exceptAtNight: boolean;
   /** Start time for night period (hour 0-23) */
@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 
 /**
  * useNotifications Hook
- * 
+ *
  * Manages all notification functionality including permissions, scheduling,
  * and notification creation.
  */
@@ -116,11 +116,11 @@ export function useNotifications() {
 
   /**
    * Check if current time is within the restricted night period
-   * 
+   *
    * This handles the tricky case where night period wraps around midnight.
    * For example, if nightStartHour = 23 (11 PM) and nightEndHour = 9 (9 AM):
    * - 10 PM is NOT in night period
-   * - 11 PM IS in night period  
+   * - 11 PM IS in night period
    * - 2 AM IS in night period
    * - 8 AM IS in night period
    * - 10 AM is NOT in night period
@@ -163,10 +163,10 @@ export function useNotifications() {
     try {
       // Get the most recent event
       const lastEvent = await dbRef.current.getLatestEvent();
-      
+
       let title = 'Remember to update your exocortex log';
       let body = 'It\'s time to log your current activity';
-      
+
       if (lastEvent) {
         const eventTime = formatTime(lastEvent.endTime);
         body = `You finished ${lastEvent.category} at ${eventTime}`;
@@ -191,10 +191,10 @@ export function useNotifications() {
         if (window.focus) {
           window.focus();
         }
-        
+
         // If the window is not focused or not visible, navigate to the app
         window.location.href = '/';
-        
+
         // Close the notification
         notification.close();
       };
@@ -227,6 +227,12 @@ export function useNotifications() {
     // Calculate interval based on frequency
     let intervalMs: number;
     switch (settings.frequency) {
+      case '15-minutes':
+        intervalMs = 15 * 60 * 1000; // 15 minutes
+        break;
+      case '30-minutes':
+        intervalMs = 30 * 60 * 1000; // 30 minutes
+        break;
       case 'hourly':
         intervalMs = 60 * 60 * 1000; // 1 hour
         break;
@@ -258,7 +264,7 @@ export function useNotifications() {
    */
   useEffect(() => {
     scheduleNotifications();
-    
+
     // Cleanup on unmount
     return () => {
       if (notificationIntervalRef.current) {
@@ -287,12 +293,12 @@ export function useNotifications() {
     settings,
     permissionStatus,
     isSupported,
-    
+
     // Actions
     requestPermission,
     updateSettings,
     testNotification,
-    
+
     // Utilities
     isInNightPeriod,
   };

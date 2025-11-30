@@ -27,11 +27,11 @@ import { useNotifications } from '@/hooks/useNotifications';
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   const hour = i.toString().padStart(2, '0');
   const timeStr = `${hour}:00`;
-  const displayStr = i === 0 ? '12:00 AM' : 
-                    i < 12 ? `${i}:00 AM` : 
-                    i === 12 ? '12:00 PM' : 
+  const displayStr = i === 0 ? '12:00 AM' :
+                    i < 12 ? `${i}:00 AM` :
+                    i === 12 ? '12:00 PM' :
                     `${i - 12}:00 PM`;
-  
+
   return { value: i, label: displayStr, timeStr };
 });
 
@@ -144,7 +144,7 @@ export function NotificationSettings() {
 
     const startTime = formatNightTimeDisplay(settings.nightStartHour);
     const endTime = formatNightTimeDisplay(settings.nightEndHour);
-    
+
     if (settings.nightStartHour > settings.nightEndHour) {
       // Wraps around midnight
       return `Notifications paused from ${startTime} to ${endTime} (next day)`;
@@ -219,7 +219,7 @@ export function NotificationSettings() {
           <label className="text-sm font-medium">Reminder Frequency</label>
           <Select
             value={settings.frequency}
-            onValueChange={(value: 'never' | 'hourly' | 'every-2-hours') => 
+            onValueChange={(value: 'never' | '15-minutes' | '30-minutes' | 'hourly' | 'every-2-hours') =>
               updateSettings({ frequency: value })
             }
             disabled={permissionStatus !== 'granted'}
@@ -232,6 +232,18 @@ export function NotificationSettings() {
                 <div className="flex items-center gap-2">
                   <BellOff className="h-4 w-4" />
                   Never
+                </div>
+              </SelectItem>
+              <SelectItem value="15-minutes">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Every 15 minutes
+                </div>
+              </SelectItem>
+              <SelectItem value="30-minutes">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Every 30 minutes
                 </div>
               </SelectItem>
               <SelectItem value="hourly">
