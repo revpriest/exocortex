@@ -235,25 +235,10 @@ const CacheResetSection = () => {
  * Provides database operations including import, export, test data generation,
  * and database clearing functionality.
  */
-const DBManagementSection = () => {
-  const [db, setDb] = useState<ExocortexDB | null>(null);
+const DBManagementSection = ({db}) => {
   const [error, setError] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showTestConfirm, setShowTestConfirm] = useState(false);
-
-  // Initialize database
-  useEffect(() => {
-    const initDb = async () => {
-      const database = new ExocortexDB();
-      await database.init();
-      setDb(database);
-    };
-
-    initDb().catch((error) => {
-      console.error('Failed to initialize database:', error);
-      setError('Failed to initialize database. Please refresh the page.');
-    });
-  }, []);
 
   const handleExport = async () => {
     if (!db) return;
@@ -656,6 +641,7 @@ const Index = () => {
 
   // Database instance for storing and retrieving events
   const [db, setDb] = useState<ExocortexDB | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Loading state for showing loading indicators during data operations
   const [loading, setLoading] = useState(true);
@@ -669,6 +655,63 @@ const Index = () => {
 
   // Force grid refresh trigger
   const [forceGridRefresh, setForceGridRefresh] = useState(0);
+
+  useEffect(() => {
+    const initAll = async () => {
+      const db = new ExocortexDB();
+      await db.init();
+      setDb(db);
+
+      // Calculate how many days we need to fill the screen
+      // Assuming each row is 80px tall and screen height is available
+      const screenHeight = window.innerHeight - 100; // Account for header and button
+      const rowsNeeded = Math.ceil(screenHeight / 80) + 2; // +2 for extra scroll buffer
+      const daysToLoad = Math.max(7, rowsNeeded); // At least 7 days
+
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
+
+      // Try to get days with events
+      const daysWithEvents = await db.getEventsByDateRangeOnly(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+      );
+
+      // Generate all days in the range
+      const allDays: DayEvents[] = [];
+      for (let i = 0; i < daysToLoad; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(currentDate.getDate() - i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+
+        // Check if we have events for this day
+        const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
+
+        if (dayWithEvents) {
+          allDays.push(dayWithEvents);
+        } else {
+          allDays.push({ date: dateStr, events: [] });
+        }
+      }
+
+      // Sort by date (newest first)
+      allDays.sort((a, b) => {
+        const aDate = new Date(a.date);
+        const bDate = new Date(b.date);
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      // Hide loading indicator once data is loaded
+      setLoading(false);
+    };
+
+    // Execute initialization and handle any errors
+    initAll().catch((error) => {
+      console.error('Failed to initialize database:', error);
+      setError('Failed to initialize database. Please refresh the page.');
+    });
+  }, []); // Empty dependency array means this runs only once on mount
 
 
   // React Router hooks for URL-based navigation
@@ -864,7 +907,7 @@ const Index = () => {
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
       {/* Header with navigation controls - mobile optimized */}
       <div className="mb-4">
-        <TitleNav currentView={currentView} db={db} title="Time Grid" explain="Jump to today" />
+        <TitleNav currentView={currentView} db={db} setDays={{setDays}} title="Time Grid" explain="Jump to today" />
       </div>
 
       {/*
@@ -895,7 +938,7 @@ const Index = () => {
           The className="w-full" ensures the component takes full width of container.
         */}
         {currentView === 'grid' ? (
-          <ExocortexGrid loading={loading} days={days} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
+          <ExocortexGrid loading={loading} setLoading={setLoading} setDays={setDays} days={days} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
         ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
         ) : (
@@ -933,7 +976,7 @@ const Index = () => {
             <CacheResetSection />
 
             {/* Database Management Section */}
-            <DBManagementSection />
+            <DBManagementSection db={db}/>
 
             {/* About Content */}
             <Card>

@@ -78,32 +78,10 @@ const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both m
  * This is the main component function that renders our time tracking grid.
  * It manages all state related to events, database operations, and UI interactions.
  */
-export function ExocortexGrid({ className, refreshTrigger }: ExocortexGridProps) {
+export function ExocortexGrid({ className, refreshTrigger, db, days, setDays, loading, setLoading }: ExocortexGridProps) {
   const { config } = useAppContext();
   const [error, setError] = useState<string | null>(null);
-  const [db, setDb] = useState<ExocortexDB | null>(null);
-  const [days, setDays] = useState<DayEvents[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  /**
-   * Component State Variables
-   *
-   * These state variables manage all the data and UI state for the grid:
-   *
-   * days: Array of day data with events for each day
-   * db: Instance of our IndexedDB database for data persistence
-   * loading: Shows loading indicator while fetching data
-   * error: Error message to display to user (null = no error)
-   * currentDate: Current date reference for calculations
-   * showClearConfirm: Controls confirmation dialog for clearing all data
-   */
-
-
-  // Mobile responsiveness hook
-  const isMobile = useIsMobile() || false;
-
-  // Current date reference for various calculations
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date()); 
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
   /**
@@ -121,13 +99,14 @@ export function ExocortexGrid({ className, refreshTrigger }: ExocortexGridProps)
   const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
   const [hasDragged, setHasDragged] = useState(false);
   const dragThreshold = 5; // 5 pixels minimum movement to consider it a drag
+  
 
-  /**
-   * React Refs
-   *
-   * Refs provide direct access to DOM elements and persist values
-   * without triggering re-renders when they change.
-   */
+  //Some state for the edit event dialog
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
+
+  // Mobile responsiveness hook
+  const isMobile = useIsMobile() || false;
 
   // Reference to the main grid container (for scrolling and measurements)
   const gridRef = useRef<HTMLDivElement>(null);
@@ -138,75 +117,6 @@ export function ExocortexGrid({ className, refreshTrigger }: ExocortexGridProps)
   // Reference to the loading trigger element at bottom of grid
   const loadingRef = useRef<HTMLDivElement>(null);
 
-  /**
- * Database Initialization Effect
- *
- * This useEffect runs only once when component mounts (empty dependency array []).
- * It sets up the database and loads initial data.
- */
-useEffect(() => {
-    const initDb = async () => {
-      // Create new instance of our IndexedDB database
-      const database = new ExocortexDB();
-
-      // Initialize database (creates tables and indexes if they don't exist)
-      await database.init();
-
-      // Store database instance in state so other functions can use it
-      setDb(database);
-
-      // Calculate how many days we need to fill the screen
-      // Assuming each row is 80px tall and screen height is available
-      const screenHeight = window.innerHeight - 100; // Account for header and button
-      const rowsNeeded = Math.ceil(screenHeight / 80) + 2; // +2 for extra scroll buffer
-      const daysToLoad = Math.max(7, rowsNeeded); // At least 7 days
-
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
-
-      // Try to get days with events
-      const daysWithEvents = await database.getEventsByDateRangeOnly(
-        startDate.toISOString().split('T')[0],
-        today.toISOString().split('T')[0]
-      );
-
-      // Generate all days in the range
-      const allDays: DayEvents[] = [];
-      for (let i = 0; i < daysToLoad; i++) {
-        const currentDate = new Date(today);
-        currentDate.setDate(currentDate.getDate() - i);
-        const dateStr = currentDate.toISOString().split('T')[0];
-
-        // Check if we have events for this day
-        const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
-
-        if (dayWithEvents) {
-          allDays.push(dayWithEvents);
-        } else {
-          allDays.push({ date: dateStr, events: [] });
-        }
-      }
-
-      // Sort by date (newest first)
-      allDays.sort((a, b) => {
-        const aDate = new Date(a.date);
-        const bDate = new Date(b.date);
-        return bDate.getTime() - aDate.getTime();
-      });
-
-      setDays(allDays);
-
-      // Hide loading indicator once data is loaded
-      setLoading(false);
-    };
-
-    // Execute initialization and handle any errors
-    initDb().catch((error) => {
-      console.error('Failed to initialize database:', error);
-      setError('Failed to initialize database. Please refresh the page.');
-    });
-  }, []); // Empty dependency array means this runs only once on mount
 
 /**
  * Load Days Function with Batch Processing
@@ -338,7 +248,7 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
         observerRef.current.disconnect();
       }
     };
-  }, [loading, days, db]);
+  }, [loading, days, db, loading, setDays]);
 
   // Refresh grid when refreshTrigger changes
   useEffect(() => {
@@ -849,16 +759,14 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     // Only trigger event click if we haven't just finished dragging
     if (!hasDragged) {
       // Define the click handler inline to avoid hoisting issues
-//TODO
-//      setEditingEvent(event);
-//      setIsDialogOpen(true);
+      setEditingEvent(event);
+      setIsDialogOpen(true);
     }
   }, [hasDragged]);
 
   const handleEventClick = (event: ExocortexEvent) => {
-//TODO
-//   setEditingEvent(event);
-//   setIsDialogOpen(true);
+   setEditingEvent(event);
+   setIsDialogOpen(true);
   };
 
 

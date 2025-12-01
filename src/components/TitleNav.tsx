@@ -34,7 +34,7 @@ interface TitleNavProps {
 /**
  * Main TitleNav Component
  */
-export function TitleNav({ title = "", explain="", currentView = "grid", db }: TitleNavProps) {
+export function TitleNav({ title = "", explain="", currentView = "grid", db, setDays }: TitleNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
