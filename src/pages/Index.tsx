@@ -22,11 +22,11 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
 import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
 import { APP_VERSION } from '../main';
+import { TitleNav } from '../components/TitleNav';
 
 /**
  * New User Welcome Dialog Component
@@ -651,11 +651,28 @@ const DBManagementSection = () => {
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
-  // React Router hooks for URL-based navigation
-  const [searchParams, setSearchParams] = useSearchParams();
+  // Array containing events grouped by day
+  const [days, setDays] = useState<DayEvents[]>([]);
+
+  // Database instance for storing and retrieving events
+  const [db, setDb] = useState<ExocortexDB | null>(null);
+
+  // Loading state for showing loading indicators during data operations
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Welcome dialog state for new users
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
+
+  // Force grid refresh trigger
+  const [forceGridRefresh, setForceGridRefresh] = useState(0);
+
+
+  // React Router hooks for URL-based navigation
+  const [searchParams, setSearchParams] = useSearchParams();
   /**
    * Get current view from URL query parameter
    * Defaults to 'grid' if no view parameter is provided
@@ -666,13 +683,6 @@ const Index = () => {
   };
 
   const currentView = getCurrentView();
-
-  // Welcome dialog state for new users
-  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
-  const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
-
-  // Force grid refresh trigger
-  const [forceGridRefresh, setForceGridRefresh] = useState(0);
 
   /**
    * Set SEO (Search Engine Optimization) metadata
@@ -701,8 +711,8 @@ const Index = () => {
 
     const checkDatabaseEmpty = async () => {
       try {
-        const database = new ExocortexDB();
-        await database.init();
+        const db = new ExocortexDB();
+        await db.init();
 
         // Check if database has any events by querying a wider date range
         // This is more reliable than just checking today
@@ -710,7 +720,7 @@ const Index = () => {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 7); // Check last 7 days
 
-        const days = await database.getEventsByDateRangeOnly(
+        const days = await db.getEventsByDateRangeOnly(
           startDate.toISOString().split('T')[0],
           endDate.toISOString().split('T')[0]
         );
@@ -734,36 +744,15 @@ const Index = () => {
   }, [currentView]); // Dependency on currentView
 
   /**
-   * Navigation Handler Functions
-   *
-   * These functions handle switching between the different views.
-   * They update the URL which triggers a re-render with the new view.
-   */
-  const handleGridClick = () => {
-    // Navigate to root URL without query parameters for grid view
-    navigate('/');
-  };
-
-  const handleStatsClick = () => {
-    // Navigate to stats view using query parameter
-    navigate('/?view=stats');
-  };
-
-  const handleConfClick = () => {
-    // Navigate to conf view using query parameter
-    navigate('/?view=conf');
-  };
-
-  /**
    * Generate test data for welcome dialog
    */
   const handleWelcomeGenerateTestData = async () => {
-    const database = new ExocortexDB();
-    await database.init();
+    const db = new ExocortexDB();
+    await db.init();
 
     try {
       // Clear existing data first
-      await database.clearAllEvents();
+      await db.clearAllEvents();
 
       // Categories for test data (excluding Sleep - we'll handle that specially)
       const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
@@ -854,7 +843,7 @@ const Index = () => {
 
       // Add all events to database
       for (const event of events) {
-        await database.addEvent(event);
+        await db.addEvent(event);
       }
     } catch (error) {
       console.error('Failed to generate test data:', error);
@@ -873,6 +862,11 @@ const Index = () => {
    */
   return (
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
+      {/* Header with navigation controls - mobile optimized */}
+      <div className="mb-4">
+        <TitleNav currentView={currentView} db={db} title="Time Grid" explain="Jump to today" />
+      </div>
+
       {/*
         Container with max width keeps content readable on large screens
         and centers it horizontally with mx-auto (margin-left: auto; margin-right: auto)
@@ -894,42 +888,6 @@ const Index = () => {
             }}
           />
         )}
-        {/* Navigation Header */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              ExocortexLog
-            </h1>
-
-            {/* View Toggle Buttons */}
-            <div className="flex gap-2">
-              <Button
-                variant={currentView === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleGridClick}
-              >
-                <Grid3X3 className="h-4 w-4 mr-2" />
-                Grid
-              </Button>
-              <Button
-                variant={currentView === 'stats' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleStatsClick}
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Stats
-              </Button>
-              <Button
-                variant={currentView === 'conf' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleConfClick}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Conf
-              </Button>
-            </div>
-          </div>
-        </div>
 
         {/* Main Content Area */}
         {/*
@@ -937,7 +895,7 @@ const Index = () => {
           The className="w-full" ensures the component takes full width of container.
         */}
         {currentView === 'grid' ? (
-          <ExocortexGrid className="w-full" refreshTrigger={forceGridRefresh} />
+          <ExocortexGrid loading={loading} days={days} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
         ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
         ) : (
