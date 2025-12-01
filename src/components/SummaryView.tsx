@@ -26,8 +26,23 @@ interface SummaryViewProps {
  * Displays a single event with its details
  */
 const EventItem = ({ event, showDate = false }: { event: TimeEvent; showDate?: boolean }) => {
-  const startTime = new Date(event.endTime - event.duration);
-  const endTime = new Date(event.endTime);
+  // Validate and handle invalid timestamps
+  const isValidTimestamp = (timestamp: number) => {
+    return typeof timestamp === 'number' &&
+           !isNaN(timestamp) &&
+           timestamp > 0 &&
+           timestamp <= Date.now() + 24 * 60 * 60 * 1000; // Allow events slightly in the future
+  };
+
+  // Handle invalid endTime - use current time as fallback
+  const endTime = isValidTimestamp(event.endTime) ? new Date(event.endTime) : new Date();
+
+  // Handle invalid duration - use 1 hour as fallback
+  const duration = isValidTimestamp(event.duration) && event.duration > 0 ? event.duration : 60 * 60 * 1000;
+
+  // Calculate startTime, ensuring it's valid
+  const startTimeTimestamp = endTime.getTime() - duration;
+  const startTime = isValidTimestamp(startTimeTimestamp) ? new Date(startTimeTimestamp) : new Date(endTime.getTime() - 60 * 60 * 1000);
 
   return (
     <div className="p-3 border-l-2 border-muted bg-muted/30 hover:bg-muted/50 transition-colors">
@@ -45,7 +60,7 @@ const EventItem = ({ event, showDate = false }: { event: TimeEvent; showDate?: b
               {format(startTime, 'HH:mm')} - {format(endTime, 'HH:mm')}
             </span>
             <Clock className="h-3 w-3 ml-1" />
-            <span>{Math.round(event.duration / (1000 * 60))}m</span>
+            <span>{Math.round(duration / (1000 * 60))}m</span>
           </div>
 
           {/* Category */}
@@ -74,30 +89,30 @@ const EventItem = ({ event, showDate = false }: { event: TimeEvent; showDate?: b
                 <span className="text-xs text-muted-foreground">H:</span>
                 <span className={cn(
                   "text-xs font-medium",
-                  event.happiness >= 0.7 ? "text-green-600" :
-                  event.happiness >= 0.4 ? "text-yellow-600" : "text-red-600"
+                  (event.happiness ?? 0) >= 0.7 ? "text-green-600" :
+                  (event.happiness ?? 0) >= 0.4 ? "text-yellow-600" : "text-red-600"
                 )}>
-                  {Math.round(event.happiness * 100)}%
+                  {Math.round((event.happiness ?? 0) * 100)}%
                 </span>
               </div>
               <div className="flex gap-1">
                 <span className="text-xs text-muted-foreground">W:</span>
                 <span className={cn(
                   "text-xs font-medium",
-                  event.wakefulness >= 0.7 ? "text-green-600" :
-                  event.wakefulness >= 0.4 ? "text-yellow-600" : "text-red-600"
+                  (event.wakefulness ?? 0) >= 0.7 ? "text-green-600" :
+                  (event.wakefulness ?? 0) >= 0.4 ? "text-yellow-600" : "text-red-600"
                 )}>
-                  {Math.round(event.wakefulness * 100)}%
+                  {Math.round((event.wakefulness ?? 0) * 100)}%
                 </span>
               </div>
               <div className="flex gap-1">
                 <span className="text-xs text-muted-foreground">Hl:</span>
                 <span className={cn(
                   "text-xs font-medium",
-                  event.health >= 0.7 ? "text-green-600" :
-                  event.health >= 0.4 ? "text-yellow-600" : "text-red-600"
+                  (event.health ?? 0) >= 0.7 ? "text-green-600" :
+                  (event.health ?? 0) >= 0.4 ? "text-yellow-600" : "text-red-600"
                 )}>
-                  {Math.round(event.health * 100)}%
+                  {Math.round((event.health ?? 0) * 100)}%
                 </span>
               </div>
             </div>
@@ -132,7 +147,19 @@ const DaySection = ({ dayWithEvents }: { dayWithEvents: DayWithEvents }) => {
         <CardTitle className="text-lg flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            {format(new Date(dayWithEvents.date), 'EEEE, MMMM d, yyyy')}
+            {(() => {
+              try {
+                const date = new Date(dayWithEvents.date);
+                // Check if date is valid
+                if (isNaN(date.getTime())) {
+                  return dayWithEvents.date; // Fallback to raw string
+                }
+                return format(date, 'EEEE, MMMM d, yyyy');
+              } catch (error) {
+                console.warn('Invalid date format:', dayWithEvents.date);
+                return dayWithEvents.date; // Fallback to raw string
+              }
+            })()}
           </div>
           <Badge variant="outline">
             {dayWithEvents.events.length} events
@@ -155,7 +182,7 @@ const DaySection = ({ dayWithEvents }: { dayWithEvents: DayWithEvents }) => {
                     ({eventsWithNotes.length} with notes, {eventsWithoutNotes.length} without)
                   </span>
                 </div>
-                
+
                 {eventsWithoutNotes.length > 0 && (
                   <Collapsible
                     open={isExpanded}
@@ -174,7 +201,7 @@ const DaySection = ({ dayWithEvents }: { dayWithEvents: DayWithEvents }) => {
                         </span>
                       </Button>
                     </CollapsibleTrigger>
-                    
+
                     <CollapsibleContent className="space-y-2 mt-2">
                       {eventsWithoutNotes.map((event, index) => (
                         <EventItem key={index} event={event} />
@@ -243,7 +270,20 @@ const SummaryView: React.FC<SummaryViewProps> = ({ className }) => {
           endDate.toISOString().split('T')[0]
         );
 
-        setDaysWithEvents(days.reverse()); // Most recent first
+        // Filter out events with invalid data to prevent rendering errors
+        const cleanedDays = days.map(day => ({
+          ...day,
+          events: day.events.filter(event => {
+            // Ensure event has required fields and valid timestamps
+            return event &&
+                   typeof event.endTime === 'number' &&
+                   !isNaN(event.endTime) &&
+                   event.endTime > 0 &&
+                   event.category;
+          })
+        })).filter(day => day.events.length > 0);
+
+        setDaysWithEvents(cleanedDays.reverse()); // Most recent first
       } catch (err) {
         console.error('Failed to load events:', err);
         setError('Failed to load events. Please try again.');
@@ -309,9 +349,9 @@ const SummaryView: React.FC<SummaryViewProps> = ({ className }) => {
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="space-y-4">
           {daysWithEvents.map((dayWithEvents) => (
-            <DaySection 
-              key={dayWithEvents.date} 
-              dayWithEvents={dayWithEvents} 
+            <DaySection
+              key={dayWithEvents.date}
+              dayWithEvents={dayWithEvents}
             />
           ))}
         </div>
