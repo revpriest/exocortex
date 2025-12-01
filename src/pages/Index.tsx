@@ -13,7 +13,6 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { StatsView } from '@/components/StatsView';
-import { SummaryView } from '@/components/SummaryView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { ExocortexDB } from '@/lib/exocortex';
@@ -24,7 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { Grid3X3, BarChart3, FileText, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
 import { APP_VERSION } from '../main';
@@ -661,9 +660,9 @@ const Index = () => {
    * Get current view from URL query parameter
    * Defaults to 'grid' if no view parameter is provided
    */
-  const getCurrentView = (): 'grid' | 'stats' | 'summary' | 'conf' => {
+  const getCurrentView = (): 'grid' | 'stats' | 'conf' => {
     const view = searchParams.get('view');
-    return (view === 'stats' || view === 'summary' || view === 'conf') ? view : 'grid';
+    return (view === 'stats' || view === 'conf') ? view : 'grid';
   };
 
   const currentView = getCurrentView();
@@ -748,11 +747,6 @@ const Index = () => {
   const handleStatsClick = () => {
     // Navigate to stats view using query parameter
     navigate('/?view=stats');
-  };
-
-  const handleSummaryClick = () => {
-    // Navigate to summary view using query parameter
-    navigate('/?view=summary');
   };
 
   const handleConfClick = () => {
@@ -926,14 +920,6 @@ const Index = () => {
                 Stats
               </Button>
               <Button
-                variant={currentView === 'summary' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleSummaryClick}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Summary
-              </Button>
-              <Button
                 variant={currentView === 'conf' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleConfClick}
@@ -954,8 +940,6 @@ const Index = () => {
           <ExocortexGrid className="w-full" refreshTrigger={forceGridRefresh} />
         ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
-        ) : currentView === 'summary' ? (
-          <SummaryView className="w-full" />
         ) : (
           <div className="space-y-6">
             {/* Theme Settings Section */}
