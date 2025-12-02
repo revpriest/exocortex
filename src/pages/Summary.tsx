@@ -241,6 +241,7 @@ const Summary: React.FC = () => {
       triggerRefresh={() => setForceRefresh(f => f+1)}
       setSkipDate={setSkipDate}
     >
+      {/* Dialog for edit events */}
       <EventDialog
         open={!!editingEvent}
         onOpenChange={handleDialogOpenChange}

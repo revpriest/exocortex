@@ -17,19 +17,13 @@
  * - Mobile-responsive design
  */
 
-// React hooks for managing state and lifecycle
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-
-// Import our data types and utilities
 import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
-
-// Import hooks
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAppContext } from '@/hooks/useAppContext';
-
-// Import UI components
 import { Button } from '@/components/ui/button';
 import { SmileyFace } from './SmileyFace';
+import { EventDialog } from '@/components/EventDialog';
 
 
 /**
@@ -71,6 +65,7 @@ const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both m
 interface ExocortexGridProps {
   className?: string;
   refreshTrigger?: number;
+  setRefreshTrigger?: number;
   skipDate?: Date|null;
   setSkipDate?: (newDate: Date) => void;
 }
@@ -81,7 +76,7 @@ interface ExocortexGridProps {
  * This is the main component function that renders our time tracking grid.
  * It manages all state related to events, database operations, and UI interactions.
  */
-export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkipDate}: ExocortexGridProps) {
+export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db, skipDate, setSkipDate}: ExocortexGridProps) {
   const { config } = useAppContext();
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date()); 
@@ -466,6 +461,23 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
       });
   }
 
+  /**
+   * Handle edit-event dialog
+   */
+  const handleDialogOpenChange = (open: boolean) => { if (!open) setEditingEvent(null); };
+  const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
+    if (!db) return;
+    await db.updateEvent(id, eventData);
+    setEditingEvent(null);
+    console.log("Updating event ",setRefreshTrigger);
+    setRefreshTrigger(f => f + 1);
+  };
+  const handleDeleteEvent = async (id: string) => {
+    if (!db) return;
+    await db.deleteEvent(id);
+    setEditingEvent(null);
+    setRefreshTrigger(f => f + 1);
+  };
 
   /**
    * Drag-to-Scroll Event Handlers
@@ -473,7 +485,6 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
    * These handlers implement the drag-to-scroll functionality for the grid.
    * This allows users to click and drag to navigate the large time grid.
    */
-
   // Handle mouse down - start dragging
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     // Only exclude certain UI controls, but allow dragging over events and other elements
@@ -954,6 +965,14 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
 
   return (
     <div className={`relative ${className}`}>
+      {/* Dialog for edit events */}
+      <EventDialog
+        open={!!editingEvent}
+        onOpenChange={handleDialogOpenChange}
+        onUpdate={handleUpdateEvent}
+        onDelete={handleDeleteEvent}
+        editEvent={editingEvent}
+      />
       {/* Grid container - mobile optimized */}
       <div
         ref={gridRef}
