@@ -10,7 +10,7 @@ import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, Bell, Moon, Volume2 } from 'lucide-react';
+import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, Bell, Moon, Volume2, ListCollapse } from 'lucide-react';
 import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
 
@@ -68,13 +68,17 @@ const About = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-foreground leading-relaxed">
-            ExocortexLog is more than just a time tracker—it's your personal exocortex, an external
+            ExocortexLog is more than just a time tracker
+
+it's your personal exocortex, an external
             memory system that helps you capture, organize, and reflect on your daily experiences.
             By visualizing your time in an intuitive grid format, you can discover patterns, track moods,
             and build a comprehensive record of your life.
           </p>
           <p className="text-foreground leading-relaxed">
-            The app stays completely on your device—no data is sent to external servers. Your memories
+            The app stays completely on your device
+
+no data is sent to external servers. Your memories
             and patterns remain private and secure, accessible only to you.
           </p>
         </CardContent>
@@ -117,7 +121,9 @@ const About = () => {
               <p className="text-muted-foreground">
                 The main grid shows your daily activities as colored blocks. Each row represents a day,
                 and columns represent hours. Colors indicate different categories, and smiley faces show your mood.
-                Scroll down to see past days—older data loads automatically.
+                Scroll down to see past days
+
+older data loads automatically.
               </p>
             </div>
           </div>
@@ -167,6 +173,44 @@ const About = () => {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Page */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ListCollapse className="h-5 w-5" />
+            Summary Page: How It Works
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-foreground leading-relaxed">
+            The <strong>Summary</strong> page provides a smart, compact overview of your recent activity log. Events are grouped in a way that highlights what’s most important while keeping the page easy to scan.
+          </p>
+          <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
+            <li>
+              <strong>Notable Moments Stand Out:</strong> Any event with personal notes is always shown as a separate row, with your note and event details prominently displayed.
+            </li>
+            <li>
+              <strong>Batched Mundane Activities:</strong> Multiple consecutive events without notes are automatically “collapsed” into a single summary row, making longer streaks of routine activities easy to skim past.
+            </li>
+            <li>
+              <strong>Expand Groups:</strong> You can click to expand any collapsed group and view all the individual events inside.
+            </li>
+            <li>
+              <strong>Mood At a Glance:</strong> Each row shows mood faces (happiness, wakefulness, health). Color bars represent event types.
+            </li>
+            <li>
+              <strong>Day Separators:</strong> Days are clearly separated and labeled for quick navigation.
+            </li>
+            <li>
+              <strong>Quick Edits:</strong> Click any event to quickly edit, add notes, or change details right from the summary.
+            </li>
+          </ul>
+          <p className="text-foreground">
+            This is the best way to understand your life at a glance—see what stands out, hide what doesn’t, and zoom into every detail with a click when you want.
+          </p>
         </CardContent>
       </Card>
 
@@ -318,43 +362,43 @@ const About = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
+            <span className="text-primary font-semibold">e</span>
             <p className="text-sm text-foreground">
               <strong>Be consistent:</strong> Try to log events at the same times each day to build a routine.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
+            <span className="text-primary font-semibold"> 2e</span>
             <p className="text-sm text-foreground">
               <strong>Use meaningful categories:</strong> Create categories that reflect your actual activities and lifestyle.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
+            <span className="text-primary font-semibold"> 2e</span>
             <p className="text-sm text-foreground">
               <strong>Add notes when significant:</strong> Journal entries for important events provide valuable context later.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
+            <span className="text-primary font-semibold"> 2e</span>
             <p className="text-sm text-foreground">
               <strong>Backup regularly:</strong> Use the export feature weekly to prevent data loss.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
+            <span className="text-primary font-semibold"> 2e</span>
             <p className="text-sm text-foreground">
               <strong>Review weekly:</strong> Check your stats every week to identify patterns and make adjustments.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
+            <span className="text-primary font-semibold"> 2e</span>
             <p className="text-sm text-foreground">
               <strong>Enable reminders:</strong> Set up notification reminders to build consistent logging habits.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
+            <span className="text-primary font-semibold"> 2e</span>
             <p className="text-sm text-foreground">
               <strong>Respect your sleep:</strong> Configure night hours to avoid interruptions during rest.
             </p>

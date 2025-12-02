@@ -19,19 +19,6 @@ See it at https://exocortex.dalliance.net/
 - **Mobile Responsive**: Works perfectly on phones and tablets
 - **Dark Theme**: Easy on the eyes with a dark interface
 
-## 🛠️ Technology Stack
-
-This app uses modern web development tools:
-
-- **React 18** - A JavaScript library for building user interfaces
-- **TypeScript** - Adds type safety to JavaScript (catches errors before runtime)
-- **Vite** - A fast build tool and development server
-- **Tailwind CSS** - A utility-first CSS framework for styling
-- **shadcn/ui** - Pre-built, accessible UI components
-- **IndexedDB** - Browser's built-in database for storing data locally
-- **React Query** - Handles data fetching and caching
-- **React Router** - Handles navigation between pages
-
 ## 📋 Prerequisites
 
 Before you start, make sure you have:
@@ -90,6 +77,18 @@ Navigate to the URL shown in terminal (usually `http://localhost:5173`)
 - **Colored blocks**: Your events - color indicates category
 - **Smiley faces**: Show your mood during each event
 - **Gray lines**: Hour markers for time reference
+
+### Summary Page: How It Works
+The **Summary** page provides a smart, compact overview of your recent activity log:
+
+- **Notable events stand out**: Any event with a personal note is always shown as an individual row, clearly displaying your notes and details.
+- **Routine activities batched**: Consecutive events without notes are automatically *collapsed* into a single summary row, making it easy to skim past stretches of routine.
+- **Expand for details**: Click to expand a collapsed group and reveal all the individual events inside.
+- **Mood at a glance**: Rows display quick mood faces for happiness, wakefulness, and health, with color bars representing event types.
+- **Day separators**: Each day is visually separated and labeled for quick navigation.
+- **Edit instantly**: Click any row to quickly edit event details or notes.
+
+This lets you understand your life at a glance—see exactly what stands out, hide what doesn’t, and zoom into every detail with a click.
 
 ### Managing Data
 - **Export**: Click "Export" to download all your data as a JSON file
