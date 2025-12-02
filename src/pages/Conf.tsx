@@ -433,7 +433,7 @@ const Conf = () => {
   });
 
   return (
-    <PageLayout db={db} title="Conf" explain="Configuration preferences and help" currentView="conf">
+    <PageLayout db={db} title="Conf" explain="Configuration preferences and help" currentView="conf">           <div className="items-center justify-center flex">
           <div className="space-y-6">
             {/* Theme Settings Section */}
             <Card>
@@ -507,6 +507,7 @@ const Conf = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
     </PageLayout>
   );
 };

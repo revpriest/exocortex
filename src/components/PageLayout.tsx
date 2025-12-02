@@ -42,14 +42,12 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
-      <div className="max-w-4xl mx-auto">
-        <TitleNav setSkipDate={setSkipDate} triggerRefresh={triggerRefresh} currentView={currentView} db={db} title={title} explain={explain} />
+    <div className="bg-background p-2 md:p-4 pb-16 md:pb-20 ">
+      <TitleNav setSkipDate={setSkipDate} triggerRefresh={triggerRefresh} currentView={currentView} db={db} title={title} explain={explain} />
 
-        {/* Page Content */}
-        <div className="space-y-8">
-          {children}
-        </div>
+      {/* Page Content */}
+      <div className="space-y-8">
+        {children}
       </div>
     </div>
   );

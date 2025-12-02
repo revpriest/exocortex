@@ -37,7 +37,7 @@ const Stats = () => {
 
   return (
     <PageLayout db={db} title="Stats" explain="Stats" currentView="stats">
-      <StatsView className="w-full" />
+      <StatsView />
     </PageLayout>
   );
 };
