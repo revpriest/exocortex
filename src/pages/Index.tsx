@@ -343,11 +343,11 @@ const DBManagementSection = ({db}) => {
         'Challenging concepts clicked'
       ],
       'Slack': [
-        'Good conversation with colleagues',
-        'Team discussion was helpful',
-        'Quick catch-up with friends',
-        'Interesting threads today',
-        'Social time well spent'
+        'Busy doing nothing',
+        'Excellent doom scrolling',
+        'Waiting till its times',
+        'pottering around the kitchen',
+        'Lazing on the sofa'
       ]
     };
 
