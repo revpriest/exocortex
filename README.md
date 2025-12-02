@@ -6,7 +6,7 @@ It's a web app, but all your data stays on your own machine.
 
 It can be installed as a Progressive Web App, and run offline.
 
-See it at https://exocortex.dalliance.net/
+Use it at https://exocortexlog.com/
 
 ## 🌟 Features
 
