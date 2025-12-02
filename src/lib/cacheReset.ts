@@ -26,7 +26,7 @@ export async function resetCacheAndReload(): Promise<void> {
     
     // 3. Reload the page from network (bypassing cache)
     console.log('🔄 Reloading app from network...');
-    window.location.href = window.location.origin + window.location.pathname + '?t=' + Date.now();
+    window.location.href = window.location.origin + '?t=' + Date.now();
     
   } catch (error) {
     console.error('❌ Cache reset failed:', error);
