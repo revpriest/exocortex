@@ -14,7 +14,6 @@ import { useNavigate } from 'react-router-dom';
 import { Grid3X3, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
 import { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
 
-
 /**
  * TitleNav Component Props Interface
  *
@@ -36,7 +35,6 @@ interface TitleNavProps {
   /** Set to trigger the grid to skip to a date **/
   setSkipDate?: (newDate: Date) => void;
 }
-
 
 /**
  * Main TitleNav Component
@@ -61,7 +59,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
   // Event being edited (null when adding a new event)
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
 
-
   /**
    * Navigation Handler Functions
    *
@@ -84,7 +81,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     // Navigate to conf view using query parameter
     navigate('/conf');
   };
-
 
   // Custom calendar component with year navigation
   const CalendarWithYearNav = () => {
@@ -148,9 +144,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     );
   };
 
-
-
-
   /** Handle closing the event dialog **/
   const handleDialogClose = () => {
     setIsDialogOpen(false);
@@ -188,7 +181,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     }
   };
 
-
   /** Handle updating an event **/
   const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
@@ -215,9 +207,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     }
   };
 
-
-
-
   const handleOpenAddDialog = async () => {
     if (!db) {
       setIsDialogOpen(true);
@@ -229,7 +218,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     setDefaultValues(defaults);
     setIsDialogOpen(true);
   };
-
 
   const getLatestEventDefaults = async () => {
     if (!db) return { happiness: 0.7, wakefulness: 0.8, health: 0.9 };
@@ -269,7 +257,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
       setSkipDate(targetDate); 
     }
   };
-
 
   /**
    * Show the title and nav
@@ -346,33 +333,37 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 variant={currentView === 'grid' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleGridClick}
+                aria-label="Grid"
               >
-                <Grid3X3 className="h-4 w-4 mr-2" />
-                Grid
+                <Grid3X3 className="h-4 w-4" />
+                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Grid</span>
               </Button>
               <Button
                 variant={currentView === 'summary' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleSummaryClick}
+                aria-label="Summary"
               >
-                <Squirrel className="h-4 w-4 mr-2" />
-                Summary
+                <Squirrel className="h-4 w-4" />
+                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Summary</span>
               </Button>
               <Button
                 variant={currentView === 'stats' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleStatsClick}
+                aria-label="Stats"
               >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Stats
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Stats</span>
               </Button>
               <Button
                 variant={currentView === 'conf' ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleConfClick}
+                aria-label="Conf"
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Conf
+                <Settings className="h-4 w-4" />
+                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Conf</span>
               </Button>
             </div>
           </div>
