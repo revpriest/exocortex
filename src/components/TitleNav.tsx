@@ -12,122 +12,70 @@ import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Grid3X3, BarChart3, Squirrel, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
-import { ExocortexDB } from '@/lib/exocortex';
+import { ExocortexDB, ExocortexEvent } from '@/lib/exocortex';
 
 /**
  * TitleNav Component Props Interface
- *
- * Defines the props this component accepts:
- *
- * title: The title of this page variant
  */
 interface TitleNavProps {
-  /** Currently selected view */
   currentView: string;
-  /** Title of the page, string */
   title: string;
-  /** Mouseover text of the title */
   explain: string;
-  /** Database **/
   db: ExocortexDB | null;
-  /** Trigger the grid to redraw **/
   triggerRefresh: (triggerRefresh: int) => void;
-  /** Set to trigger the grid to skip to a date **/
   setSkipDate: (newDate: Date) => void;
+  // Dialog control props (lifted)
+  isDialogOpen: boolean;
+  setIsDialogOpen: (open: boolean) => void;
+  editingEvent: ExocortexEvent | null;
+  setEditingEvent: (e: ExocortexEvent | null) => void;
 }
 
-
-/**
- * Main TitleNav Component
- */
-export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, currentView = "grid" }: TitleNavProps) {
+export function TitleNav({
+  db, setSkipDate, triggerRefresh, title, explain, currentView = "grid",
+  isDialogOpen, setIsDialogOpen, editingEvent, setEditingEvent,
+}: TitleNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Default mood values (happiness, wakefulness, health) for new events
   const [defaultValues, setDefaultValues] = useState({
     happiness: 0.7,
     wakefulness: 0.8,
     health: 0.9,
   });
 
-  // Controls whether the add/edit event dialog is visible
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
   // Skip to date dialog state
   const [showDateSkipDialog, setShowDateSkipDialog] = useState(false);
   const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
 
-  // Event being edited (null when adding a new event)
-  const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
+  // Remove local event dialog state! All controlled via props now
 
+  // Navigation handlers (no change)
+  const handleGridClick = () => navigate('/');
+  const handleStatsClick = () => navigate('/stats');
+  const handleSummaryClick = () => navigate('/summary');
+  const handleConfClick = () => navigate('/conf');
 
-  /**
-   * Navigation Handler Functions
-   *
-   * These functions handle switching between the different views.
-   * They update the URL which triggers a re-render with the new view.
-   */
-  const handleGridClick = () => {
-    navigate('/');
-  };
-
-  const handleStatsClick = () => {
-    navigate('/stats');
-  };
-
-  const handleSummaryClick = () => {
-    navigate('/summary');
-  };
-
-  const handleConfClick = () => {
-    // Navigate to conf view using query parameter
-    navigate('/conf');
-  };
-
-
-  // Custom calendar component with year navigation
+  // Custom calendar with year nav (unchanged)
   const CalendarWithYearNav = () => {
     const [currentMonth, setCurrentMonth] = useState(selectedSkipDate || new Date());
-
     const handleYearUp = () => {
       const newDate = new Date(currentMonth);
       newDate.setFullYear(newDate.getFullYear() + 1);
       setCurrentMonth(newDate);
     };
-
     const handleYearDown = () => {
       const newDate = new Date(currentMonth);
       newDate.setFullYear(newDate.getFullYear() - 1);
       setCurrentMonth(newDate);
     };
-
     return (
       <div className="space-y-4">
-        {/* Year navigation */}
         <div className="flex items-center justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleYearDown}
-            className="bg-secondary border-border"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-          <div className="text-lg font-semibold">
-            {currentMonth.getFullYear()}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleYearUp}
-            className="bg-secondary border-border"
-          >
-            <ChevronUp className="h-4 w-4" />
-          </Button>
+          <Button variant="outline" size="sm" onClick={handleYearDown} className="bg-secondary border-border"><ChevronDown className="h-4 w-4" /></Button>
+          <div className="text-lg font-semibold">{currentMonth.getFullYear()}</div>
+          <Button variant="outline" size="sm" onClick={handleYearUp} className="bg-secondary border-border"><ChevronUp className="h-4 w-4" /></Button>
         </div>
-
-        {/* Calendar */}
         <Calendar
           mode="single"
           selected={selectedSkipDate}
@@ -138,41 +86,27 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
           month={currentMonth}
           onMonthChange={setCurrentMonth}
           className="rounded-md border-border"
-          disabled={(date) => {
-            // Don't allow dates in the future
-            return date > new Date();
-          }}
+          disabled={date => date > new Date()}
           initialFocus
         />
       </div>
     );
   };
 
-
-
-
-  /** Handle closing the event dialog **/
+  // Dialog close handler
   const handleDialogClose = () => {
     setIsDialogOpen(false);
     setEditingEvent(null);
   };
 
-  /** Handle adding an event **/
+  // Add, update, delete use existing code but use setEditingEvent(null) instead of local.
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
-    if (!db) {console.log("Not adding event, no DB");return};
-
+    if (!db) return;
     try {
       await db.addEvent(eventData);
-
-      //After adding event we force a refresh of the top Date.
-      if(triggerRefresh){
-        triggerRefresh(prev => prev + 1);
-        console.log("Triggered refresh? to try and trigger grid refresh");
-      }else{
-        console.log("No refresh required, perhaps not showing data on this page");
-      }
-
+      if (triggerRefresh) triggerRefresh(prev => prev + 1);
       setIsDialogOpen(false);
+      setEditingEvent(null);
     } catch (error) {
       console.error('Failed to add event:', error);
     }
@@ -180,88 +114,40 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
   const handleDeleteEvent = async (id: string) => {
     if (!db) return;
-
     try {
       await db.deleteEvent(id);
-
-      // Remove the event from the corresponding day
-      setDays(prev => {
-        const newDays = prev.map(day => ({
-          ...day,
-          events: day.events.filter(event => event.id !== id)
-        })).filter(day => day.events.length > 0 || day.date === new Date().toISOString().split('T')[0]);
-
-        return newDays;
-      });
+      setIsDialogOpen(false);
+      setEditingEvent(null);
+      if (triggerRefresh) triggerRefresh(prev => prev + 1);
     } catch (error) {
       console.error('Failed to delete event:', error);
     }
   };
 
-
-  /** Handle updating an event **/
   const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
-
     try {
       await db.updateEvent(id, eventData);
-
-      // Get the event date and previous date
-      const eventDate = new Date(eventData.endTime).toISOString().split('T')[0];
-      const previousDate = new Date(eventDate);
-      previousDate.setDate(previousDate.getDate() - 1);
-      const previousDateStr = previousDate.toISOString().split('T')[0];
-
-      // Refresh both the event's day and the previous day (for spanning events)
-      const [eventDayEvents, previousDayEvents] = await Promise.all([
-        db.getEventsByDate(eventDate),
-        db.getEventsByDate(previousDateStr)
-      ]);
-
-      setDays(prev => {
-        const newDays = [...prev];
-
-        // Update the event's day
-        const eventDayIndex = newDays.findIndex(day => day.date === eventDate);
-        if (eventDayIndex !== -1) {
-          newDays[eventDayIndex] = { date: eventDate, events: eventDayEvents };
-        }
-
-        // Update the previous day (if it exists in our display)
-        const previousDayIndex = newDays.findIndex(day => day.date === previousDateStr);
-        if (previousDayIndex !== -1) {
-          newDays[previousDayIndex] = { date: previousDateStr, events: previousDayEvents };
-        }
-
-        return newDays;
-      });
-
       setIsDialogOpen(false);
       setEditingEvent(null);
+      if (triggerRefresh) triggerRefresh(prev => prev + 1);
     } catch (error) {
       console.error('Failed to update event:', error);
     }
   };
 
-
-
-
+  // Add action only: setEditingEvent(null), setIsDialogOpen(true)
   const handleOpenAddDialog = async () => {
-    if (!db) {
-      setIsDialogOpen(true);
-      return;
+    if (db) {
+      const defaults = await getLatestEventDefaults();
+      setDefaultValues(defaults);
     }
-
-    // Get defaults from latest event
-    const defaults = await getLatestEventDefaults();
-    setDefaultValues(defaults);
+    setEditingEvent(null);
     setIsDialogOpen(true);
   };
 
-
   const getLatestEventDefaults = async () => {
     if (!db) return { happiness: 0.7, wakefulness: 0.8, health: 0.9 };
-
     try {
       const latestEvent = await db.getLatestEvent();
       if (latestEvent) {
@@ -274,172 +160,69 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     } catch (error) {
       console.error('Failed to get latest event:', error);
     }
-
     return { happiness: 0.7, wakefulness: 0.8, health: 0.9 };
   };
 
-  // Scroll to today functionality
-  const handleScrollToToday = useCallback(() => {
-    if(setSkipDate){
-      const targetDate = new Date();
-      setSkipDate(targetDate); 
-    }
-  }, []);
+  // Scroll to today
+  const handleScrollToToday = useCallback(() => { if(setSkipDate){ setSkipDate(new Date()); } }, []);
 
-  // scroll to given to date functionality
+  // Skip to date
   const handleSkipToDate = async () => {
-    if (!db || !selectedSkipDate) {
-      return;
-    }
-    const targetDate = selectedSkipDate;
-    console.log("Calling setSkipDate function at Grid",targetDate,setSkipDate);
-    setSkipDate(targetDate); 
+    if (!db || !selectedSkipDate) return;
+    setSkipDate(selectedSkipDate);
+    setShowDateSkipDialog(false);
   };
-
 
   /**
    * Show the title and nav
    */
   return (
-        <div className="mb-6">
-          {/* Event dialog */}
-          <EventDialog
-            open={isDialogOpen}
-            onOpenChange={handleDialogClose}
-            onSubmit={handleAddEvent}
-            onUpdate={handleUpdateEvent}
-            onDelete={handleDeleteEvent}
-            editEvent={editingEvent}
-            defaultValues={defaultValues}
-          />
-
-          {/* Skip to Date Dialog */}
-          <Dialog open={showDateSkipDialog} onOpenChange={(open) => {
-            if (!open) {
-              setShowDateSkipDialog(false);
-            }
-          }}>
-            <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
-              <DialogHeader>
-                <DialogTitle>Jump to Date</DialogTitle>
-                <DialogDescription>
-                  Select a date to jump to in your time tracking data. Use the year buttons for faster navigation.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <div className="flex justify-center">
-                  <CalendarWithYearNav />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2" >
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowDateSkipDialog(false);
-                    setSelectedSkipDate(undefined);
-                  }}
-                  className="bg-secondary border-border"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={async () => {
-                    if (!selectedSkipDate) return;
-
-                    // Close dialog immediately
-                    setShowDateSkipDialog(false);
-
-                    // Then handle the date jump
-                    await handleSkipToDate();
-                  }}
-                  disabled={!selectedSkipDate}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Jump to Date
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <a href="/about">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              ExocortexLog
-            </h1>
-            </a>
-
-            {/* View Toggle Buttons */}
-            <div className="flex gap-2">
-              <Button
-                variant={currentView === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleGridClick}
-              >
-                <Grid3X3 className="h-4 w-4 mr-2" />
-                Grid
-              </Button>
-              <Button
-                variant={currentView === 'summary' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleSummaryClick}
-              >
-                <Squirrel className="h-4 w-4 mr-2" />
-                Summary
-              </Button>
-              <Button
-                variant={currentView === 'stats' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleStatsClick}
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Stats
-              </Button>
-              <Button
-                variant={currentView === 'conf' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleConfClick}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Conf
-              </Button>
-            </div>
+    <div className="mb-6">
+      <EventDialog
+        open={isDialogOpen}
+        onOpenChange={handleDialogClose}
+        onSubmit={handleAddEvent}
+        onUpdate={handleUpdateEvent}
+        onDelete={handleDeleteEvent}
+        editEvent={editingEvent}
+        defaultValues={defaultValues}
+      />
+      {/* Skip to Date Dialog unchanged */}
+      <Dialog open={showDateSkipDialog} onOpenChange={setShowDateSkipDialog}>
+        <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Jump to Date</DialogTitle>
+            <DialogDescription>Select a date to jump to in your time tracking data. Use the year buttons for faster navigation.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 flex justify-center"><CalendarWithYearNav /></div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => { setShowDateSkipDialog(false); setSelectedSkipDate(undefined); }} className="bg-secondary border-border">Cancel</Button>
+            <Button onClick={handleSkipToDate} disabled={!selectedSkipDate} className="bg-primary hover:bg-primary/90">Jump to Date</Button>
           </div>
-
-          <h2
-            className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors"
-            onClick={handleScrollToToday}
-            title={explain}
-          >
-            {title}
-          </h2>
-
-          <div className="flex float-right gap-4" style={{position:"relative", top:"-1em"}}>
-            {/* Skip to date button - mobile responsive */}
-            {setSkipDate && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
-                title="Jump to a specific date"
-                onClick={() => setShowDateSkipDialog(true)}
-              >
-                <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
-                <span className="hidden md:inline">Skip to Date</span>
-              </Button>
-            )}
-            {/* Add new event button - mobile responsive */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
-              title="Add a new event"
-              onClick={handleOpenAddDialog}
-            >
-              <Plus className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Add Event</span>
-            </Button>
-          </div>
+        </DialogContent>
+      </Dialog>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <a href="/about"><h1 className="text-2xl md:text-3xl font-bold text-foreground">ExocortexLog</h1></a>
+        <div className="flex gap-2">
+          <Button variant={currentView === 'grid' ? 'default' : 'outline'} size="sm" onClick={handleGridClick}><Grid3X3 className="h-4 w-4 mr-2" />Grid</Button>
+          <Button variant={currentView === 'summary' ? 'default' : 'outline'} size="sm" onClick={handleSummaryClick}><Squirrel className="h-4 w-4 mr-2" />Summary</Button>
+          <Button variant={currentView === 'stats' ? 'default' : 'outline'} size="sm" onClick={handleStatsClick}><BarChart3 className="h-4 w-4 mr-2" />Stats</Button>
+          <Button variant={currentView === 'conf' ? 'default' : 'outline'} size="sm" onClick={handleConfClick}><Settings className="h-4 w-4 mr-2" />Conf</Button>
         </div>
-
+      </div>
+      <h2 className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors" onClick={handleScrollToToday} title={explain}>{title}</h2>
+      <div className="flex float-right gap-4" style={{position:"relative", top:"-1em"}}>
+        {setSkipDate && (
+          <Button variant="outline" size="sm" className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30" title="Jump to a specific date" onClick={() => setShowDateSkipDialog(true)}>
+            <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden md:inline">Skip to Date</span>
+          </Button>
+        )}
+        <Button variant="outline" size="sm" className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30" title="Add a new event" onClick={handleOpenAddDialog}>
+          <Plus className="h-4 w-4 mr-1 md:mr-2" />
+          <span className="hidden md:inline">Add Event</span>
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Grid3X3, BarChart3, Settings } from 'lucide-react';
 import { TitleNav } from '../components/TitleNav';
+import type { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
 
 interface PageLayoutProps {
   title: string;
@@ -29,25 +28,39 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const handleGridClick = () => {
-    navigate('/');
-  };
+  // Dialog state is now lifted here for ownership
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
 
-  const handleStatsClick = () => {
-    navigate('/?view=stats');
-  };
-
-  const handleConfClick = () => {
-    navigate('/?view=conf');
+  // Handler passed to ExocortexGrid for clicking an event
+  const handleEventClick = (event: ExocortexEvent) => {
+    setEditingEvent(event);
+    setIsDialogOpen(true);
   };
 
   return (
     <div className="bg-background p-2 md:p-4 pb-16 md:pb-20 ">
-      <TitleNav setSkipDate={setSkipDate} triggerRefresh={triggerRefresh} currentView={currentView} db={db} title={title} explain={explain} />
-
-      {/* Page Content */}
+      <TitleNav
+        setSkipDate={setSkipDate}
+        triggerRefresh={triggerRefresh}
+        currentView={currentView}
+        db={db}
+        title={title}
+        explain={explain}
+        isDialogOpen={isDialogOpen}
+        setIsDialogOpen={setIsDialogOpen}
+        editingEvent={editingEvent}
+        setEditingEvent={setEditingEvent}
+      />
       <div className="space-y-8">
-        {children}
+        {/* Enhance children with event click capability if they receive the prop */}
+        {React.Children.map(children, (child) => {
+          if (React.isValidElement(child)) {
+            // For ExocortexGrid pass onEventClick
+            return React.cloneElement(child as any, { onEventClick: handleEventClick });
+          }
+          return child;
+        })}
       </div>
     </div>
   );
