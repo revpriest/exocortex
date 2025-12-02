@@ -68,15 +68,20 @@ function DaySeparatorRow({ dateString }: { dateString: string }) {
   );
 }
 
-// --- Collapsed row (no-note group) ---
-function SummaryCollapsedRow({ events, expanded, onExpand, colorOverrides }: { events: ExocortexEvent[]; expanded: boolean; onExpand: () => void; colorOverrides: any[] }) {
+// --- Collapsed group header row (renders in both collapsed & expanded states) ---
+function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
+  events: ExocortexEvent[];
+  expanded: boolean;
+  onToggle: () => void;
+  colorOverrides: any[];
+}) {
   if (!events || events.length === 0) return null;
   const first = events[0];
   const last = events[events.length - 1];
   const color = getEventColor(first, colorOverrides);
   return (
     <Card className="flex items-center px-0 py-1 mb-2">
-      <button onClick={onExpand} className="flex items-center px-2 h-11 group focus:outline-none" aria-label="Expand group">
+      <button onClick={onToggle} className="flex items-center px-2 h-11 group focus:outline-none" aria-label={expanded ? 'Collapse group' : 'Expand group'}>
         {expanded
           ? <ChevronDown className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors" />
           : <ChevronRight className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors" />}
@@ -88,7 +93,7 @@ function SummaryCollapsedRow({ events, expanded, onExpand, colorOverrides }: { e
           <span className="text-muted-foreground text-xs mr-3">{formatTime(first.endTime - (events.length > 1 ? (first.endTime - events[0].endTime) : 0))}–{formatTime(last.endTime)}</span>
           <span className="text-sm font-medium">{compactCats(events)}</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={onExpand} tabIndex={0} className="text-blue-700">Expand ({events.length})</Button>
+        <span className="text-blue-700 text-xs font-semibold select-none">{expanded ? `Collapse` : `Expand (${events.length})`}</span>
       </div>
     </Card>
   );
@@ -167,9 +172,11 @@ const Summary: React.FC = () => {
   const handleCollapse = useCallback((idx: number) => {
     setExpandedGroups(prev => ({ ...prev, [idx]: false }));
   }, []);
+  const handleToggle = useCallback((idx: number) => {
+    setExpandedGroups(prev => ({ ...prev, [idx]: !prev[idx] }));
+  }, []);
 
   // Insert day separators inline with content rows (rows[])
-  let lastDay: string | undefined;
   const renderRowsWithDaySeparators = () => {
     const result: React.ReactNode[] = [];
     let lastDate: string | undefined;
@@ -191,22 +198,21 @@ const Summary: React.FC = () => {
           <SummaryEventRow key={row.event.id} event={row.event} colorOverrides={config.colorOverrides} />
         );
       } else if (row.type === 'collapsed') {
+        // Always show the header with chevron (toggled), in both collapsed & expanded
+        result.push(
+          <SummaryGroupHeader
+            key={`groupheader-${i}`}
+            events={row.events}
+            expanded={!!expandedGroups[i]}
+            onToggle={() => handleToggle(i)}
+            colorOverrides={config.colorOverrides}
+          />
+        );
         if (expandedGroups[i]) {
-          // Expanded, show each event as own row
+          // Show the individual events below the header
           row.events.forEach((ev: ExocortexEvent) => {
             result.push(<SummaryEventRow key={ev.id} event={ev} colorOverrides={config.colorOverrides} />);
           });
-          result.push(
-            <div className="flex justify-end mb-4" key={`collapsebtn-${i}`}>
-              <Button variant="ghost" size="sm" tabIndex={0} onClick={() => handleCollapse(i)} className="text-blue-600 flex items-center">
-                <ChevronUp className="w-4 h-4 mr-1" />Collapse
-              </Button>
-            </div>
-          );
-        } else {
-          result.push(
-            <SummaryCollapsedRow key={`collapsed-${i}`} events={row.events} expanded={false} onExpand={() => handleExpand(i)} colorOverrides={config.colorOverrides} />
-          );
         }
       }
     });
