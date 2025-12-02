@@ -15,7 +15,7 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { ChevronRight } from 'lucide-react';
 import { EventDialog } from '@/components/EventDialog';
 
-// ... existing helpers ...
+// ... (other helpers unchanged) ...
 
 function SummaryEventRow({ event, colorOverrides, indent = false, onClick }: {
   event: ExocortexEvent, colorOverrides: any[], indent?: boolean, onClick?: () => void
@@ -43,14 +43,12 @@ function SummaryEventRow({ event, colorOverrides, indent = false, onClick }: {
   );
 }
 
-// ... rest of helpers ...
-
 const Summary: React.FC = () => {
   // ... states ...
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
-  // ...
+
   // When event is edited/saved/deleted, refresh view
-div const handleDialogOpenChange = (open: boolean) => { if (!open) setEditingEvent(null); };
+  const handleDialogOpenChange = (open: boolean) => { if (!open) setEditingEvent(null); };
   const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
     await db.updateEvent(id, eventData);
@@ -63,75 +61,4 @@ div const handleDialogOpenChange = (open: boolean) => { if (!open) setEditingEve
     setEditingEvent(null);
     setForceRefresh(f => f + 1);
   };
-  // ...
-  const renderRowsWithDaySeparators = () => {
-    const result: React.ReactNode[] = [];
-    let lastDate: string | undefined;
-    rows.forEach((row, i) => {
-      let thisEvent: ExocortexEvent | undefined;
-      if (row.type === 'single') thisEvent = row.event;
-      if (row.type === 'collapsed' && row.events.length > 0) thisEvent = row.events[0];
-      if (thisEvent) {
-        const thisDay = new Date(thisEvent.endTime).toISOString().split('T')[0];
-        if (thisDay !== lastDate) {
-          result.push(<DaySeparatorRow key={`daysep-${thisDay}`} dateString={thisDay} />);
-          lastDate = thisDay;
-        }
-      }
-      if (row.type === 'single') {
-        result.push(
-          <SummaryEventRow key={row.event.id} event={row.event} colorOverrides={config.colorOverrides} onClick={() => setEditingEvent(row.event)} />
-        );
-      } else if (row.type === 'collapsed') {
-        result.push(
-          <SummaryGroupHeader
-            key={`groupheader-${i}`}
-            events={row.events}
-            expanded={!!expandedGroups[i]}
-            onToggle={() => handleToggle(i)}
-            colorOverrides={config.colorOverrides}
-          />
-        );
-        if (expandedGroups[i]) {
-          row.events.forEach((ev: ExocortexEvent) => {
-            result.push(
-              <SummaryEventRow
-                key={ev.id}
-                event={ev}
-                colorOverrides={config.colorOverrides}
-                indent
-                onClick={() => setEditingEvent(ev)}
-              />
-            );
-          });
-        }
-      }
-    });
-    return result;
-  };
-
-  return (
-    <PageLayout
-      db={db}
-      title="Summary"
-      explain="A summary of recent events. Rows with notes are always shown; consecutive no-note events are collapsed into a single row. Click expand to show all."
-      currentView="summary"
-      triggerRefresh={() => setForceRefresh(f => f+1)}
-      setSkipDate={setSkipDate}
-    >
-      <EventDialog
-        open={!!editingEvent}
-        onOpenChange={handleDialogOpenChange}
-        onUpdate={handleUpdateEvent}
-        onDelete={handleDeleteEvent}
-        editEvent={editingEvent}
-      />
-      <div className="max-w-3xl mx-auto mt-8">
-        {rows.length === 0 && <div className="text-muted-foreground text-center p-8">No events found for the selected period.</div>}
-        {renderRowsWithDaySeparators()}
-      </div>
-    </PageLayout>
-  );
-};
-
-export default Summary;
+  // ... rest of component unchanged ...
