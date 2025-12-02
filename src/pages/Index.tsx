@@ -25,7 +25,7 @@ import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive
 import { useTheme } from '@/hooks/useTheme';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
 import { APP_VERSION } from '../main';
-import { TitleNav } from '../components/TitleNav';
+import { PageLayout } from '@/components/PageLayout';
 import { DataExporter } from '@/lib/dataExport';
 
 /**
@@ -717,12 +717,7 @@ const Index = () => {
    * - max-w-7xl mx-auto: Center content and limit max width for readability
    */
   return (
-    <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
-      {/* Header with navigation controls - mobile optimized */}
-      <div className="mb-4">
-        <TitleNav setSkipDate={setSkipDate} triggerRefresh={setForceGridRefresh} currentView={currentView} db={db} title="Time Grid" explain="Jump to today" />
-      </div>
-
+    <PageLayout setSkipDate={setSkipDate} triggerRefresh={setForceGridRefresh} currentView={currentView} db={db} title="Time Grid" explain="Jump to today">
       {/*
         Container with max width keeps content readable on large screens
         and centers it horizontally with mx-auto (margin-left: auto; margin-right: auto)
@@ -843,7 +838,7 @@ const Index = () => {
           </div>
         )}
       </div>
-    </div>
+    </PageLayout>
   );
 };
 
