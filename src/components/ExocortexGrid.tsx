@@ -84,7 +84,7 @@ interface ExocortexGridProps {
 export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkipDate}: ExocortexGridProps) {
   const { config } = useAppContext();
   const [error, setError] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date()); 
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
   // Array containing events grouped by day
@@ -99,7 +99,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
   const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
   const [hasDragged, setHasDragged] = useState(false);
   const dragThreshold = 5; // 5 pixels minimum movement to consider it a drag
-  
+
 
   //Some state for the edit event dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -187,7 +187,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
   }, []);
 
 
-  //Initialize at start 
+  //Initialize at start
   useEffect(() => {
     const initAll = async () => {
       console.log("Grid Init with Db ",db);
@@ -234,6 +234,9 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
         return bDate.getTime() - aDate.getTime();
       });
 
+      // Set sorted days to state (this was missing: FIX)
+      setDays(allDays);
+
       // Hide loading indicator once data is loaded
       setLoading(false);
 
@@ -244,7 +247,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, [db]); 
+  }, [db]);
 
 
 
@@ -316,7 +319,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, [loading, days, db]); 
+  }, [loading, days, db]);
 
 
   // Refresh grid when refreshTrigger changes
