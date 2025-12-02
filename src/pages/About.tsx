@@ -5,16 +5,30 @@
  * along with instructions on how to use the app.
  */
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, Bell, Moon, Volume2 } from 'lucide-react';
 import { usePageData } from '@/hooks/usePageData';
+import { ExocortexDB } from '@/lib/exocortex';
 
 const About = () => {
   const { hasData, isGenerating, handleStartWithTestData, handleStartEmpty, handleGotoGrid } = usePageData();
+  const [db, setDb] = useState<ExocortexDB | null>(null);
+
+  //Include the DB so header add-event can work.
+  useEffect(() => {
+    const initAll = async () => {
+      const db = new ExocortexDB();
+      await db.init();
+      setDb(db);
+    };
+    initAll().catch((error) => {
+      console.error('Failed to initialize database:', error);
+    });
+  }, []);
 
   // Set SEO metadata
   useSeoMeta({
@@ -23,7 +37,7 @@ const About = () => {
   });
 
   return (
-    <PageLayout title="ExocortexLog">
+    <PageLayout db={db} title="About" explain="about" currentView="about">
       {/* Hero Section */}
       <Card>
         <CardContent className="pt-6">

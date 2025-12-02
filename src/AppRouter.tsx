@@ -16,6 +16,8 @@ import { ScrollToTop } from "./components/ScrollToTop";
 // Import page components
 import Index from "./pages/Index";
 import About from "./pages/About";
+import Stats from "./pages/Stats";
+import Conf from "./pages/Conf";
 import NotFound from "./pages/NotFound";
 
 /**
@@ -55,6 +57,18 @@ export function AppRouter() {
           Shows information about the app and how to use it
         */}
         <Route path="/about" element={<About />} />
+
+        {/*
+          Stats route: Matches the "/stats" URL
+          Shows information about your database 
+        */}
+        <Route path="/stats" element={<Stats />} />
+
+        {/*
+          Conf route: Matches the "/conf" URL
+          Configuration and help
+        */}
+        <Route path="/conf" element={<Conf />} />
 
         {/*
           IMPORTANT: Add all custom routes ABOVE this catch-all route.

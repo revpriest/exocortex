@@ -412,10 +412,11 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange} discription="Edit Event">
         <DialogContent
           className={`${isMobile ? '!w-[85vw] !max-w-[85vw] !h-[85vh] overflow-y-auto overscroll-behavior-contain' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}
         >
+          <DialogTitle>Edit Event</DialogTitle>
           {error && (
             <Alert variant="destructive" className="border-red-600 bg-red-900/20">
               <AlertCircle className="h-4 w-4" />
