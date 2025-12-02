@@ -286,11 +286,18 @@ export class ExocortexDB {
   async getEventsByDateRangeOnly(startDate: string, endDate: string): Promise<DayEvents[]> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const start = new Date(startDate);
+    let   start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
 
-    const end = new Date(endDate);
+    let   end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
+
+    if(start>end){
+      //Swap them if they're the wrong way around.
+      const t = end;
+      end = start;
+      start = t;
+    }
 
     // Single query to get all events for the date range
     const events: ExocortexEvent[] = await new Promise((resolve, reject) => {

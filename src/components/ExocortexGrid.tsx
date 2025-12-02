@@ -410,14 +410,18 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
       try {
         const targetDate = skipDate;
         const today = new Date();
-        const targetDateStr = targetDate.toISOString().split('T')[0];
+        let   targetDateStr = targetDate.toISOString().split('T')[0];
         const todayStr = today.toISOString().split('T')[0];
-
-        console.log('Jumping to date:', targetDateStr);
 
         // Calculate how many days between target and today
         const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
         const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
+
+        if(daysDiff < totalDays){
+          //get a good range even on skip to today.
+          targetDate.setDate(targetDate.getDate() - 8);
+          targetDateStr = targetDate.toISOString().split('T')[0];
+        }
 
         // Generate all days from target to today
         const allDays: DayEvents[] = [];
