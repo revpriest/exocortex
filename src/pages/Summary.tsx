@@ -68,7 +68,7 @@ function DaySeparatorRow({ dateString }: { dateString: string }) {
   );
 }
 
-// --- Collapsed group header row (renders in both collapsed & expanded states) ---
+// --- Collapsed/Expanded group header row ---
 function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
   events: ExocortexEvent[];
   expanded: boolean;
@@ -81,10 +81,20 @@ function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
   const color = getEventColor(first, colorOverrides);
   return (
     <Card className="flex items-center px-0 py-1 mb-2">
-      <button onClick={onToggle} className="flex items-center px-2 h-11 group focus:outline-none" aria-label={expanded ? 'Collapse group' : 'Expand group'}>
-        {expanded
-          ? <ChevronDown className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors" />
-          : <ChevronRight className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors" />}
+      <button
+        onClick={onToggle}
+        className="flex items-center px-2 h-11 group focus:outline-none cursor-pointer"
+        aria-label={expanded ? 'Collapse group' : 'Expand group'}
+      >
+        {/* Down-right chevron when expanded, right chevron when collapsed */}
+        {expanded ? (
+          <ChevronRight
+            className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors"
+            style={{ transform: 'rotate(45deg)' }}
+          />
+        ) : (
+          <ChevronRight className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors" />
+        )}
       </button>
       <div className="h-11 w-2 rounded-l-lg" style={{ backgroundColor: color, minWidth: 8 }} />
       <div className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-4 overflow-x-hidden whitespace-nowrap">
@@ -100,10 +110,10 @@ function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
 }
 
 // --- Single event row (with note) ---
-function SummaryEventRow({ event, colorOverrides }: { event: ExocortexEvent, colorOverrides: any[] }) {
+function SummaryEventRow({ event, colorOverrides, indent = false }: { event: ExocortexEvent, colorOverrides: any[], indent?: boolean }) {
   const color = getEventColor(event, colorOverrides);
   return (
-    <Card className="flex items-center px-0 py-1 mb-2">
+    <Card className={`flex items-center px-0 py-1 mb-2 ${indent ? 'ml-10 md:ml-14' : ''}`}>
       <div style={{ width: 40 }} />
       <div className="h-11 w-2 rounded-l-lg" style={{ backgroundColor: color, minWidth: 8 }} />
       <div className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-3">
@@ -166,12 +176,6 @@ const Summary: React.FC = () => {
   }, [db]);
 
   // Expand/collapse handlers
-  const handleExpand = useCallback((idx: number) => {
-    setExpandedGroups(prev => ({ ...prev, [idx]: true }));
-  }, []);
-  const handleCollapse = useCallback((idx: number) => {
-    setExpandedGroups(prev => ({ ...prev, [idx]: false }));
-  }, []);
   const handleToggle = useCallback((idx: number) => {
     setExpandedGroups(prev => ({ ...prev, [idx]: !prev[idx] }));
   }, []);
@@ -209,9 +213,9 @@ const Summary: React.FC = () => {
           />
         );
         if (expandedGroups[i]) {
-          // Show the individual events below the header
+          // Show the individual events below the header (indented)
           row.events.forEach((ev: ExocortexEvent) => {
-            result.push(<SummaryEventRow key={ev.id} event={ev} colorOverrides={config.colorOverrides} />);
+            result.push(<SummaryEventRow key={ev.id} event={ev} colorOverrides={config.colorOverrides} indent />);
           });
         }
       }
