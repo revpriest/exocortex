@@ -15,8 +15,7 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { EventDialog } from '@/components/EventDialog';
 
-// --- helpers (makeSummaryRows etc) are unchanged from previously implemented code ---
-// ... (Insert previous implementation of makeSummaryRows, compactCats, DaySeparatorRow, SummaryGroupHeader) ...
+// --- helpers: makeSummaryRows, compactCats, DaySeparatorRow, SummaryGroupHeader, SummaryEventRow ...
 
 function makeSummaryRows(events: ExocortexEvent[]) {
   const rows = [];
@@ -146,15 +145,19 @@ const Summary: React.FC = () => {
   useEffect(() => {
     if (!db) return;
     const load = async () => {
-      let from = new Date();
-      from.setHours(23,59,59,999);
-      let to = new Date(from);
-      from.setDate(from.getDate() - SUMMARY_DAYS + 1);
+      let from: Date, to: Date;
       if (skipDate) {
-        const s = new Date(skipDate);
-        s.setHours(0,0,0,0);
-        from = new Date(s);
-        to = new Date(s); to.setDate(to.getDate() + SUMMARY_DAYS - 1);
+        to = new Date(skipDate);
+        to.setHours(23, 59, 59, 999);
+        from = new Date(skipDate);
+        from.setDate(from.getDate() - (SUMMARY_DAYS - 1));
+        from.setHours(0,0,0,0);
+      } else {
+        to = new Date();
+        to.setHours(23,59,59,999);
+        from = new Date(to);
+        from.setDate(from.getDate() - (SUMMARY_DAYS - 1));
+        from.setHours(0,0,0,0);
       }
       const days: DayEvents[] = await db.getEventsByDateRange(
         from.toISOString().split('T')[0],
