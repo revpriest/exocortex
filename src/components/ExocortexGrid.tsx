@@ -234,6 +234,8 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
         return bDate.getTime() - aDate.getTime();
       });
 
+      setDays(allDays);
+
       // Hide loading indicator once data is loaded
       setLoading(false);
 
