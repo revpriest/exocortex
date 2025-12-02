@@ -63,7 +63,7 @@ const Index = () => {
   }, [currentView]);
 
   const handleWelcomeGenerateTestData = async () => {
-    const t = await db.generateTestData();
+    const t = await db?.generateTestData();
     setError(t);
   };
 
@@ -86,8 +86,12 @@ const Index = () => {
         }}
         onAbout={() => { navigate('/about'); }}
       />
-      {/* Main Content Area -- ExocortexGrid will receive onEventClick via PageLayout logic */}
-      <ExocortexGrid skipDate={skipDate} setSkipDate={setSkipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
+      {/* Only show the grid if db exists */}
+      {db ? (
+        <ExocortexGrid skipDate={skipDate} setSkipDate={setSkipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
+      ) : (
+        <div className="flex items-center justify-center h-64 w-full text-lg text-muted-foreground">Loading...</div>
+      )}
     </PageLayout>
   );
 };

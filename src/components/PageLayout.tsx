@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TitleNav } from '../components/TitleNav';
 import type { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
+import { ExocortexGrid } from '@/components/ExocortexGrid';
 
 interface PageLayoutProps {
   title: string;
@@ -27,16 +28,20 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   explain,
 }) => {
   const navigate = useNavigate();
-
-  // Dialog state is now lifted here for ownership
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
 
-  // Handler passed to ExocortexGrid for clicking an event
+  // Only inject onEventClick into ExocortexGrid, NOT every child indiscriminately
   const handleEventClick = (event: ExocortexEvent) => {
     setEditingEvent(event);
     setIsDialogOpen(true);
   };
+
+  // Utility to check if the given child is an ExocortexGrid
+  function isExocortexGridElement(child: React.ReactNode): boolean {
+    return (React.isValidElement(child) &&
+      (child.type === ExocortexGrid || (typeof child.type === 'function' && (child.type as any).name === 'ExocortexGrid')));
+  }
 
   return (
     <div className="bg-background p-2 md:p-4 pb-16 md:pb-20 ">
@@ -53,10 +58,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
         setEditingEvent={setEditingEvent}
       />
       <div className="space-y-8">
-        {/* Enhance children with event click capability if they receive the prop */}
         {React.Children.map(children, (child) => {
-          if (React.isValidElement(child)) {
-            // For ExocortexGrid pass onEventClick
+          if (isExocortexGridElement(child)) {
             return React.cloneElement(child as any, { onEventClick: handleEventClick });
           }
           return child;
