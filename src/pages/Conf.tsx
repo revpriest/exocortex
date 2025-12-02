@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { ExocortexDB } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { NotificationSettings } from '@/components/NotificationSettings';
-import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
+import { resetCacheAndReload } from '@/lib/cacheReset';
 import { Moon, Sun, Notebook, RefreshCw, Database, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
 
 
@@ -281,27 +281,7 @@ const DBManagementSection = ({db}) => {
  * and service worker caches while preserving IndexedDB data.
  */
 const CacheResetSection = () => {
-  const [hasServiceWorker, setHasServiceWorker] = useState(false);
-  const [_hasCache, setHasCache] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-
-  // Check cache and service worker status on mount
-  useEffect(() => {
-    const checkCacheStatus = async () => {
-      try {
-        const [swStatus, cacheStatus] = await Promise.all([
-          hasActiveServiceWorkers(),
-          hasCachedAssets()
-        ]);
-        setHasServiceWorker(swStatus);
-        setHasCache(cacheStatus);
-      } catch (error) {
-        console.error('Failed to check cache status:', error);
-      }
-    };
-
-    checkCacheStatus();
-  }, []);
 
   const handleResetCache = async () => {
     setIsResetting(true);
@@ -312,6 +292,7 @@ const CacheResetSection = () => {
       setIsResetting(false);
     }
   };
+  const navigate = useNavigate();
 
   return (
     <Card>
@@ -425,7 +406,6 @@ const ThemeSwitch = () => {
 
 const Conf = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
-  const navigate = useNavigate();
 
 
   //Include the DB so header add-event can work.
