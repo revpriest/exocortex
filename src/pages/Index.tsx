@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { ExocortexDB } from '@/lib/exocortex';
@@ -28,24 +28,17 @@ import { NewUserWelcomeDialog } from '../components/NewUserWelcomeDialog';
 
 /**
  * Index Component
- *
- * This is the main page component that:
- * 1. Sets SEO metadata for search engines and browser tabs
- * 2. Provides navigation between grid, stats, and help views
- * 3. Renders the appropriate view based on URL query parameters
- * 4. Provides responsive layout and styling
  */
 const Index = () => {
   // Database instance for storing and retrieving events
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  //So Welcome dialog can link to /about we need to navigate
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Welcome dialog state for new users
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
-  const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
 
   // Force grid refresh trigger
   const [forceGridRefresh, setForceGridRefresh] = useState(0);
@@ -101,12 +94,6 @@ const Index = () => {
    * Only runs on grid view, not on stats, conf, or about pages
    */
   useEffect(() => {
-    // Only check for new user dialog when on grid view
-    if (currentView !== 'grid') {
-      setIsCheckingDatabase(false);
-      return;
-    }
-
     const checkDatabaseEmpty = async () => {
       try {
         const db = new ExocortexDB();
@@ -123,8 +110,6 @@ const Index = () => {
           endDate.toISOString().split('T')[0]
         );
 
-        setIsCheckingDatabase(false);
-
         // Check if any events exist in the last 7 days
         const hasEvents = days.some(day => day.events.length > 0);
 
@@ -134,7 +119,6 @@ const Index = () => {
         }
       } catch (error) {
         console.error('Failed to check database:', error);
-        setIsCheckingDatabase(false);
       }
     };
 
@@ -145,107 +129,8 @@ const Index = () => {
    * Generate test data for welcome dialog
    */
   const handleWelcomeGenerateTestData = async () => {
-    const db = new ExocortexDB();
-    await db.init();
-
-    try {
-      // Clear existing data first
-      await db.clearAllEvents();
-
-      // Categories for test data (excluding Sleep - we'll handle that specially)
-      const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
-
-      // Generate events for the past 7 days (shorter period for new users)
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() - 1); // Yesterday
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7); // 7 days ago
-
-      const events: Omit<any, 'id'>[] = [];
-
-      // Generate events for each day
-      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
-        const dayEvents: Omit<any, 'id'>[] = [];
-
-        // Create sleep event that starts around 22:00 and lasts 7-8 hours
-        const sleepStartHour = 20 + Math.floor(Math.random() * 3); // 20:00, 21:00, or 22:00
-        const sleepStartMinute = Math.floor(Math.random() * 60);
-        const sleepDurationHours = 7 + Math.random(); // 7-8 hours
-
-        const sleepStart = new Date(currentDate);
-        sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
-        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
-
-        // Sleep event with typical sleep values
-        const sleepEvent = {
-          endTime: sleepEnd.getTime(),
-          category: 'Sleep' as const,
-          notes: Math.random() > 0.7 ? [
-            'Had some interesting dreams',
-            'Woke up feeling refreshed',
-            'Slept through the night',
-            'A bit restless but okay',
-            'Deep sleep cycle felt good'
-          ][Math.floor(Math.random() * 5)] : undefined,
-          happiness: 0.8,
-          wakefulness: Math.random() * 0.02,
-          health: 0.9,
-        };
-
-        dayEvents.push(sleepEvent);
-
-        // Fill the rest of the day with other activities
-        let currentTime = new Date(currentDate);
-        currentTime.setHours(7, 0, 0, 0); // Start at 7:00 AM
-
-        while (currentTime < sleepStart) {
-          const timeUntilSleep = sleepStart.getTime() - currentTime.getTime();
-          if (timeUntilSleep < 30 * 60 * 1000) break; // Less than 30 minutes before sleep
-
-          // Random duration between 30 minutes and 3 hours
-          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
-          if (maxDuration <= 0) break;
-
-          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
-          const actualDuration = Math.min(durationMs, maxDuration);
-
-          const category = categories[Math.floor(Math.random() * categories.length)];
-          const happiness = Math.random() * 0.4 + 0.5;
-          const wakefulness = Math.random() * 0.4 + 0.5;
-          const health = Math.random() * 0.3 + 0.6;
-
-          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
-
-          const event = {
-            endTime: eventEndTime.getTime(),
-            category,
-            notes: Math.random() > 0.6 ? [
-              'Productive session',
-              'Good progress made',
-              'Felt energized',
-              'Nice break',
-              'Interesting activity'
-            ][Math.floor(Math.random() * 5)] : undefined,
-            happiness,
-            wakefulness,
-            health,
-          };
-
-          dayEvents.push(event);
-          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000); // 0-30 minute gap
-        }
-
-        // Add all events for this day
-        events.push(...dayEvents);
-      }
-
-      // Add all events to database
-      for (const event of events) {
-        await db.addEvent(event);
-      }
-    } catch (error) {
-      console.error('Failed to generate test data:', error);
-    }
+    const t = await db.generateTestData();
+    setError(t);
   };
 
 
@@ -264,31 +149,21 @@ const Index = () => {
    */
   return (
     <PageLayout setSkipDate={setSkipDate} triggerRefresh={setForceGridRefresh} currentView={currentView} db={db} title="Time Grid" explain="Jump to today">
-      {/*
-        Container with max width keeps content readable on large screens
-        and centers it horizontally with mx-auto (margin-left: auto; margin-right: auto)
-      */}
-      <div className="max-w-7xl mx-auto">
-        {/* New User Welcome Dialog */}
-        {!isCheckingDatabase && (
-          <NewUserWelcomeDialog
-            isOpen={showWelcomeDialog}
-            onClose={() => setShowWelcomeDialog(false)}
-            onGenerateTestData={async () => {
-              await handleWelcomeGenerateTestData();
-              // Trigger grid refresh
-              setForceGridRefresh(prev => prev + 1);
-              setShowWelcomeDialog(false);
-            }}
-            onAbout={() => {
-              navigate('/about');
-            }}
-          />
-        )}
+      {/* New User Welcome Dialog */}
+      <NewUserWelcomeDialog
+        isOpen={showWelcomeDialog}
+        onClose={() => setShowWelcomeDialog(false)}
+        onGenerateTestData={async () => {
+          await handleWelcomeGenerateTestData();
+          // Trigger grid refresh
+          setForceGridRefresh(prev => prev + 1);
+          setShowWelcomeDialog(false);
+        }}
+        onAbout={() => { navigate('/about'); }}
+      />
 
-        {/* Main Content Area */}
-        <ExocortexGrid skipDate={skipDate} setSkipDate={setSkipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
-      </div>
+      {/* Main Content Area */}
+      <ExocortexGrid skipDate={skipDate} setSkipDate={setSkipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
     </PageLayout>
   );
 };

@@ -144,7 +144,12 @@ const DBManagementSection = ({db}) => {
           Database Management
         </CardTitle>
         <CardDescription>
-          Import, export, and manage your time tracking data.
+          <p>
+            Import, export, and manage your time tracking data.
+          </p>
+          <p className="text-destructive text-base md:text-lg leading-relaxed">
+            You should probably back up with the export button often, no guarantees.
+          </p>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -315,10 +320,10 @@ const CacheResetSection = () => {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <HardDrive className="h-5 w-5" />
-          Cache Management
+          Version Management
         </CardTitle>
         <CardDescription>
-          Clear caches and update to latest version.
+          You are currently running version {APP_VERSION}.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -348,7 +353,7 @@ const CacheResetSection = () => {
               disabled={isResetting}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-              {isResetting ? 'Resetting...' : 'Reset Cache & Reload'}
+              {isResetting ? 'Resetting...' : 'Reset Cache & Check For Upgrade'}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -468,50 +473,37 @@ const Conf = () => {
             {/* About Content */}
             <Card>
               <CardContent className="pt-6">
-                <div className="prose max-w-none">
-                  <p className="text-destructive text-base md:text-lg leading-relaxed">
-                    You should probably back up with the export button often, no guarantees.
+                  <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
+                    ExocortexLog was vibe-coded by{' '}
+                    <a
+                      href="https://dalliance.net/"
+                      className="text-primary hover:text-primary/80 underline transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      pre
+                    </a>
+                    {' '}using{' '}
+                    <a
+                      href="https://shakespeare.diy/"
+                      className="text-primary hover:text-primary/80 underline transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      shakespeare
+                    </a> 
+                     &nbsp; and a lot of manual clean up.
                   </p>
-
-                  <div className="mt-6 pt-6 border-t border-border">
-                    <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
-                      ExocortexLog was vibe-coded by{' '}
-                      <a
-                        href="https://dalliance.net/"
-                        className="text-primary hover:text-primary/80 underline transition-colors"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        pre
-                      </a>
-                      {' '}using{' '}
-                      <a
-                        href="https://shakespeare.diy/"
-                        className="text-primary hover:text-primary/80 underline transition-colors"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        shakespeare
-                      </a>
-                    </p>
-                    <div className="mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate('/about')}
-                        className="h-8 px-3 text-sm"
-                      >
-                        about
-                      </Button>
-                    </div>
+                  <div className="mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/about')}
+                      className="h-8 px-3 text-sm"
+                    >
+                      about
+                    </Button>
                   </div>
-
-                  <div className="mt-6 pt-6 border-t border-border">
-                    <p className="text-muted-foreground text-sm">
-                      Version: {APP_VERSION}
-                    </p>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>

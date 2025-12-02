@@ -364,7 +364,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
           </Dialog>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <a href="/">
+            <a href="/about">
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               ExocortexLog
             </h1>
