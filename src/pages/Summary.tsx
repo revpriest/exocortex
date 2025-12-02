@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ExocortexDB, ExocortexEvent, getEventColor, formatTime, DayEvents } from '@/lib/exocortex';
 import { SmileyFace } from '@/components/SmileyFace';
 import { useAppContext } from '@/hooks/useAppContext';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 // How many days of data to summarize?
 const SUMMARY_DAYS = 30;
@@ -197,7 +197,7 @@ const Summary: React.FC = () => {
             result.push(<SummaryEventRow key={ev.id} event={ev} colorOverrides={config.colorOverrides} />);
           });
           result.push(
-            <div className="flex justify-end mb-4" key={`collapsebtn-${i}">
+            <div className="flex justify-end mb-4" key={`collapsebtn-${i}`}>
               <Button variant="ghost" size="sm" tabIndex={0} onClick={() => handleCollapse(i)} className="text-blue-600 flex items-center">
                 <ChevronUp className="w-4 h-4 mr-1" />Collapse
               </Button>
