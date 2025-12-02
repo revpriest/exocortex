@@ -7,11 +7,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExocortexDB, ExocortexEvent, getEventColor, formatTime, DayEvents } from '@/lib/exocortex';
 import { SmileyFace } from '@/components/SmileyFace';
 import { useAppContext } from '@/hooks/useAppContext';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 
 // How many days of data to summarize?
 const SUMMARY_DAYS = 30;
@@ -48,15 +49,38 @@ function compactCats(events: ExocortexEvent[]) {
   return label;
 }
 
+// --- Day marker row ---
+function DaySeparatorRow({ dateString }: { dateString: string }) {
+  const dt = new Date(dateString);
+  // Render as 'Monday, 30 January 2025'
+  const nice = dt.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  return (
+    <div className="flex items-center mt-6 mb-2">
+      <div className="flex-grow border-t border-border mr-3"></div>
+      <span className="px-3 py-0.5 text-xs font-semibold bg-muted text-muted-foreground rounded shadow-sm">{nice}</span>
+      <div className="flex-grow border-t border-border ml-3"></div>
+    </div>
+  );
+}
+
 // --- Collapsed row (no-note group) ---
 function SummaryCollapsedRow({ events, expanded, onExpand, colorOverrides }: { events: ExocortexEvent[]; expanded: boolean; onExpand: () => void; colorOverrides: any[] }) {
   if (!events || events.length === 0) return null;
   const first = events[0];
   const last = events[events.length - 1];
-  // Main category = first event, color matches grid
   const color = getEventColor(first, colorOverrides);
   return (
     <Card className="flex items-center px-0 py-1 mb-2">
+      <button onClick={onExpand} className="flex items-center px-2 h-11 group focus:outline-none" aria-label="Expand group">
+        {expanded
+          ? <ChevronDown className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors" />
+          : <ChevronRight className="w-6 h-6 text-blue-600 group-hover:text-blue-800 transition-colors" />}
+      </button>
       <div className="h-11 w-2 rounded-l-lg" style={{ backgroundColor: color, minWidth: 8 }} />
       <div className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-4 overflow-x-hidden whitespace-nowrap">
         <SmileyFace happiness={first.happiness} wakefulness={first.wakefulness} health={first.health} size={32} className="shrink-0" />
@@ -75,6 +99,7 @@ function SummaryEventRow({ event, colorOverrides }: { event: ExocortexEvent, col
   const color = getEventColor(event, colorOverrides);
   return (
     <Card className="flex items-center px-0 py-1 mb-2">
+      <div style={{ width: 40 }} />
       <div className="h-11 w-2 rounded-l-lg" style={{ backgroundColor: color, minWidth: 8 }} />
       <div className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-3">
         <SmileyFace happiness={event.happiness} wakefulness={event.wakefulness} health={event.health} size={32} className="shrink-0" />
@@ -143,6 +168,51 @@ const Summary: React.FC = () => {
     setExpandedGroups(prev => ({ ...prev, [idx]: false }));
   }, []);
 
+  // Insert day separators inline with content rows (rows[])
+  let lastDay: string | undefined;
+  const renderRowsWithDaySeparators = () => {
+    const result: React.ReactNode[] = [];
+    let lastDate: string | undefined;
+    rows.forEach((row, i) => {
+      // Find the earliest event in this row to determine day
+      let thisEvent: ExocortexEvent | undefined;
+      if (row.type === 'single') thisEvent = row.event;
+      if (row.type === 'collapsed' && row.events.length > 0) thisEvent = row.events[0];
+      if (thisEvent) {
+        const thisDay = new Date(thisEvent.endTime).toISOString().split('T')[0];
+        if (thisDay !== lastDate) {
+          result.push(<DaySeparatorRow key={`daysep-${thisDay}`} dateString={thisDay} />);
+          lastDate = thisDay;
+        }
+      }
+      // Render row
+      if (row.type === 'single') {
+        result.push(
+          <SummaryEventRow key={row.event.id} event={row.event} colorOverrides={config.colorOverrides} />
+        );
+      } else if (row.type === 'collapsed') {
+        if (expandedGroups[i]) {
+          // Expanded, show each event as own row
+          row.events.forEach((ev: ExocortexEvent) => {
+            result.push(<SummaryEventRow key={ev.id} event={ev} colorOverrides={config.colorOverrides} />);
+          });
+          result.push(
+            <div className="flex justify-end mb-4" key={`collapsebtn-${i}">
+              <Button variant="ghost" size="sm" tabIndex={0} onClick={() => handleCollapse(i)} className="text-blue-600 flex items-center">
+                <ChevronUp className="w-4 h-4 mr-1" />Collapse
+              </Button>
+            </div>
+          );
+        } else {
+          result.push(
+            <SummaryCollapsedRow key={`collapsed-${i}`} events={row.events} expanded={false} onExpand={() => handleExpand(i)} colorOverrides={config.colorOverrides} />
+          );
+        }
+      }
+    });
+    return result;
+  };
+
   // For skip-to-date support, pass setSkipDate to PageLayout
   return (
     <PageLayout
@@ -155,28 +225,7 @@ const Summary: React.FC = () => {
     >
       <div className="max-w-3xl mx-auto mt-8">
         {rows.length === 0 && <div className="text-muted-foreground text-center p-8">No events found for the selected period.</div>}
-        {rows.map((row, i) => {
-          if (row.type === 'single') {
-            return <SummaryEventRow key={row.event.id} event={row.event} colorOverrides={config.colorOverrides} />;
-          }
-          if (row.type === 'collapsed') {
-            if (expandedGroups[i]) {
-              // Expanded, show each event as own row
-              return <>
-                {row.events.map(ev => (
-                  <SummaryEventRow key={ev.id} event={ev} colorOverrides={config.colorOverrides} />
-                ))}
-                <div className="flex justify-end mb-4">
-                  <Button variant="ghost" size="sm" tabIndex={0} onClick={() => handleCollapse(i)} className="text-blue-600">Collapse</Button>
-                </div>
-              </>;
-            } else {
-              // Collapsed summary row
-              return <SummaryCollapsedRow key={`collapsed-${i}`} events={row.events} expanded={false} onExpand={() => handleExpand(i)} colorOverrides={config.colorOverrides} />;
-            }
-          }
-          return null;
-        })}
+        {renderRowsWithDaySeparators()}
       </div>
     </PageLayout>
   );
