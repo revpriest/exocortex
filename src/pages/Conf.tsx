@@ -19,7 +19,7 @@ import { ExocortexDB } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
-import { Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
+import { Moon, Sun, Notebook, RefreshCw, Database, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
 
 
 /**
@@ -321,38 +321,55 @@ const CacheResetSection = () => {
           Version Management
         </CardTitle>
         <CardDescription>
-          You are currently running version {APP_VERSION}.
+          Update and help
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Cache Status Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center gap-2 text-sm">
-            <Database className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">IndexedDB:</span>
-            <span className="text-green-600 font-medium">Preserved</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <RefreshCw className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Service Worker:</span>
-            <span className={hasServiceWorker ? "text-blue-600 font-medium" : "text-gray-500"}>
-              {hasServiceWorker ? "Active" : "Not Active"}
-            </span>
-          </div>
-        </div>
-
-
+            {/* About Content */}
+                  <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
+                    ExocortexLog was vibe-coded by{' '}
+                    <a
+                      href="https://dalliance.net/"
+                      className="text-primary hover:text-primary/80 underline transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      pre
+                    </a>
+                    {' '}using{' '}
+                    <a
+                      href="https://shakespeare.diy/"
+                      className="text-primary hover:text-primary/80 underline transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      shakespeare
+                    </a> 
+                     &nbsp; and a lot of manual clean up.
+                  </p>
+                  <p>Currlently running version {APP_VERSION}.</p>
         {/* Reset Button */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto"
-              disabled={isResetting}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-              {isResetting ? 'Resetting...' : 'Reset Cache & Check For Upgrade'}
-            </Button>
+             <div>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  disabled={isResetting}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                  {isResetting ? 'Resetting...' : 'Reset Cache & Check For Upgrade'}
+                </Button>
+                &nbsp;
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/about')}
+                  className="w-full sm:w-auto"
+                >
+                  <Notebook className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                  about
+                </Button>
+             </div>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -461,48 +478,12 @@ const Conf = () => {
             {/* Notification Settings Section */}
             <NotificationSettings />
 
-            {/* Cache Management Section */}
-            <CacheResetSection />
-
             {/* Database Management Section */}
             <DBManagementSection db={db} />
 
-            {/* About Content */}
-            <Card>
-              <CardContent className="pt-6">
-                  <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
-                    ExocortexLog was vibe-coded by{' '}
-                    <a
-                      href="https://dalliance.net/"
-                      className="text-primary hover:text-primary/80 underline transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      pre
-                    </a>
-                    {' '}using{' '}
-                    <a
-                      href="https://shakespeare.diy/"
-                      className="text-primary hover:text-primary/80 underline transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      shakespeare
-                    </a> 
-                     &nbsp; and a lot of manual clean up.
-                  </p>
-                  <div className="mt-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate('/about')}
-                      className="h-8 px-3 text-sm"
-                    >
-                      about
-                    </Button>
-                  </div>
-              </CardContent>
-            </Card>
+            {/* Cache Management Section */}
+            <CacheResetSection />
+
           </div>
         </div>
     </PageLayout>
