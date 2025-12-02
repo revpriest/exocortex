@@ -330,6 +330,8 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     }
   }, [refreshTrigger, db]);
 
+
+
   /**
    * Drag-to-Scroll Event Handlers
    *
@@ -526,7 +528,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       }
 
       // Default: For regular events, assume they start at midnight (00:00) if they're the first event
-      // This makes more sense since the day starts at midnight, not 7:00 AM
       const eventEndTime = new Date(event.endTime);
       const eventDate = new Date(eventEndTime);
       eventDate.setHours(0, 0, 0, 0); // 00:00 (midnight) start of day
@@ -534,7 +535,6 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
       return eventDate.getTime();
     } else {
       // For all other events, start immediately after the previous event ends
-      // This ensures no gaps between events
       return dayEvents[index - 1].endTime;
     }
   };
