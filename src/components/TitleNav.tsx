@@ -362,11 +362,9 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
           </Dialog>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <a href="/about">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            <h1 onClick={() => navigate('/about')} className="text-2xl md:text-3xl font-bold text-foreground">
               ExocortexLog
             </h1>
-            </a>
 
             {/* View Toggle Buttons */}
             <div className="flex gap-2">
