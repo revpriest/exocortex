@@ -13,6 +13,7 @@ interface PageLayoutProps {
   triggerRefresh: (triggerRefresh: int) => void;
   setSkipDate: (newDate: Date) => void;
   currentView: string;
+  explain: string;
 }
 
 export const PageLayout: React.FC<PageLayoutProps> = ({
@@ -23,7 +24,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   currentView,
   db,
   triggerRefresh,
-  setSkipDate
+  setSkipDate,
+  explain,
 }) => {
   const navigate = useNavigate();
 
@@ -42,7 +44,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   return (
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
       <div className="max-w-4xl mx-auto">
-        <TitleNav setSkipDate={setSkipDate} triggerRefresh={triggerRefresh} currentView={currentView} db={db} title="Time Grid" explain="Jump to today" />
+        <TitleNav setSkipDate={setSkipDate} triggerRefresh={triggerRefresh} currentView={currentView} db={db} title={title} explain={explain} />
 
         {/* Page Content */}
         <div className="space-y-8">

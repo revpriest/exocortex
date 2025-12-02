@@ -40,7 +40,7 @@ interface TitleNavProps {
 /**
  * Main TitleNav Component
  */
-export function TitleNav({db, setSkipDate, triggerRefresh, title = "", explain="", currentView = "grid" }: TitleNavProps) {
+export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, currentView = "grid" }: TitleNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -168,14 +168,18 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title = "", explain="
 
   /** Handle adding an event **/
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
-    if (!db) return;
+    if (!db) {console.log("Not adding event, no DB");return};
 
     try {
       await db.addEvent(eventData);
 
       //After adding event we force a refresh of the top Date.
-      triggerRefresh(prev => prev + 1);
-      console.log("Triggered refresh? to try and trigger grid refresh");
+      if(triggerRefresh){
+        triggerRefresh(prev => prev + 1);
+        console.log("Triggered refresh? to try and trigger grid refresh");
+      }else{
+        console.log("No refresh required, perhaps not showing data on this page");
+      }
 
       setIsDialogOpen(false);
     } catch (error) {
@@ -360,9 +364,11 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title = "", explain="
           </Dialog>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <a href="/">
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               ExocortexLog
             </h1>
+            </a>
 
             {/* View Toggle Buttons */}
             <div className="flex gap-2">
@@ -396,24 +402,25 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title = "", explain="
           <h2
             className="text-lg font-semibold text-white cursor-pointer hover:text-primary transition-colors"
             onClick={handleScrollToToday}
-            title="{explain}"
+            title={explain}
           >
             {title}
           </h2>
 
-          <div className="flex float-right gap-4" style={{margin:"0em 0em 1em"}}>
+          <div className="flex float-right gap-4" style={{position:"relative", top:"-1em"}}>
             {/* Skip to date button - mobile responsive */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
-              title="Jump to a specific date"
-              onClick={() => setShowDateSkipDialog(true)}
-            >
-              <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Skip to Date</span>
-            </Button>
-
+            {setSkipDate && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
+                title="Jump to a specific date"
+                onClick={() => setShowDateSkipDialog(true)}
+              >
+                <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden md:inline">Skip to Date</span>
+              </Button>
+            )}
             {/* Add new event button - mobile responsive */}
             <Button
               variant="outline"
@@ -425,9 +432,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title = "", explain="
               <Plus className="h-4 w-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Add Event</span>
             </Button>
-
           </div>
-
         </div>
 
   );
