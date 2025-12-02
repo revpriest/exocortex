@@ -453,6 +453,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
 
         // Find the target date index in the sorted array
         const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+        console.log("Target day index is ",targetDayIndex);
 
         // Create a spacer element to ensure the target position is reachable
         const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
@@ -474,7 +475,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
           }
 
           // Scroll to the target position
-          const scrollTarget = gridRef.current.scrollHeight - spacerHeight + ROW_HEIGHT / 2;
+          const scrollTarget = spacerHeight - ROW_HEIGHT;
           console.log('Scrolling to position:', scrollTarget);
           gridRef.current.scrollTop = scrollTarget;
 

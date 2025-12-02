@@ -13,12 +13,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
 import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
 import { StatsView } from '@/components/StatsView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { NotificationSettings } from '@/components/NotificationSettings';
+import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
 import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 
 
@@ -144,15 +146,13 @@ const DBManagementSection = ({db}) => {
           Database Management
         </CardTitle>
         <CardDescription>
-          <p>
-            Import, export, and manage your time tracking data.
-          </p>
-          <p className="text-destructive text-base md:text-lg leading-relaxed">
-            You should probably back up with the export button often, no guarantees.
-          </p>
+          Import, export, and manage your time tracking data.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+          <p className="text-destructive text-base md:text-lg leading-relaxed">
+            You should probably back up with the export button often, no guarantees.
+          </p>
         {/* Action Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <Button

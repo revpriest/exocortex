@@ -84,17 +84,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
   };
 
 
-
-  // Skip to date functionality
-  const handleSkipToDate = async () => {
-    if (!db || !selectedSkipDate) {
-      return;
-    }
-    const targetDate = selectedSkipDate;
-    console.log("Calling setSkipDate function at Grid",targetDate,setSkipDate);
-    setSkipDate(targetDate); 
-  };
-
   // Custom calendar component with year navigation
   const CalendarWithYearNav = () => {
     const [currentMonth, setCurrentMonth] = useState(selectedSkipDate || new Date());
@@ -289,14 +278,21 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
   // Scroll to today functionality
   const handleScrollToToday = useCallback(() => {
-    if (gridRef.current) {
-      // Scroll to the very top (today is at the top)
-      gridRef.current.scrollTop = 0;
-
-      // Update the current date reference
-      setCurrentDate(new Date());
-    }
+    console.log("Scrolling to today");
+    const targetDate = new Date();
+    console.log("Setting skip date to",targetDate);
+    setSkipDate(targetDate); 
   }, []);
+
+  // scroll to given to date functionality
+  const handleSkipToDate = async () => {
+    if (!db || !selectedSkipDate) {
+      return;
+    }
+    const targetDate = selectedSkipDate;
+    console.log("Calling setSkipDate function at Grid",targetDate,setSkipDate);
+    setSkipDate(targetDate); 
+  };
 
 
   /**
