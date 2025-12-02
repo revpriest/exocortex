@@ -17,6 +17,7 @@ import { ScrollToTop } from "./components/ScrollToTop";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Stats from "./pages/Stats";
+import Summary from "./pages/Summary";
 import Conf from "./pages/Conf";
 import NotFound from "./pages/NotFound";
 
@@ -63,6 +64,12 @@ export function AppRouter() {
           Shows information about your database 
         */}
         <Route path="/stats" element={<Stats />} />
+
+        {/*
+          Summary route: Matches the "/summary" URL
+          Shows summray of recent events
+        */}
+        <Route path="/summary" element={<Summary />} />
 
         {/*
           Conf route: Matches the "/conf" URL

@@ -11,7 +11,7 @@ import { EventDialog } from './EventDialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
+import { Grid3X3, BarChart3, Squirrel, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
 import { ExocortexDB } from '@/lib/exocortex';
 
 /**
@@ -69,13 +69,15 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
    * They update the URL which triggers a re-render with the new view.
    */
   const handleGridClick = () => {
-    // Navigate to root URL without query parameters for grid view
     navigate('/');
   };
 
   const handleStatsClick = () => {
-    // Navigate to stats view using query parameter
     navigate('/stats');
+  };
+
+  const handleSummaryClick = () => {
+    navigate('/summary');
   };
 
   const handleConfClick = () => {
@@ -278,10 +280,10 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
   // Scroll to today functionality
   const handleScrollToToday = useCallback(() => {
-    console.log("Scrolling to today");
-    const targetDate = new Date();
-    console.log("Setting skip date to",targetDate);
-    setSkipDate(targetDate); 
+    if(setSkipDate){
+      const targetDate = new Date();
+      setSkipDate(targetDate); 
+    }
   }, []);
 
   // scroll to given to date functionality
@@ -375,6 +377,14 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
               >
                 <Grid3X3 className="h-4 w-4 mr-2" />
                 Grid
+              </Button>
+              <Button
+                variant={currentView === 'summary' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleSummaryClick}
+              >
+                <Squirrel className="h-4 w-4 mr-2" />
+                Summary
               </Button>
               <Button
                 variant={currentView === 'stats' ? 'default' : 'outline'}
