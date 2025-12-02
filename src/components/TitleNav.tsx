@@ -75,12 +75,12 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
   const handleStatsClick = () => {
     // Navigate to stats view using query parameter
-    navigate('/?view=stats');
+    navigate('/stats');
   };
 
   const handleConfClick = () => {
     // Navigate to conf view using query parameter
-    navigate('/?view=conf');
+    navigate('/conf');
   };
 
 
