@@ -34,7 +34,7 @@ export const APP_VERSION = '0.0.20';
  * Service workers enable offline functionality and faster load times.
  * They run in the background and can cache assets for offline use.
  */
-if ('serviceWorker' in navigator) {
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   // Wait for the page to fully load before registering
   window.addEventListener('load', () => {
     console.log('Attempting to register service worker...');
@@ -54,7 +54,7 @@ if ('serviceWorker' in navigator) {
         console.log('❌ ServiceWorker registration failed: ', error);
       });
   });
-} else {
+} else if (typeof window !== 'undefined') {
   console.log('⚠️ Service workers are not supported in this browser');
 }
 
@@ -69,8 +69,13 @@ if ('serviceWorker' in navigator) {
  * The ErrorBoundary catches any errors in the app and shows a nice error message
  * instead of crashing the entire page.
  */
-createRoot(document.getElementById("root")!).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
-);
+if (typeof document !== 'undefined') {
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    createRoot(rootElement).render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
+  }
+}
