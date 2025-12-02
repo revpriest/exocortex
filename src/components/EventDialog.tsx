@@ -412,7 +412,8 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange} discription="Edit Event">
+        <DialogTitle>Edit Event</DialogTitle>
         <DialogContent
           className={`${isMobile ? '!w-[85vw] !max-w-[85vw] !h-[85vh] overflow-y-auto overscroll-behavior-contain' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}
         >

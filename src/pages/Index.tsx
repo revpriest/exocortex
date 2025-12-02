@@ -22,11 +22,11 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
 import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
 import { APP_VERSION } from '../main';
+import { TitleNav } from '../components/TitleNav';
 
 /**
  * New User Welcome Dialog Component
@@ -235,25 +235,10 @@ const CacheResetSection = () => {
  * Provides database operations including import, export, test data generation,
  * and database clearing functionality.
  */
-const DBManagementSection = () => {
-  const [db, setDb] = useState<ExocortexDB | null>(null);
+const DBManagementSection = ({db}) => {
   const [error, setError] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showTestConfirm, setShowTestConfirm] = useState(false);
-
-  // Initialize database
-  useEffect(() => {
-    const initDb = async () => {
-      const database = new ExocortexDB();
-      await database.init();
-      setDb(database);
-    };
-
-    initDb().catch((error) => {
-      console.error('Failed to initialize database:', error);
-      setError('Failed to initialize database. Please refresh the page.');
-    });
-  }, []);
 
   const handleExport = async () => {
     if (!db) return;
@@ -651,11 +636,86 @@ const DBManagementSection = () => {
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
-  // React Router hooks for URL-based navigation
-  const [searchParams, setSearchParams] = useSearchParams();
+  // Array containing events grouped by day
+  const [days, setDays] = useState<DayEvents[]>([]);
+
+  // Database instance for storing and retrieving events
+  const [db, setDb] = useState<ExocortexDB | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Loading state for showing loading indicators during data operations
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Welcome dialog state for new users
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
+
+  // Force grid refresh trigger
+  const [forceGridRefresh, setForceGridRefresh] = useState(0);
+
+  useEffect(() => {
+    const initAll = async () => {
+      const db = new ExocortexDB();
+      await db.init();
+      setDb(db);
+
+      // Calculate how many days we need to fill the screen
+      // Assuming each row is 80px tall and screen height is available
+      const screenHeight = window.innerHeight - 100; // Account for header and button
+      const rowsNeeded = Math.ceil(screenHeight / 80) + 2; // +2 for extra scroll buffer
+      const daysToLoad = Math.max(7, rowsNeeded); // At least 7 days
+
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
+
+      // Try to get days with events
+      const daysWithEvents = await db.getEventsByDateRangeOnly(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+      );
+
+      // Generate all days in the range
+      const allDays: DayEvents[] = [];
+      for (let i = 0; i < daysToLoad; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(currentDate.getDate() - i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+
+        // Check if we have events for this day
+        const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
+
+        if (dayWithEvents) {
+          allDays.push(dayWithEvents);
+        } else {
+          allDays.push({ date: dateStr, events: [] });
+        }
+      }
+
+      // Sort by date (newest first)
+      allDays.sort((a, b) => {
+        const aDate = new Date(a.date);
+        const bDate = new Date(b.date);
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      // Hide loading indicator once data is loaded
+      setLoading(false);
+    };
+
+    // Execute initialization and handle any errors
+    initAll().catch((error) => {
+      console.error('Failed to initialize database:', error);
+      setError('Failed to initialize database. Please refresh the page.');
+    });
+  }, []); // Empty dependency array means this runs only once on mount
+
+
+  // React Router hooks for URL-based navigation
+  const [searchParams, setSearchParams] = useSearchParams();
   /**
    * Get current view from URL query parameter
    * Defaults to 'grid' if no view parameter is provided
@@ -666,13 +726,6 @@ const Index = () => {
   };
 
   const currentView = getCurrentView();
-
-  // Welcome dialog state for new users
-  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
-  const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
-
-  // Force grid refresh trigger
-  const [forceGridRefresh, setForceGridRefresh] = useState(0);
 
   /**
    * Set SEO (Search Engine Optimization) metadata
@@ -701,8 +754,8 @@ const Index = () => {
 
     const checkDatabaseEmpty = async () => {
       try {
-        const database = new ExocortexDB();
-        await database.init();
+        const db = new ExocortexDB();
+        await db.init();
 
         // Check if database has any events by querying a wider date range
         // This is more reliable than just checking today
@@ -710,7 +763,7 @@ const Index = () => {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 7); // Check last 7 days
 
-        const days = await database.getEventsByDateRangeOnly(
+        const days = await db.getEventsByDateRangeOnly(
           startDate.toISOString().split('T')[0],
           endDate.toISOString().split('T')[0]
         );
@@ -734,36 +787,15 @@ const Index = () => {
   }, [currentView]); // Dependency on currentView
 
   /**
-   * Navigation Handler Functions
-   *
-   * These functions handle switching between the different views.
-   * They update the URL which triggers a re-render with the new view.
-   */
-  const handleGridClick = () => {
-    // Navigate to root URL without query parameters for grid view
-    navigate('/');
-  };
-
-  const handleStatsClick = () => {
-    // Navigate to stats view using query parameter
-    navigate('/?view=stats');
-  };
-
-  const handleConfClick = () => {
-    // Navigate to conf view using query parameter
-    navigate('/?view=conf');
-  };
-
-  /**
    * Generate test data for welcome dialog
    */
   const handleWelcomeGenerateTestData = async () => {
-    const database = new ExocortexDB();
-    await database.init();
+    const db = new ExocortexDB();
+    await db.init();
 
     try {
       // Clear existing data first
-      await database.clearAllEvents();
+      await db.clearAllEvents();
 
       // Categories for test data (excluding Sleep - we'll handle that specially)
       const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
@@ -854,7 +886,7 @@ const Index = () => {
 
       // Add all events to database
       for (const event of events) {
-        await database.addEvent(event);
+        await db.addEvent(event);
       }
     } catch (error) {
       console.error('Failed to generate test data:', error);
@@ -873,6 +905,11 @@ const Index = () => {
    */
   return (
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
+      {/* Header with navigation controls - mobile optimized */}
+      <div className="mb-4">
+        <TitleNav currentView={currentView} db={db} setDays={{setDays}} title="Time Grid" explain="Jump to today" />
+      </div>
+
       {/*
         Container with max width keeps content readable on large screens
         and centers it horizontally with mx-auto (margin-left: auto; margin-right: auto)
@@ -894,42 +931,6 @@ const Index = () => {
             }}
           />
         )}
-        {/* Navigation Header */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              ExocortexLog
-            </h1>
-
-            {/* View Toggle Buttons */}
-            <div className="flex gap-2">
-              <Button
-                variant={currentView === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleGridClick}
-              >
-                <Grid3X3 className="h-4 w-4 mr-2" />
-                Grid
-              </Button>
-              <Button
-                variant={currentView === 'stats' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleStatsClick}
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Stats
-              </Button>
-              <Button
-                variant={currentView === 'conf' ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleConfClick}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Conf
-              </Button>
-            </div>
-          </div>
-        </div>
 
         {/* Main Content Area */}
         {/*
@@ -937,7 +938,7 @@ const Index = () => {
           The className="w-full" ensures the component takes full width of container.
         */}
         {currentView === 'grid' ? (
-          <ExocortexGrid className="w-full" refreshTrigger={forceGridRefresh} />
+          <ExocortexGrid loading={loading} setLoading={setLoading} setDays={setDays} days={days} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
         ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
         ) : (
@@ -975,7 +976,7 @@ const Index = () => {
             <CacheResetSection />
 
             {/* Database Management Section */}
-            <DBManagementSection />
+            <DBManagementSection db={db}/>
 
             {/* About Content */}
             <Card>
