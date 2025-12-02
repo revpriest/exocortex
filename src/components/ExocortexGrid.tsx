@@ -31,15 +31,6 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { Button } from '@/components/ui/button';
 import { SmileyFace } from './SmileyFace';
 
-/**
- * Component Props Interface
- *
- * TypeScript interface that defines what props this component accepts.
- */
-interface ExocortexGridProps {
-  className?: string;
-  refreshTrigger?: number;
-}
 
 /**
  * Grid Layout Constants
@@ -73,27 +64,36 @@ const responsiveStyles = `
 const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both mobile and desktop visibility
 
 /**
+ * Component Props Interface
+ *
+ * TypeScript interface that defines what props this component accepts.
+ */
+interface ExocortexGridProps {
+  className?: string;
+  refreshTrigger?: number;
+  skipDate?: Date|null;
+  setSkipDate?: (newDate: Date) => void;
+}
+
+/**
  * Main ExocortexGrid Component
  *
  * This is the main component function that renders our time tracking grid.
  * It manages all state related to events, database operations, and UI interactions.
  */
-export function ExocortexGrid({ className, refreshTrigger, db, days, setDays, loading, setLoading }: ExocortexGridProps) {
+export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkipDate}: ExocortexGridProps) {
   const { config } = useAppContext();
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date()); 
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
-  /**
-   * Drag-to-Scroll State
-   *
-   * These state variables manage the drag-to-scroll functionality:
-   * - isDragging: Whether the user is currently dragging
-   * - dragStart: Mouse position when drag started
-   * - scrollStart: Scroll position when drag started
-   * - hasDragged: Whether the user has actually moved the mouse during this interaction
-   * - dragThreshold: Minimum distance in pixels to consider it a drag vs click
-   */
+  // Array containing events grouped by day
+  const [days, setDays] = useState<DayEvents[]>([]);
+
+  // Loading state for showing loading indicators as we fill that days array
+  const [loading, setLoading] = useState(true);
+
+  // Drag-to-Scroll State
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
@@ -118,18 +118,18 @@ export function ExocortexGrid({ className, refreshTrigger, db, days, setDays, lo
   const loadingRef = useRef<HTMLDivElement>(null);
 
 
-/**
- * Load Days Function with Batch Processing
- *
- * This function loads days in batches to prevent UI freezing.
- * It processes data in chunks and yields control back to the UI thread.
- *
- * @param database - The ExocortexDB instance to query
- * @param fromDate - The newest date to load (going backwards from here)
- * @param count - Number of days to load before fromDate
- * @param batchSize - Number of days to process in each batch (default: 3)
- */
-const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 3) => {
+  /**
+   * Load Days Function with Batch Processing
+   *
+   * This function loads days in batches to prevent UI freezing.
+   * It processes data in chunks and yields control back to the UI thread.
+   *
+   * @param database - The ExocortexDB instance to query
+   * @param fromDate - The newest date to load (going backwards from here)
+   * @param count - Number of days to load before fromDate
+   * @param batchSize - Number of days to process in each batch (default: 3)
+   */
+  const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 3) => {
     /**
      * Date Range Calculation
      *
@@ -187,71 +187,141 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
   }, []);
 
 
-
-  // Setup infinite scroll
+  //Initialize at start 
   useEffect(() => {
-    if (!loadingRef.current || !db) return;
+    const initAll = async () => {
+      console.log("Grid Init with Db ",db);
+      if (!db) return;
 
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loading) {
-          const loadMoreDays = async () => {
-            setLoading(true);
-            const oldestDay = days[days.length - 1];
-            let oldestDate = oldestDay ? new Date(oldestDay.date) : new Date();
+      // Init our days cache
+      // Calculate how many days we need to fill the screen
+      // Assuming each row is 80px tall and screen height is available
+      const screenHeight = window.innerHeight - 100; // Account for header and button
+      const rowsNeeded = Math.ceil(screenHeight / 80) + 2; // +2 for extra scroll buffer
+      const daysToLoad = Math.max(7, rowsNeeded); // At least 7 days
 
-            // Don't load data from more than 10 years ago
-            const tenYearsAgo = new Date();
-            tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
 
-            if (oldestDate < tenYearsAgo) {
-              setLoading(false);
-              return;
-            }
+      // Try to get days with events
+      const daysWithEvents = await db.getEventsByDateRangeOnly(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+      );
 
-            // Calculate the range for new days (load 7 days for better coverage)
-            const daysToLoad = 7;
-            const fromDate = new Date(oldestDate);
-            fromDate.setDate(fromDate.getDate() - daysToLoad + 1); // Go back N-1 days from oldest
+      // Generate all days in the range
+      const allDays: DayEvents[] = [];
+      for (let i = 0; i < daysToLoad; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(currentDate.getDate() - i);
+        const dateStr = currentDate.toISOString().split('T')[0];
 
-            // Get ALL days in the range (both with and without events)
-            const allDaysInRange = await db.getEventsByDateRange(
-              fromDate.toISOString().split('T')[0],
-              oldestDate.toISOString().split('T')[0]
-            );
+        // Check if we have events for this day
+        const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
 
-            // Filter out days we already have
-            const existingDates = new Set(days.map(d => d.date));
-            const newDays = allDaysInRange.filter(day => !existingDates.has(day.date));
-
-            if (newDays.length > 0) {
-              setDays(prev => [...prev, ...newDays]);
-            }
-
-            setLoading(false);
-          };
-
-          loadMoreDays().catch((error) => {
-            console.error('Error in loadMoreDays:', error);
-            setLoading(false);
-            setError('Failed to load more days. Please try again.');
-          });
+        if (dayWithEvents) {
+          allDays.push(dayWithEvents);
+        } else {
+          allDays.push({ date: dateStr, events: [] });
         }
-      },
-      { threshold: 0.1 }
-    );
-
-    observerRef.current.observe(loadingRef.current);
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
       }
+
+      // Sort by date (newest first)
+      allDays.sort((a, b) => {
+        const aDate = new Date(a.date);
+        const bDate = new Date(b.date);
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      // Hide loading indicator once data is loaded
+      setLoading(false);
+
     };
-  }, [loading, days, db, loading, setDays]);
+
+    // Execute initialization and handle any errors
+    initAll().catch((error) => {
+      console.error('Failed to initialize database:', error);
+      setError('Failed to initialize database. Please refresh the page.');
+    });
+  }, [db]); 
+
+
+
+  //Initalize when days change
+  useEffect(() => {
+    const initDaysChange = async () => {
+      if (!loadingRef.current || !db) return;
+
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && !loading) {
+            const loadMoreDays = async () => {
+              setLoading(true);
+              const oldestDay = days[days.length - 1];
+              let oldestDate = oldestDay ? new Date(oldestDay.date) : new Date();
+
+              // Don't load data from more than 10 years ago
+              const tenYearsAgo = new Date();
+              tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+
+              if (oldestDate < tenYearsAgo) {
+                setLoading(false);
+                return;
+              }
+
+              // Calculate the range for new days (load 7 days for better coverage)
+              const daysToLoad = 7;
+              const fromDate = new Date(oldestDate);
+              fromDate.setDate(fromDate.getDate() - daysToLoad + 1); // Go back N-1 days from oldest
+
+              // Get ALL days in the range (both with and without events)
+              const allDaysInRange = await db.getEventsByDateRange(
+                fromDate.toISOString().split('T')[0],
+                oldestDate.toISOString().split('T')[0]
+              );
+
+              // Filter out days we already have
+              const existingDates = new Set(days.map(d => d.date));
+              const newDays = allDaysInRange.filter(day => !existingDates.has(day.date));
+
+              if (newDays.length > 0) {
+                setDays(prev => [...prev, ...newDays]);
+              }
+
+              setLoading(false);
+            };
+
+            loadMoreDays().catch((error) => {
+              console.error('Error in loadMoreDays:', error);
+              setLoading(false);
+              setError('Failed to load more days. Please try again.');
+            });
+          }
+        },
+        { threshold: 0.1 }
+      );
+
+      observerRef.current.observe(loadingRef.current);
+
+      return () => {
+        if (observerRef.current) {
+          observerRef.current.disconnect();
+        }
+      };
+    };
+
+    // Execute initialization and handle any errors
+    initDaysChange().catch((error) => {
+      console.error('Failed to initialize database:', error);
+      setError('Failed to initialize database. Please refresh the page.');
+    });
+  }, [loading, days, db]); 
+
 
   // Refresh grid when refreshTrigger changes
   useEffect(() => {
+    console.log("Triggered Refresh Of Grid");
     if (refreshTrigger && db) {
       const refreshData = async () => {
         setLoading(true);
@@ -330,6 +400,132 @@ const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count
     }
   }, [refreshTrigger, db]);
 
+
+  useEffect(() => {
+    console.log("Skipping to date ",skipDate);
+    const checkSkipDate = async () => {
+      if(!skipDate){return;}
+      try {
+        const targetDate = skipDate;
+        const today = new Date();
+        const targetDateStr = targetDate.toISOString().split('T')[0];
+        const todayStr = today.toISOString().split('T')[0];
+
+        console.log('Jumping to date:', targetDateStr);
+
+        // Calculate how many days between target and today
+        const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+        const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
+
+        // Generate all days from target to today
+        const allDays: DayEvents[] = [];
+        for (let i = 0; i < totalDays; i++) {
+          const currentDate = new Date(today);
+          currentDate.setDate(currentDate.getDate() - i);
+          const dateStr = currentDate.toISOString().split('T')[0];
+          allDays.push({ date: dateStr, events: [] }); // Start with empty days
+        }
+
+        // Try to get days with events
+        const eventsByDate = await db.getEventsByDateRangeOnly(
+          targetDateStr,
+          todayStr
+        );
+
+        console.log('Found events for', eventsByDate.length, 'dates');
+
+        // Merge events with our generated days
+        eventsByDate.forEach(dayWithEvents => {
+          const dayIndex = allDays.findIndex(day => day.date === dayWithEvents.date);
+          if (dayIndex !== -1) {
+            allDays[dayIndex] = dayWithEvents; // Replace empty day with day that has events
+          }
+        });
+
+        // Sort by date (newest first for display)
+        allDays.sort((a, b) => {
+          const aDate = new Date(a.date);
+          const bDate = new Date(b.date);
+          return bDate.getTime() - aDate.getTime(); // Newest first
+        });
+
+        // Find the target date index in the sorted array
+        const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
+
+        // Create a spacer element to ensure the target position is reachable
+        const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
+
+        console.log('Target date index:', targetDayIndex, 'Spacer height:', spacerHeight);
+        console.log('Total days loaded:', allDays.length);
+
+        // Load all days immediately
+        setDays(allDays);
+
+        // Scroll to the target position
+        if (gridRef.current) {
+          // Create a temporary div to extend scrollable area if needed
+          if (spacerHeight > 0) {
+            const tempSpacer = document.createElement('div');
+            tempSpacer.style.height = `${spacerHeight}px`;
+            tempSpacer.className = 'temp-jump-spacer';
+            gridRef.current.appendChild(tempSpacer);
+          }
+
+          // Scroll to the target position
+          const scrollTarget = gridRef.current.scrollHeight - spacerHeight + ROW_HEIGHT / 2;
+          console.log('Scrolling to position:', scrollTarget);
+          gridRef.current.scrollTop = scrollTarget;
+
+          // Remove spacer after scroll animation
+          setTimeout(() => {
+            const spacer = gridRef.current?.querySelector('.temp-jump-spacer');
+            if (spacer && spacer.parentNode) {
+              spacer.parentNode.removeChild(spacer);
+            }
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Failed to skip to date:', error);
+      } finally {
+      }
+    }
+    checkSkipDate();
+  }, [skipDate]);
+
+
+  const updateDaysWithNewStartDay = async function(){
+      // Get the event date and previous date
+      const eventDate = new Date(eventData.endTime).toISOString().split('T')[0];
+      const previousDate = new Date(eventDate);
+      previousDate.setDate(previousDate.getDate() - 1);
+      const previousDateStr = previousDate.toISOString().split('T')[0];
+
+      // Refresh both the event's day and the previous day (for spanning events)
+      const [eventDayEvents, previousDayEvents] = await Promise.all([
+        db.getEventsByDate(eventDate),
+        db.getEventsByDate(previousDateStr)
+      ]);
+
+      setDays(prev => {
+        const newDays = [...prev];
+
+        // Update the event's day
+        const eventDayIndex = newDays.findIndex(day => day.date === eventDate);
+        if (eventDayIndex !== -1) {
+          newDays[eventDayIndex] = { date: eventDate, events: eventDayEvents };
+        } else {
+          newDays.unshift({ date: eventDate, events: eventDayEvents });
+        }
+
+        // Update the previous day (if it exists in our display)
+        const previousDayIndex = newDays.findIndex(day => day.date === previousDateStr);
+        if (previousDayIndex !== -1) {
+          newDays[previousDayIndex] = { date: previousDateStr, events: previousDayEvents };
+        }
+
+        return newDays;
+      });
+  }
 
 
   /**
