@@ -179,6 +179,7 @@ export class ExocortexDB {
       const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
+      console.log("Adding to store ",fullEvent);
       const request = store.add(fullEvent);
 
       request.onsuccess = () => resolve(id);
@@ -398,7 +399,167 @@ export class ExocortexDB {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
+  };
+
+
+
+  async generateCategoryNotes(category: string): Promise<void> {
+    const notesByCategory: Record<string, string[]> = {
+      'Work': [
+        'Productive morning session',
+        'Good meetings with the team',
+        'Made good progress on the project',
+        'Challenging but rewarding work',
+        'Focus was high today'
+      ],
+      'Exercise': [
+        'Great workout! Feeling energized',
+        'Pushed myself harder than usual',
+        'Nice and relaxing session',
+        'Cardio felt good today',
+        'Strength training was productive'
+      ],
+      'Meal': [
+        'Delicious and satisfying',
+        'Healthy choice, feeling good',
+        'Quick bite between tasks',
+        'Enjoyed this meal',
+        'Felt nourished and ready'
+      ],
+      'Break': [
+        'Needed this rest',
+        'Quick recharge session',
+        'Nice coffee break',
+        'Mindful moment of peace',
+        'Good time to reflect'
+      ],
+      'Study': [
+        'Learned something new',
+        'Deep focus achieved',
+        'Interesting material today',
+        'Productive study session',
+        'Challenging concepts clicked'
+      ],
+      'Slack': [
+        'Busy doing nothing',
+        'Excellent doom scrolling',
+        'Waiting till its times',
+        'pottering around the kitchen',
+        'Lazing on the sofa'
+      ]
+    };
+
+    const categoryNotes = notesByCategory[category] || [
+      'Interesting activity',
+      'Good use of time',
+      'Felt productive',
+      'Nice moment today',
+      'Time well spent'
+    ];
+
+    return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
+  };
+
+  async generateTestData():string {
+    console.log("Generating Test Data");
+    try {
+      console.log("Clearing events");
+      await this.clearAllEvents();
+
+      const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - 1);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const events: Omit<any, 'id'>[] = [];
+
+      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
+        console.log("Doing Day ",currentDate);
+        const dayEvents: Omit<any, 'id'>[] = [];
+
+        const sleepStartHour = 20 + Math.floor(Math.random() * 3);
+        const sleepStartMinute = Math.floor(Math.random() * 60);
+        const sleepDurationHours = 7 + Math.random();
+
+        const sleepStart = new Date(currentDate);
+        sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
+        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (sleepEnd >= today) {
+          const maxDuration = today.getTime() - sleepStart.getTime();
+          const adjustedDurationHours = Math.max(6, (maxDuration / (60 * 60 * 1000)) - 0.5);
+          sleepEnd = new Date(sleepStart.getTime() + adjustedDurationHours * 60 * 60 * 1000);
+        }
+
+        const sleepEvent = {
+          endTime: sleepEnd.getTime(),
+          category: 'Sleep' as const,
+          notes: Math.random() > 0.7 ? [
+            'Had some interesting dreams',
+            'Woke up feeling refreshed',
+            'Slept through the night',
+            'A bit restless but okay',
+            'Deep sleep cycle felt good'
+          ][Math.floor(Math.random() * 5)] : undefined,
+          happiness: 0.8,
+          wakefulness: Math.random() * 0.02,
+          health: 0.9,
+        };
+
+        console.log("Pushing To Day ",sleepEvent);
+        dayEvents.push(sleepEvent);
+
+        let currentTime = new Date(currentDate);
+        currentTime.setHours(7, 0, 0, 0);
+
+        while (currentTime < sleepStart) {
+          const timeUntilSleep = sleepStart.getTime() - currentTime.getTime();
+          if (timeUntilSleep < 30 * 60 * 1000) break;
+
+          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
+          if (maxDuration <= 0) break;
+
+          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
+          const actualDuration = Math.min(durationMs, maxDuration);
+
+          const category = categories[Math.floor(Math.random() * categories.length)];
+          const happiness = Math.random() * 0.4 + 0.5;
+          const wakefulness = Math.random() * 0.4 + 0.5;
+          const health = Math.random() * 0.3 + 0.6;
+
+          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
+
+          const event = {
+            endTime: eventEndTime.getTime(),
+            category,
+            notes: Math.random() > 0.6 ? await this.generateCategoryNotes(category) : undefined,
+            happiness,
+            wakefulness,
+            health,
+          };
+
+          dayEvents.push(event);
+          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000);
+        }
+        console.log("Pushing all days events to events");
+        events.push(...dayEvents);
+      }
+
+      for (const event of events) {
+        console.log("Adding an event",event);
+        await this.addEvent(event);
+      }
+      return(`Successfully generated ${events.length} test events for the past 30 days`);
+    } catch (error) {
+      console.error('Failed to generate test data:', error);
+      return('Failed to generate test data. Please try again.');
+    }
   }
+
+
 }
 
 // Utility functions

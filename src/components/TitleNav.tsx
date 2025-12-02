@@ -28,13 +28,19 @@ interface TitleNavProps {
   title: string;
   /** Mouseover text of the title */
   explain: string;
+  /** Database **/
+  db: ExocortexDB | null;
+  /** Trigger the grid to redraw **/
+  triggerRefresh: (triggerRefresh: int) => void;
+  /** Set to trigger the grid to skip to a date **/
+  setSkipDate: (newDate: Date) => void;
 }
 
 
 /**
  * Main TitleNav Component
  */
-export function TitleNav({ title = "", explain="", currentView = "grid", db, setDays }: TitleNavProps) {
+export function TitleNav({db, setSkipDate, triggerRefresh, title = "", explain="", currentView = "grid" }: TitleNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,7 +57,6 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
   // Skip to date dialog state
   const [showDateSkipDialog, setShowDateSkipDialog] = useState(false);
   const [selectedSkipDate, setSelectedSkipDate] = useState<Date | undefined>(undefined);
-  const [isJumpingToDate, setIsJumpingToDate] = useState(false);
 
   // Event being edited (null when adding a new event)
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
@@ -82,97 +87,12 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
 
   // Skip to date functionality
   const handleSkipToDate = async () => {
-    if (!db || !selectedSkipDate || isJumpingToDate) {
+    if (!db || !selectedSkipDate) {
       return;
     }
-
-    setIsJumpingToDate(true);
-
-    try {
-      const targetDate = selectedSkipDate;
-      const today = new Date();
-      const targetDateStr = targetDate.toISOString().split('T')[0];
-      const todayStr = today.toISOString().split('T')[0];
-
-      console.log('Jumping to date:', targetDateStr);
-
-      // Calculate how many days between target and today
-      const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
-      const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
-
-      // Generate all days from target to today
-      const allDays: DayEvents[] = [];
-      for (let i = 0; i < totalDays; i++) {
-        const currentDate = new Date(today);
-        currentDate.setDate(currentDate.getDate() - i);
-        const dateStr = currentDate.toISOString().split('T')[0];
-        allDays.push({ date: dateStr, events: [] }); // Start with empty days
-      }
-
-      // Try to get days with events
-      const eventsByDate = await db.getEventsByDateRangeOnly(
-        targetDateStr,
-        todayStr
-      );
-
-      console.log('Found events for', eventsByDate.length, 'dates');
-
-      // Merge events with our generated days
-      eventsByDate.forEach(dayWithEvents => {
-        const dayIndex = allDays.findIndex(day => day.date === dayWithEvents.date);
-        if (dayIndex !== -1) {
-          allDays[dayIndex] = dayWithEvents; // Replace empty day with day that has events
-        }
-      });
-
-      // Sort by date (newest first for display)
-      allDays.sort((a, b) => {
-        const aDate = new Date(a.date);
-        const bDate = new Date(b.date);
-        return bDate.getTime() - aDate.getTime(); // Newest first
-      });
-
-      // Find the target date index in the sorted array
-      const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
-
-      // Create a spacer element to ensure the target position is reachable
-      const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
-
-      console.log('Target date index:', targetDayIndex, 'Spacer height:', spacerHeight);
-      console.log('Total days loaded:', allDays.length);
-
-      // Load all days immediately
-      setDays(allDays);
-
-      // Scroll to the target position
-      if (gridRef.current) {
-        // Create a temporary div to extend scrollable area if needed
-        if (spacerHeight > 0) {
-          const tempSpacer = document.createElement('div');
-          tempSpacer.style.height = `${spacerHeight}px`;
-          tempSpacer.className = 'temp-jump-spacer';
-          gridRef.current.appendChild(tempSpacer);
-        }
-
-        // Scroll to the target position
-        const scrollTarget = gridRef.current.scrollHeight - spacerHeight + ROW_HEIGHT / 2;
-        console.log('Scrolling to position:', scrollTarget);
-        gridRef.current.scrollTop = scrollTarget;
-
-        // Remove spacer after scroll animation
-        setTimeout(() => {
-          const spacer = gridRef.current?.querySelector('.temp-jump-spacer');
-          if (spacer && spacer.parentNode) {
-            spacer.parentNode.removeChild(spacer);
-          }
-        }, 100);
-      }
-
-    } catch (error) {
-      console.error('Failed to skip to date:', error);
-    } finally {
-      setIsJumpingToDate(false);
-    }
+    const targetDate = selectedSkipDate;
+    console.log("Calling setSkipDate function at Grid",targetDate,setSkipDate);
+    setSkipDate(targetDate); 
   };
 
   // Custom calendar component with year navigation
@@ -238,6 +158,14 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
   };
 
 
+
+
+  /** Handle closing the event dialog **/
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    setEditingEvent(null);
+  };
+
   /** Handle adding an event **/
   const handleAddEvent = async (eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
@@ -245,37 +173,9 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
     try {
       await db.addEvent(eventData);
 
-      // Get the event date and previous date
-      const eventDate = new Date(eventData.endTime).toISOString().split('T')[0];
-      const previousDate = new Date(eventDate);
-      previousDate.setDate(previousDate.getDate() - 1);
-      const previousDateStr = previousDate.toISOString().split('T')[0];
-
-      // Refresh both the event's day and the previous day (for spanning events)
-      const [eventDayEvents, previousDayEvents] = await Promise.all([
-        db.getEventsByDate(eventDate),
-        db.getEventsByDate(previousDateStr)
-      ]);
-
-      setDays(prev => {
-        const newDays = [...prev];
-
-        // Update the event's day
-        const eventDayIndex = newDays.findIndex(day => day.date === eventDate);
-        if (eventDayIndex !== -1) {
-          newDays[eventDayIndex] = { date: eventDate, events: eventDayEvents };
-        } else {
-          newDays.unshift({ date: eventDate, events: eventDayEvents });
-        }
-
-        // Update the previous day (if it exists in our display)
-        const previousDayIndex = newDays.findIndex(day => day.date === previousDateStr);
-        if (previousDayIndex !== -1) {
-          newDays[previousDayIndex] = { date: previousDateStr, events: previousDayEvents };
-        }
-
-        return newDays;
-      });
+      //After adding event we force a refresh of the top Date.
+      triggerRefresh(prev => prev + 1);
+      console.log("Triggered refresh? to try and trigger grid refresh");
 
       setIsDialogOpen(false);
     } catch (error) {
@@ -301,14 +201,6 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
     } catch (error) {
       console.error('Failed to delete event:', error);
     }
-  };
-
-
-
-  /** Handle closing the event dialog **/
-  const handleDialogClose = () => {
-    setIsDialogOpen(false);
-    setEditingEvent(null);
   };
 
 
@@ -355,6 +247,8 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
       console.error('Failed to update event:', error);
     }
   };
+
+
 
 
   const handleOpenAddDialog = async () => {
@@ -448,7 +342,7 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
                 </Button>
                 <Button
                   onClick={async () => {
-                    if (!selectedSkipDate || isJumpingToDate) return;
+                    if (!selectedSkipDate) return;
 
                     // Close dialog immediately
                     setShowDateSkipDialog(false);
@@ -456,7 +350,7 @@ export function TitleNav({ title = "", explain="", currentView = "grid", db, set
                     // Then handle the date jump
                     await handleSkipToDate();
                   }}
-                  disabled={!selectedSkipDate || isJumpingToDate}
+                  disabled={!selectedSkipDate}
                   className="bg-primary hover:bg-primary/90"
                 >
                   Jump to Date

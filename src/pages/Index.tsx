@@ -16,7 +16,6 @@ import { StatsView } from '@/components/StatsView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { ExocortexDB } from '@/lib/exocortex';
-import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +26,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
 import { APP_VERSION } from '../main';
 import { TitleNav } from '../components/TitleNav';
+import { DataExporter } from '@/lib/dataExport';
 
 /**
  * New User Welcome Dialog Component
@@ -53,6 +53,7 @@ const NewUserWelcomeDialog = ({ isOpen, onClose, onGenerateTestData, onAbout }: 
     onAbout();
     onClose();
   };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -229,6 +230,7 @@ const CacheResetSection = () => {
   );
 };
 
+
 /**
  * Database Management Section Component
  *
@@ -240,7 +242,45 @@ const DBManagementSection = ({db}) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showTestConfirm, setShowTestConfirm] = useState(false);
 
-  const handleExport = async () => {
+
+  const confirmGenerateTestData = async () => {
+    await handleGenerateTestData();
+    setShowTestConfirm(false);
+  };
+ 
+  const handleGenerateTestData= async () => {
+    const t = await db.generateTestData();
+    setError(t);
+  }
+
+  const cancelGenerateTestData = () => {
+    setShowTestConfirm(false);
+  };
+
+
+  const confirmClearAllData = () => {
+    handleClearAllData();
+    setShowClearConfirm(false);
+  };
+
+  const cancelClearAllData = () => {
+    setShowClearConfirm(false);
+  };
+
+  const handleClearAllData = async() => {
+    if (!db) return;
+
+    try {
+      await db.clearAllEvents();
+      setError('All data has been cleared successfully');
+      setTimeout(() => setError(null), 3000);
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+      setError('Failed to clear data. Please try again.');
+    }
+  };
+
+  const handleExport = async() => {
     if (!db) return;
 
     try {
@@ -253,7 +293,7 @@ const DBManagementSection = ({db}) => {
     }
   };
 
-  const handleImportDatabase = async () => {
+  const handleImportDatabase = async() => {
     if (!db) return;
 
     const input = document.createElement('input');
@@ -283,7 +323,7 @@ const DBManagementSection = ({db}) => {
     input.click();
   };
 
-  const handleImportLegacyDatabase = () => {
+  const handleImportLegacyDatabase = async() => { 
     if (!db) return;
 
     const input = document.createElement('input');
@@ -303,192 +343,6 @@ const DBManagementSection = ({db}) => {
       }
     };
     input.click();
-  };
-
-  const generateCategoryNotes = (category: string): string => {
-    const notesByCategory: Record<string, string[]> = {
-      'Work': [
-        'Productive morning session',
-        'Good meetings with the team',
-        'Made good progress on the project',
-        'Challenging but rewarding work',
-        'Focus was high today'
-      ],
-      'Exercise': [
-        'Great workout! Feeling energized',
-        'Pushed myself harder than usual',
-        'Nice and relaxing session',
-        'Cardio felt good today',
-        'Strength training was productive'
-      ],
-      'Meal': [
-        'Delicious and satisfying',
-        'Healthy choice, feeling good',
-        'Quick bite between tasks',
-        'Enjoyed this meal',
-        'Felt nourished and ready'
-      ],
-      'Break': [
-        'Needed this rest',
-        'Quick recharge session',
-        'Nice coffee break',
-        'Mindful moment of peace',
-        'Good time to reflect'
-      ],
-      'Study': [
-        'Learned something new',
-        'Deep focus achieved',
-        'Interesting material today',
-        'Productive study session',
-        'Challenging concepts clicked'
-      ],
-      'Slack': [
-        'Busy doing nothing',
-        'Excellent doom scrolling',
-        'Waiting till its times',
-        'pottering around the kitchen',
-        'Lazing on the sofa'
-      ]
-    };
-
-    const categoryNotes = notesByCategory[category] || [
-      'Interesting activity',
-      'Good use of time',
-      'Felt productive',
-      'Nice moment today',
-      'Time well spent'
-    ];
-
-    return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
-  };
-
-  const handleGenerateTestData = async () => {
-    if (!db) return;
-
-    try {
-      await db.clearAllEvents();
-
-      const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() - 1);
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
-
-      const events: Omit<any, 'id'>[] = [];
-
-      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
-        const dayEvents: Omit<any, 'id'>[] = [];
-
-        const sleepStartHour = 20 + Math.floor(Math.random() * 3);
-        const sleepStartMinute = Math.floor(Math.random() * 60);
-        const sleepDurationHours = 7 + Math.random();
-
-        const sleepStart = new Date(currentDate);
-        sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
-        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (sleepEnd >= today) {
-          const maxDuration = today.getTime() - sleepStart.getTime();
-          const adjustedDurationHours = Math.max(6, (maxDuration / (60 * 60 * 1000)) - 0.5);
-          sleepEnd = new Date(sleepStart.getTime() + adjustedDurationHours * 60 * 60 * 1000);
-        }
-
-        const sleepEvent = {
-          endTime: sleepEnd.getTime(),
-          category: 'Sleep' as const,
-          notes: Math.random() > 0.7 ? [
-            'Had some interesting dreams',
-            'Woke up feeling refreshed',
-            'Slept through the night',
-            'A bit restless but okay',
-            'Deep sleep cycle felt good'
-          ][Math.floor(Math.random() * 5)] : undefined,
-          happiness: 0.8,
-          wakefulness: Math.random() * 0.02,
-          health: 0.9,
-        };
-
-        dayEvents.push(sleepEvent);
-
-        let currentTime = new Date(currentDate);
-        currentTime.setHours(7, 0, 0, 0);
-
-        while (currentTime < sleepStart) {
-          const timeUntilSleep = sleepStart.getTime() - currentTime.getTime();
-          if (timeUntilSleep < 30 * 60 * 1000) break;
-
-          const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
-          if (maxDuration <= 0) break;
-
-          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
-          const actualDuration = Math.min(durationMs, maxDuration);
-
-          const category = categories[Math.floor(Math.random() * categories.length)];
-          const happiness = Math.random() * 0.4 + 0.5;
-          const wakefulness = Math.random() * 0.4 + 0.5;
-          const health = Math.random() * 0.3 + 0.6;
-
-          const eventEndTime = new Date(currentTime.getTime() + actualDuration);
-
-          const event = {
-            endTime: eventEndTime.getTime(),
-            category,
-            notes: Math.random() > 0.6 ? generateCategoryNotes(category) : undefined,
-            happiness,
-            wakefulness,
-            health,
-          };
-
-          dayEvents.push(event);
-          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000);
-        }
-
-        events.push(...dayEvents);
-      }
-
-      for (const event of events) {
-        await db.addEvent(event);
-      }
-
-      setError(`Successfully generated ${events.length} test events for the past 30 days with realistic sleep patterns`);
-      setTimeout(() => setError(null), 5000);
-    } catch (error) {
-      console.error('Failed to generate test data:', error);
-      setError('Failed to generate test data. Please try again.');
-    }
-  };
-
-  const confirmGenerateTestData = async () => {
-    await handleGenerateTestData();
-    setShowTestConfirm(false);
-  };
-
-  const cancelGenerateTestData = () => {
-    setShowTestConfirm(false);
-  };
-
-  const handleClearAllData = async () => {
-    if (!db) return;
-
-    try {
-      await db.clearAllEvents();
-      setError('All data has been cleared successfully');
-      setTimeout(() => setError(null), 3000);
-    } catch (error) {
-      console.error('Failed to clear data:', error);
-      setError('Failed to clear data. Please try again.');
-    }
-  };
-
-  const confirmClearAllData = () => {
-    handleClearAllData();
-    setShowClearConfirm(false);
-  };
-
-  const cancelClearAllData = () => {
-    setShowClearConfirm(false);
   };
 
   return (
@@ -636,15 +490,9 @@ const DBManagementSection = ({db}) => {
  * 4. Provides responsive layout and styling
  */
 const Index = () => {
-  // Array containing events grouped by day
-  const [days, setDays] = useState<DayEvents[]>([]);
-
   // Database instance for storing and retrieving events
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Loading state for showing loading indicators during data operations
-  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -656,54 +504,15 @@ const Index = () => {
   // Force grid refresh trigger
   const [forceGridRefresh, setForceGridRefresh] = useState(0);
 
+  // Force to generate empty days and skip to that day
+  const [skipDate, setSkipDate] = useState<Date|null>(null);
+
+
   useEffect(() => {
     const initAll = async () => {
       const db = new ExocortexDB();
       await db.init();
       setDb(db);
-
-      // Calculate how many days we need to fill the screen
-      // Assuming each row is 80px tall and screen height is available
-      const screenHeight = window.innerHeight - 100; // Account for header and button
-      const rowsNeeded = Math.ceil(screenHeight / 80) + 2; // +2 for extra scroll buffer
-      const daysToLoad = Math.max(7, rowsNeeded); // At least 7 days
-
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
-
-      // Try to get days with events
-      const daysWithEvents = await db.getEventsByDateRangeOnly(
-        startDate.toISOString().split('T')[0],
-        today.toISOString().split('T')[0]
-      );
-
-      // Generate all days in the range
-      const allDays: DayEvents[] = [];
-      for (let i = 0; i < daysToLoad; i++) {
-        const currentDate = new Date(today);
-        currentDate.setDate(currentDate.getDate() - i);
-        const dateStr = currentDate.toISOString().split('T')[0];
-
-        // Check if we have events for this day
-        const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
-
-        if (dayWithEvents) {
-          allDays.push(dayWithEvents);
-        } else {
-          allDays.push({ date: dateStr, events: [] });
-        }
-      }
-
-      // Sort by date (newest first)
-      allDays.sort((a, b) => {
-        const aDate = new Date(a.date);
-        const bDate = new Date(b.date);
-        return bDate.getTime() - aDate.getTime();
-      });
-
-      // Hide loading indicator once data is loaded
-      setLoading(false);
     };
 
     // Execute initialization and handle any errors
@@ -893,6 +702,10 @@ const Index = () => {
     }
   };
 
+
+
+
+
   /**
    * Page Layout Structure
    *
@@ -907,7 +720,7 @@ const Index = () => {
     <div className="min-h-screen bg-background p-2 md:p-4 pb-16 md:pb-20">
       {/* Header with navigation controls - mobile optimized */}
       <div className="mb-4">
-        <TitleNav currentView={currentView} db={db} setDays={{setDays}} title="Time Grid" explain="Jump to today" />
+        <TitleNav setSkipDate={setSkipDate} triggerRefresh={setForceGridRefresh} currentView={currentView} db={db} title="Time Grid" explain="Jump to today" />
       </div>
 
       {/*
@@ -938,7 +751,7 @@ const Index = () => {
           The className="w-full" ensures the component takes full width of container.
         */}
         {currentView === 'grid' ? (
-          <ExocortexGrid loading={loading} setLoading={setLoading} setDays={setDays} days={days} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
+          <ExocortexGrid skipDate={skipDate} setSkipDate={setSkipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} />
         ) : currentView === 'stats' ? (
           <StatsView className="w-full" />
         ) : (
@@ -976,7 +789,7 @@ const Index = () => {
             <CacheResetSection />
 
             {/* Database Management Section */}
-            <DBManagementSection db={db}/>
+            <DBManagementSection db={db} />
 
             {/* About Content */}
             <Card>
