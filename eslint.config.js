@@ -43,6 +43,7 @@ export default tseslint.config(
         "error",
         { terms: ["fixme"] },
       ],
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
   {

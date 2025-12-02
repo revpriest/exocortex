@@ -18,10 +18,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, formatTime, getHourSlots } from '@/lib/exocortex';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, getHourSlots } from '@/lib/exocortex';
 import { useAppContext } from '@/hooks/useAppContext';
-import { Button } from '@/components/ui/button';
 import { SmileyFace } from './SmileyFace';
 import { EventDialog } from '@/components/EventDialog';
 
@@ -65,9 +63,9 @@ const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both m
 interface ExocortexGridProps {
   className?: string;
   refreshTrigger?: number;
-  setRefreshTrigger?: number;
+  setRefreshTrigger?: (number)=>void;
   skipDate?: Date|null;
-  setSkipDate?: (newDate: Date) => void;
+  db?: ExocortexDB | null;
 }
 
 /**
@@ -76,10 +74,10 @@ interface ExocortexGridProps {
  * This is the main component function that renders our time tracking grid.
  * It manages all state related to events, database operations, and UI interactions.
  */
-export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db, skipDate, setSkipDate}: ExocortexGridProps) {
+export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db, skipDate}: ExocortexGridProps) {
   const { config } = useAppContext();
-  const [error, setError] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date()); 
+  const [_error, setError] = useState<string | null>(null);
+  const [_currentDate, setCurrentDate] = useState(new Date()); 
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
   // Array containing events grouped by day
@@ -97,11 +95,8 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   
 
   //Some state for the edit event dialog
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [_isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
-
-  // Mobile responsiveness hook
-  const isMobile = useIsMobile() || false;
 
   // Reference to the main grid container (for scrolling and measurements)
   const gridRef = useRef<HTMLDivElement>(null);
@@ -188,7 +183,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
             const loadMoreDays = async () => {
               setLoading(true);
               const oldestDay = days[days.length - 1];
-              let oldestDate = oldestDay ? new Date(oldestDay.date) : new Date();
+              const oldestDate = oldestDay ? new Date(oldestDay.date) : new Date();
 
               // Don't load data from more than 10 years ago
               const tenYearsAgo = new Date();
@@ -327,13 +322,14 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
       refreshData();
     }
-  }, [refreshTrigger, db]);
+  }, [refreshTrigger, db, days]);
 
 
   useEffect(() => {
     console.log("Skipping to date ",skipDate);
     const checkSkipDate = async () => {
       if(!skipDate){return;}
+      if(!db){return;}
       try {
         const targetDate = skipDate;
         const today = new Date();
@@ -420,46 +416,11 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         }
       } catch (error) {
         console.error('Failed to skip to date:', error);
-      } finally {
       }
     }
     checkSkipDate();
-  }, [skipDate]);
+  }, [skipDate, days, db]);
 
-
-  const updateDaysWithNewStartDay = async function(){
-      // Get the event date and previous date
-      const eventDate = new Date(eventData.endTime).toISOString().split('T')[0];
-      const previousDate = new Date(eventDate);
-      previousDate.setDate(previousDate.getDate() - 1);
-      const previousDateStr = previousDate.toISOString().split('T')[0];
-
-      // Refresh both the event's day and the previous day (for spanning events)
-      const [eventDayEvents, previousDayEvents] = await Promise.all([
-        db.getEventsByDate(eventDate),
-        db.getEventsByDate(previousDateStr)
-      ]);
-
-      setDays(prev => {
-        const newDays = [...prev];
-
-        // Update the event's day
-        const eventDayIndex = newDays.findIndex(day => day.date === eventDate);
-        if (eventDayIndex !== -1) {
-          newDays[eventDayIndex] = { date: eventDate, events: eventDayEvents };
-        } else {
-          newDays.unshift({ date: eventDate, events: eventDayEvents });
-        }
-
-        // Update the previous day (if it exists in our display)
-        const previousDayIndex = newDays.findIndex(day => day.date === previousDateStr);
-        if (previousDayIndex !== -1) {
-          newDays[previousDayIndex] = { date: previousDateStr, events: previousDayEvents };
-        }
-
-        return newDays;
-      });
-  }
 
   /**
    * Handle edit-event dialog
@@ -470,13 +431,17 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
     await db.updateEvent(id, eventData);
     setEditingEvent(null);
     console.log("Updating event ",setRefreshTrigger);
-    setRefreshTrigger(f => f + 1);
+    if(setRefreshTrigger!=null){
+      setRefreshTrigger(f => f + 1);
+    }
   };
   const handleDeleteEvent = async (id: string) => {
     if (!db) return;
     await db.deleteEvent(id);
     setEditingEvent(null);
-    setRefreshTrigger(f => f + 1);
+    if(setRefreshTrigger!=null){
+      setRefreshTrigger(f => f + 1);
+    }
   };
 
   /**
@@ -743,74 +708,6 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
     };
   };
 
-  // Calculate event position and width for a specific day portion
-  const calculateEventPortionStyle = (
-    event: ExocortexEvent,
-    dayDate: string,
-    dayEvents: ExocortexEvent[],
-    eventIndex: number,
-    portion: 'start' | 'middle' | 'end' | 'full'
-  ) => {
-    const eventEndTime = new Date(event.endTime);
-    const eventStartTime = new Date(getEventStartTime(event, dayEvents, eventIndex));
-    const dayStart = new Date(dayDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayDate);
-    dayEnd.setHours(23, 59, 59, 999);
-
-    let portionStartTime: Date;
-    let portionEndTime: Date;
-
-    switch (portion) {
-      case 'start':
-        // First day portion: from actual start time to midnight
-        portionStartTime = new Date(Math.max(eventStartTime.getTime(), dayStart.getTime()));
-        portionEndTime = new Date(dayEnd);
-        break;
-      case 'end':
-        // Last day portion: from midnight to actual end time
-        portionStartTime = new Date(dayStart);
-        portionEndTime = new Date(Math.min(eventEndTime.getTime(), dayEnd.getTime()));
-        break;
-      case 'middle':
-        // Middle day portion: full day
-        portionStartTime = new Date(dayStart);
-        portionEndTime = new Date(dayEnd);
-        break;
-      case 'full':
-      default:
-        // Single day event: from actual start to actual end (clamped to day boundaries)
-        portionStartTime = new Date(Math.max(eventStartTime.getTime(), dayStart.getTime()));
-        portionEndTime = new Date(Math.min(eventEndTime.getTime(), dayEnd.getTime()));
-        break;
-    }
-
-    // Ensure we have positive duration
-    if (portionEndTime.getTime() <= portionStartTime.getTime()) {
-      // Fallback: make it at least 1 hour long
-      portionEndTime = new Date(portionStartTime.getTime() + 60 * 60 * 1000);
-    }
-
-    const startHour = (portionStartTime.getTime() - dayStart.getTime()) / (1000 * 60 * 60);
-    const durationHours = (portionEndTime.getTime() - portionStartTime.getTime()) / (1000 * 60 * 60);
-
-    return {
-      left: `calc(${startHour} * var(--hour-width))`,
-      width: `calc(${durationHours} * var(--hour-width))`,
-      backgroundColor: getEventColor(event, config.colorOverrides),
-    };
-  };
-
-  // Check if an event spans multiple days
-  const doesEventSpanMultipleDays = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number): boolean => {
-    const eventEndTime = new Date(event.endTime);
-    const eventStartTime = new Date(getEventStartTime(event, dayEvents, index));
-
-    const startDay = eventStartTime.toISOString().split('T')[0];
-    const endDay = eventEndTime.toISOString().split('T')[0];
-
-    return startDay !== endDay;
-  };
 
   // Get the portion type for an event on a specific day
   const getEventPortionType = (event: ExocortexEvent, dayDate: string, dayEvents: ExocortexEvent[], index: number): 'start' | 'middle' | 'end' | 'full' => {
@@ -874,10 +771,6 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
     return eventsForDay;
   };
 
-  // Legacy function for backward compatibility (used for single-day events)
-  const calculateEventStyle = (event: ExocortexEvent, dayEvents: ExocortexEvent[], index: number) => {
-    return calculateEventPortionStyle(event, new Date(event.endTime).toISOString().split('T')[0], dayEvents, index, 'full');
-  };
 
   // Calculate text color based on background brightness
   const getTextColor = (event: ExocortexEvent) => {
@@ -909,11 +802,6 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       setIsDialogOpen(true);
     }
   }, [hasDragged]);
-
-  const handleEventClick = (event: ExocortexEvent) => {
-   setEditingEvent(event);
-   setIsDialogOpen(true);
-  };
 
 
 
@@ -992,7 +880,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         {/* Hour headers - mobile optimized */}
         <div className="sticky top-0 z-10 bg-card border-b border-border">
           <div className="flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-            {hourSlots.map((hour, index) => (
+            {hourSlots.map((hour, _index) => (
               <div
                 key={hour}
                 className="text-xs md:text-sm text-muted-foreground border-r border-border px-1 md:px-2 py-1 text-center flex-shrink-0 select-none"
@@ -1008,7 +896,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
         {/* Day rows */}
         <div className="relative" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>
-          {days.map((day, dayIndex) => (
+          {days.map((day, _dayIndex) => (
             <div
               key={day.date}
               data-day={day.date}

@@ -3,7 +3,7 @@
  */
 
 // React hooks for state management and lifecycle
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -28,12 +28,6 @@ export function NewUserWelcomeDialog ({ isOpen, onClose, onGenerateTestData, onA
     setIsGenerating(false);
     onClose();
   };
-
-  const handleAbout = () => {
-    onAbout();
-    onClose();
-  };
-
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

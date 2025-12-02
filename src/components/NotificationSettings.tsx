@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bell, BellOff, Volume2, VolumeX, Clock, Moon, Sun, Check, X, AlertTriangle } from 'lucide-react';
+import { Bell, BellOff, Volume2, VolumeX, Clock, Moon, Sun, AlertTriangle } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**

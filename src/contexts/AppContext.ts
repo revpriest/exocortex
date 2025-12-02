@@ -45,7 +45,7 @@ export interface AppConfig {
   /** Current theme - dark, light, or system default */
   theme: Theme;
   /** Custom color overrides for specific categories */
-  colorOverrides: ColorOverride[];
+  colorOverrides?: ColorOverride[] | undefined;
 }
 
 /**

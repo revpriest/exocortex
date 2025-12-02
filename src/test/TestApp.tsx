@@ -20,6 +20,7 @@ export function TestApp({ children }: TestAppProps) {
 
   const defaultConfig: AppConfig = {
     theme: 'light',
+    colorOverrides: [],
   };
 
   return (

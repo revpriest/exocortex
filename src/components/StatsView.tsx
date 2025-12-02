@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { CalendarIcon, BarChart3, TrendingUp } from 'lucide-react';
-import { format, isWithinInterval, parseISO, startOfDay, endOfDay, differenceInMinutes } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
 /**
  * Component Props Interface
@@ -477,10 +477,8 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="hsl(var(--muted-foreground))"
                   tick={{
                     fill: 'hsl(var(--muted-foreground))',
-                    angle: 0,
                     textAnchor: 'middle',
                     fontSize: 13,
-                    interval: 0
                   }}
                 />
                 <YAxis

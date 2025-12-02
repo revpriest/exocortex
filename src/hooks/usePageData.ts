@@ -77,7 +77,7 @@ export const usePageData = () => {
 
         const sleepStart = new Date(currentDate);
         sleepStart.setHours(sleepStartHour, sleepStartMinute, 0, 0);
-        let sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
+        const sleepEnd = new Date(sleepStart.getTime() + sleepDurationHours * 60 * 60 * 1000);
 
         // Sleep event with typical sleep values
         const sleepEvent = {

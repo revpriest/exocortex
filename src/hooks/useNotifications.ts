@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
-import { ExocortexDB, ExocortexEvent, formatTime } from '@/lib/exocortex';
+import { ExocortexDB, formatTime } from '@/lib/exocortex';
 
 /**
  * Notification Settings Interface
@@ -54,7 +54,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 export function useNotifications() {
   // Load settings from localStorage with defaults
   const [settings, setSettings] = useLocalStorage<NotificationSettings>(
-    'exocortex-notification-settings',
+    'eocortex-notification-settings',
     DEFAULT_SETTINGS
   );
 
@@ -164,7 +164,7 @@ export function useNotifications() {
       // Get the most recent event
       const lastEvent = await dbRef.current.getLatestEvent();
 
-      let title = 'Remember to update your exocortex log';
+      const title = 'Remember to update your exocortex log';
       let body = 'It\'s time to log your current activity';
 
       if (lastEvent) {
@@ -178,11 +178,8 @@ export function useNotifications() {
         icon: '/icon.svg',
         badge: '/icon.svg',
         tag: 'exocortex-reminder',
-        renotify: true,
         requireInteraction: false,
         silent: settings.silent,
-        // Add vibration pattern if supported and not silent
-        vibrate: settings.silent ? undefined : [200, 100, 200],
       });
 
       // Handle notification click - open the app

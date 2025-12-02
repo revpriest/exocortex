@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { z } from 'zod';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { AppContext, type AppConfig, type AppContextType, type Theme, type RelayMetadata } from '@/contexts/AppContext';
+import { AppContext, type AppConfig, type AppContextType, type Theme } from '@/contexts/AppContext';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -11,15 +11,6 @@ interface AppProviderProps {
   defaultConfig: AppConfig;
 }
 
-// Zod schema for RelayMetadata validation
-const RelayMetadataSchema = z.object({
-  relays: z.array(z.object({
-    url: z.string().url(),
-    read: z.boolean(),
-    write: z.boolean(),
-  })),
-  updatedAt: z.number(),
-}) satisfies z.ZodType<RelayMetadata>;
 
 // Zod schema for ColorOverride validation
 const ColorOverrideSchema = z.object({
@@ -30,7 +21,6 @@ const ColorOverrideSchema = z.object({
 // Zod schema for AppConfig validation
 const AppConfigSchema = z.object({
   theme: z.enum(['dark', 'light', 'system']),
-  relayMetadata: RelayMetadataSchema,
   colorOverrides: z.array(ColorOverrideSchema).default([]),
 }) satisfies z.ZodType<AppConfig>;
 

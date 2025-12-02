@@ -5,14 +5,15 @@
  */
 
 // React hooks for component lifecycle and state management
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { EventDialog } from './EventDialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Grid3X3, BarChart3, Squirrel, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
-import { ExocortexDB } from '@/lib/exocortex';
+import { useNavigate } from 'react-router-dom';
+import { Grid3X3, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
+import { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
+
 
 /**
  * TitleNav Component Props Interface
@@ -31,9 +32,9 @@ interface TitleNavProps {
   /** Database **/
   db: ExocortexDB | null;
   /** Trigger the grid to redraw **/
-  triggerRefresh: (triggerRefresh: int) => void;
+  triggerRefresh?: (prev: any) => any | undefined;
   /** Set to trigger the grid to skip to a date **/
-  setSkipDate: (newDate: Date) => void;
+  setSkipDate?: (newDate: Date) => void;
 }
 
 
@@ -42,7 +43,6 @@ interface TitleNavProps {
  */
 export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, currentView = "grid" }: TitleNavProps) {
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Default mood values (happiness, wakefulness, health) for new events
   const [defaultValues, setDefaultValues] = useState({
@@ -183,16 +183,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
     try {
       await db.deleteEvent(id);
-
-      // Remove the event from the corresponding day
-      setDays(prev => {
-        const newDays = prev.map(day => ({
-          ...day,
-          events: day.events.filter(event => event.id !== id)
-        })).filter(day => day.events.length > 0 || day.date === new Date().toISOString().split('T')[0]);
-
-        return newDays;
-      });
     } catch (error) {
       console.error('Failed to delete event:', error);
     }
@@ -213,28 +203,10 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
       const previousDateStr = previousDate.toISOString().split('T')[0];
 
       // Refresh both the event's day and the previous day (for spanning events)
-      const [eventDayEvents, previousDayEvents] = await Promise.all([
+      const [_eventDayEvents, _previousDayEvents] = await Promise.all([
         db.getEventsByDate(eventDate),
         db.getEventsByDate(previousDateStr)
       ]);
-
-      setDays(prev => {
-        const newDays = [...prev];
-
-        // Update the event's day
-        const eventDayIndex = newDays.findIndex(day => day.date === eventDate);
-        if (eventDayIndex !== -1) {
-          newDays[eventDayIndex] = { date: eventDate, events: eventDayEvents };
-        }
-
-        // Update the previous day (if it exists in our display)
-        const previousDayIndex = newDays.findIndex(day => day.date === previousDateStr);
-        if (previousDayIndex !== -1) {
-          newDays[previousDayIndex] = { date: previousDateStr, events: previousDayEvents };
-        }
-
-        return newDays;
-      });
 
       setIsDialogOpen(false);
       setEditingEvent(null);
@@ -284,7 +256,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
       const targetDate = new Date();
       setSkipDate(targetDate); 
     }
-  }, []);
+  }, [setSkipDate]);
 
   // scroll to given to date functionality
   const handleSkipToDate = async () => {
@@ -293,7 +265,9 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     }
     const targetDate = selectedSkipDate;
     console.log("Calling setSkipDate function at Grid",targetDate,setSkipDate);
-    setSkipDate(targetDate); 
+    if(setSkipDate){
+      setSkipDate(targetDate); 
+    }
   };
 
 

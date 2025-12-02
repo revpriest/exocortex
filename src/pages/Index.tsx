@@ -8,16 +8,11 @@
  * In a single-page app, this is essentially our "home screen".
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
 import { ExocortexDB } from '@/lib/exocortex';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { PageLayout } from '@/components/PageLayout';
 import { NewUserWelcomeDialog } from '../components/NewUserWelcomeDialog';
 
@@ -30,7 +25,7 @@ import { NewUserWelcomeDialog } from '../components/NewUserWelcomeDialog';
 const Index = () => {
   // Database instance for storing and retrieving events
   const [db, setDb] = useState<ExocortexDB | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   //So Welcome dialog can link to /about we need to navigate
   const navigate = useNavigate();
@@ -61,7 +56,7 @@ const Index = () => {
 
 
   // React Router hooks for URL-based navigation
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, _setSearchParams] = useSearchParams();
   /**
    * Get current view from URL query parameter
    * Defaults to 'grid' if no view parameter is provided
@@ -127,8 +122,12 @@ const Index = () => {
    * Generate test data for welcome dialog
    */
   const handleWelcomeGenerateTestData = async () => {
-    const t = await db.generateTestData();
-    setError(t);
+    if(db!=null){
+      const t = await db.generateTestData();
+      setError(t);
+    }else{
+      setError("No DB");
+    }
   };
 
 
@@ -161,7 +160,7 @@ const Index = () => {
       />
 
       {/* Main Content Area */}
-      <ExocortexGrid skipDate={skipDate} setSkipDate={setSkipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} setRefreshTrigger={setForceGridRefresh}/>
+      <ExocortexGrid skipDate={skipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} setRefreshTrigger={setForceGridRefresh}/>
     </PageLayout>
   );
 };

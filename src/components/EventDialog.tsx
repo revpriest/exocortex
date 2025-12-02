@@ -116,7 +116,6 @@ function drawSmileyFaceOnCanvas(
  *
  * open: Controls whether dialog is visible
  * onOpenChange: Callback when dialog should open/close
- * onSubmit: Callback when user submits a new event
  * onUpdate: Callback when user updates an existing event
  * onDelete: Callback when user deletes an event
  * editEvent: The event being edited (null for new event mode)
@@ -128,9 +127,9 @@ interface EventDialogProps {
   /** Callback function called when dialog should open/close */
   onOpenChange: (open: boolean) => void;
   /** Callback function called when user submits a new event */
-  onSubmit: (event: Omit<ExocortexEvent, 'id'>) => void;
+  onSubmit?: any;
   /** Callback function called when user updates an existing event */
-  onUpdate?: (id: string, event: Omit<ExocortexEvent, 'id'>) => void;
+  onUpdate?: any;
   /** Callback function called when user deletes an event */
   onDelete?: (id: string) => void;
   /** The event being edited (null = adding new event) */
@@ -191,12 +190,12 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   // Update canvas when mood values change
   useEffect(() => {
     drawSmileyFace();
-  }, [happinessState, wakefulnessState, healthState]);
+  });
 
   // Initial draw when component mounts
   useEffect(() => {
     drawSmileyFace();
-  }, []);
+  });
 
   // Load recent categories when dialog opens
   useEffect(() => {
@@ -297,7 +296,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const finalCategories = [...new Set(combinedCategories)].slice(0, 12); // Remove duplicates and limit to 12
 
       setRecentCategories(finalCategories);
-    } catch (error) {
+    } catch {
       // Add default categories even if there's an error
       const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
       setRecentCategories(defaultCategories);
@@ -412,7 +411,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange} discription="Edit Event">
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className={`${isMobile ? '!w-[85vw] !max-w-[85vw] !h-[85vh] overflow-y-auto overscroll-behavior-contain' : 'sm:max-w-md'} bg-gray-800 border-gray-700 text-white`}
         >

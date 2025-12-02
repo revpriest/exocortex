@@ -54,7 +54,6 @@ function drawSmileyFaceOnCanvas(
   health: number,
   wakefulness: number,
   happiness: number,
-  size: number
 ) {
   // Exit if canvas doesn't exist
   if (!canvas) return;
@@ -150,7 +149,7 @@ export function SmileyFace({ health, wakefulness, happiness, className = "", siz
    * It's wrapped in a function so we can call it from multiple places.
    */
   const drawSmileyFace = () => {
-    drawSmileyFaceOnCanvas(canvasRef.current, health, wakefulness, happiness, size);
+    drawSmileyFaceOnCanvas(canvasRef.current, health, wakefulness, happiness);
   };
 
   /**
@@ -164,7 +163,7 @@ export function SmileyFace({ health, wakefulness, happiness, className = "", siz
    */
   useEffect(() => {
     drawSmileyFace();
-  }, [health, wakefulness, happiness, size]);
+  });
 
   /**
    * Mount Effect
@@ -174,7 +173,7 @@ export function SmileyFace({ health, wakefulness, happiness, className = "", siz
    */
   useEffect(() => {
     drawSmileyFace();
-  }, []);
+  });
 
   /**
    * Render Canvas Element

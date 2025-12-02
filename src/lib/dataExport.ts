@@ -405,7 +405,7 @@ export class DataExporter {
           const tags = eventTagsMap.get(legacyEvent.id) || [];
 
           // Create combined category name
-          let category = tags.length > 0
+          const category = tags.length > 0
             ? tags.join(' / ')
             : 'Uncategorized';
 

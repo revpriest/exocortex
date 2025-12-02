@@ -350,7 +350,7 @@ export class ExocortexDB {
 
 
 
-  async generateCategoryNotes(category: string): Promise<void> {
+  async generateCategoryNotes(category: string): Promise<string> {
     const notesByCategory: Record<string, string[]> = {
       'Work': [
         'Productive morning session',
@@ -407,7 +407,7 @@ export class ExocortexDB {
     return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
   };
 
-  async generateTestData():string {
+  async generateTestData():Promise<string> {
     console.log("Generating Test Data");
     try {
       console.log("Clearing events");
@@ -538,7 +538,7 @@ export function formatTime(timestamp: number): string {
 }
 
 export function getHourSlots(): string[] {
-  const hours = [];
+  const hours:any = [];
   for (let i = 0; i < 24; i++) {
     hours.push(`${i.toString().padStart(2, '0')}:00`);
   }

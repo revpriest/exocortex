@@ -3,25 +3,23 @@
  *
  * Configure display and options along with help
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { APP_VERSION } from '../main';
 import { useTheme } from '@/hooks/useTheme';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
-import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
-import { StatsView } from '@/components/StatsView';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { resetCacheAndReload, hasActiveServiceWorkers, hasCachedAssets } from '@/lib/cacheReset';
-import { Grid3X3, BarChart3, Settings, Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2, ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+import { Moon, Sun, RefreshCw, Database, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
 
 
 /**
@@ -284,7 +282,7 @@ const DBManagementSection = ({db}) => {
  */
 const CacheResetSection = () => {
   const [hasServiceWorker, setHasServiceWorker] = useState(false);
-  const [hasCache, setHasCache] = useState(false);
+  const [_hasCache, setHasCache] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   // Check cache and service worker status on mount
@@ -411,7 +409,6 @@ const ThemeSwitch = () => {
 const Conf = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
 
   //Include the DB so header add-event can work.

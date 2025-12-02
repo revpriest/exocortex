@@ -16,8 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, X, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
 import { ColorOverride } from '@/contexts/AppContext';
 import { ExocortexDB } from '@/lib/exocortex';
@@ -227,19 +226,28 @@ export const ColorOverrideWidget: React.FC = () => {
     };
 
     const updatedOverrides = [...overrides, newOverride];
-    updateConfig({ colorOverrides: updatedOverrides });
+    updateConfig((currentConfig) => ({
+      ...currentConfig,
+      colorOverrides: updatedOverrides,
+    }));
     setNewCategory('');
   };
 
   const updateOverride = (index: number, override: ColorOverride) => {
     const updatedOverrides = [...overrides];
     updatedOverrides[index] = override;
-    updateConfig({ colorOverrides: updatedOverrides });
+    updateConfig((currentConfig) => ({
+      ...currentConfig,
+      colorOverrides: updatedOverrides,
+    }));
   };
 
   const deleteOverride = (index: number) => {
     const updatedOverrides = overrides.filter((_, i) => i !== index);
-    updateConfig({ colorOverrides: updatedOverrides });
+    updateConfig((currentConfig) => ({
+      ...currentConfig,
+      colorOverrides: updatedOverrides,
+    }));
   };
 
   return (

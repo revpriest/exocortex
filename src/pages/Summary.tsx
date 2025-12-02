@@ -8,17 +8,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { ExocortexDB, ExocortexEvent, getEventColor, formatTime, DayEvents } from '@/lib/exocortex';
 import { SmileyFace } from '@/components/SmileyFace';
 import { useAppContext } from '@/hooks/useAppContext';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { EventDialog } from '@/components/EventDialog';
+import { ColorOverride } from '@/contexts/AppContext';
 
 // --- helpers: makeSummaryRows, compactCats, DaySeparatorRow, SummaryGroupHeader, SummaryEventRow ...
 
 function makeSummaryRows(events: ExocortexEvent[]) {
-  const rows = [];
+  const rows: { type: string; events?: ExocortexEvent[]; event?: ExocortexEvent; }[] = [];
   let group: ExocortexEvent[] = [];
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
@@ -65,7 +65,7 @@ function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
   events: ExocortexEvent[];
   expanded: boolean;
   onToggle: () => void;
-  colorOverrides: any[];
+  colorOverrides: ColorOverride[] | undefined;
 }) {
   if (!events || events.length === 0) return null;
   const first = events[0];
@@ -101,7 +101,7 @@ function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
 }
 
 function SummaryEventRow({ event, colorOverrides, indent = false, onClick }: {
-  event: ExocortexEvent, colorOverrides: any[], indent?: boolean, onClick?: () => void
+  event: ExocortexEvent, colorOverrides?: any[], indent?: boolean, onClick?: () => void
 }) {
   const color = getEventColor(event, colorOverrides);
   return (
@@ -246,6 +246,7 @@ const Summary: React.FC = () => {
         open={!!editingEvent}
         onOpenChange={handleDialogOpenChange}
         onUpdate={handleUpdateEvent}
+        onSubmit={handleUpdateEvent}
         onDelete={handleDeleteEvent}
         editEvent={editingEvent}
       />
