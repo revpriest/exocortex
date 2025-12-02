@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Grid3X3, BarChart3, Settings } from 'lucide-react';
 import { TitleNav } from '../components/TitleNav';
-import type { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
-import { ExocortexGrid } from '@/components/ExocortexGrid';
 
 interface PageLayoutProps {
   title: string;
@@ -28,42 +28,26 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   explain,
 }) => {
   const navigate = useNavigate();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
 
-  // Only inject onEventClick into ExocortexGrid, NOT every child indiscriminately
-  const handleEventClick = (event: ExocortexEvent) => {
-    setEditingEvent(event);
-    setIsDialogOpen(true);
+  const handleGridClick = () => {
+    navigate('/');
   };
 
-  // Utility to check if the given child is an ExocortexGrid
-  function isExocortexGridElement(child: React.ReactNode): boolean {
-    return (React.isValidElement(child) &&
-      (child.type === ExocortexGrid || (typeof child.type === 'function' && (child.type as any).name === 'ExocortexGrid')));
-  }
+  const handleStatsClick = () => {
+    navigate('/?view=stats');
+  };
+
+  const handleConfClick = () => {
+    navigate('/?view=conf');
+  };
 
   return (
     <div className="bg-background p-2 md:p-4 pb-16 md:pb-20 ">
-      <TitleNav
-        setSkipDate={setSkipDate}
-        triggerRefresh={triggerRefresh}
-        currentView={currentView}
-        db={db}
-        title={title}
-        explain={explain}
-        isDialogOpen={isDialogOpen}
-        setIsDialogOpen={setIsDialogOpen}
-        editingEvent={editingEvent}
-        setEditingEvent={setEditingEvent}
-      />
+      <TitleNav setSkipDate={setSkipDate} triggerRefresh={triggerRefresh} currentView={currentView} db={db} title={title} explain={explain} />
+
+      {/* Page Content */}
       <div className="space-y-8">
-        {React.Children.map(children, (child) => {
-          if (isExocortexGridElement(child)) {
-            return React.cloneElement(child as any, { onEventClick: handleEventClick });
-          }
-          return child;
-        })}
+        {children}
       </div>
     </div>
   );
