@@ -199,7 +199,7 @@ export class DataExporter {
       endDate.setFullYear(endDate.getFullYear() + 5); // Go forward 5 years
 
       // Query database for all events in range
-      const days = await db.getEventsByDateRange(
+      const days = await db.getEventsByDateRangeOnly(
         startDate.toISOString().split('T')[0],
         endDate.toISOString().split('T')[0]
       );

@@ -26,7 +26,7 @@ import './index.css';
  * This constant represents the current version of ExocortexLog.
  * Update this value when releasing new versions.
  */
-export const APP_VERSION = '0.0.13';
+export const APP_VERSION = '0.0.20';
 
 /**
  * Service Worker Registration

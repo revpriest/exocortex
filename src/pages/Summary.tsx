@@ -159,7 +159,7 @@ const Summary: React.FC = () => {
         from.setDate(from.getDate() - (SUMMARY_DAYS - 1));
         from.setHours(0,0,0,0);
       }
-      const days: DayEvents[] = await db.getEventsByDateRange(
+      const days: DayEvents[] = await db.getEventsByDateRangeOnly(
         from.toISOString().split('T')[0],
         to.toISOString().split('T')[0]
       );

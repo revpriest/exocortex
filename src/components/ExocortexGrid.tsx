@@ -118,74 +118,6 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
   const loadingRef = useRef<HTMLDivElement>(null);
 
 
-  /**
-   * Load Days Function with Batch Processing
-   *
-   * This function loads days in batches to prevent UI freezing.
-   * It processes data in chunks and yields control back to the UI thread.
-   *
-   * @param database - The ExocortexDB instance to query
-   * @param fromDate - The newest date to load (going backwards from here)
-   * @param count - Number of days to load before fromDate
-   * @param batchSize - Number of days to process in each batch (default: 3)
-   */
-  const loadDays = useCallback(async (database: ExocortexDB, fromDate: Date, count: number, batchSize: number = 3) => {
-    /**
-     * Date Range Calculation
-     *
-     * We need to calculate the date range for our database query.
-     * Since we show newest days at top, we load backwards in time:
-     * - fromDate = newest date (top of visible list)
-     * - endDate = oldest date (bottom of loaded range)
-     * - count = how many days to load
-     */
-    const endDate = new Date(fromDate);
-    endDate.setDate(endDate.getDate() - count + 1); // This becomes the oldest date in the range
-
-    // Get all data in a single query (much more efficient)
-    const allDays = await database.getEventsByDateRange(
-      endDate.toISOString().split('T')[0], // Oldest date (start of range)
-      fromDate.toISOString().split('T')[0]   // Newest date (end of range)
-    );
-
-    // Only proceed if we got data
-    if (allDays.length === 0) {
-      return false; // Indicate no more data available
-    }
-
-    // Reverse to show newest first
-    const reversedDays = allDays.reverse();
-
-    // Process in batches to prevent UI freezing
-    let processedCount = 0;
-    const totalDays = reversedDays.length;
-
-    const processBatch = async (batchStartIndex: number): Promise<void> => {
-      const batchEndIndex = Math.min(batchStartIndex + batchSize, totalDays);
-      const batch = reversedDays.slice(batchStartIndex, batchEndIndex);
-
-      // Add this batch to the state
-      setDays(prev => [...prev, ...batch]);
-
-      processedCount = batchEndIndex;
-
-      // If we have more batches to process, continue after yielding control
-      if (processedCount < totalDays) {
-        // Use setTimeout to yield control back to the UI thread
-        return new Promise(resolve => {
-          setTimeout(() => {
-            resolve(processBatch(processedCount));
-          }, 0);
-        });
-      }
-    };
-
-    // Start processing the first batch
-    await processBatch(0);
-
-    return true; // Indicate successful load
-  }, []);
-
 
   //Initialize at start 
   useEffect(() => {
@@ -278,7 +210,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
               fromDate.setDate(fromDate.getDate() - daysToLoad + 1); // Go back N-1 days from oldest
 
               // Get ALL days in the range (both with and without events)
-              const allDaysInRange = await db.getEventsByDateRange(
+              const allDaysInRange = await db.getEventsByDateRangeOnly(
                 fromDate.toISOString().split('T')[0],
                 oldestDate.toISOString().split('T')[0]
               );
@@ -375,7 +307,7 @@ export function ExocortexGrid({ className, refreshTrigger, db, skipDate, setSkip
             const refreshFrom = new Date();
             refreshFrom.setDate(refreshFrom.getDate() - 30);
 
-            const daysWithEvents = await db.getEventsByDateRange(
+            const daysWithEvents = await db.getEventsByDateRangeOnly(
               refreshFrom.toISOString().split('T')[0],
               today
             );
