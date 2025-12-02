@@ -279,7 +279,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 29); // -29 to include 30 days total (today + 29 previous)
 
-      const days = await db.getEventsByDateRange(
+      const days = await db.getEventsByDateRangeOnly(
         startDate.toISOString().split('T')[0],
         endDate.toISOString().split('T')[0]
       );

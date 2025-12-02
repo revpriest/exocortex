@@ -171,7 +171,7 @@ export const ColorOverrideWidget: React.FC = () => {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 29);
 
-        const days = await db.getEventsByDateRange(
+        const days = await db.getEventsByDateRangeOnly(
           startDate.toISOString().split('T')[0],
           endDate.toISOString().split('T')[0]
         );
