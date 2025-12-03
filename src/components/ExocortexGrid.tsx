@@ -381,20 +381,22 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         setDays(allDays);
 
         // After React renders, position the scroll so that the selected
-        // date row sits 30 rows from the top (if possible).
-        if (gridRef.current) {
-          const index = allDays.findIndex(d => d.date === selectedDateStr);
-          if (index >= 0) {
-            const targetOffset = Math.max(0, index - WINDOW_BEFORE_DAYS) * ROW_HEIGHT;
-            // Use requestAnimationFrame so the DOM has applied the new rows
-            requestAnimationFrame(() => {
-              if (gridRef.current) {
-                gridRef.current.scrollTop = targetOffset;
-              }
-            });
-          } else {
-            gridRef.current.scrollTop = 0;
-          }
+        // date row is vertically centered in the viewport if possible.
+        const index = allDays.findIndex(d => d.date === selectedDateStr);
+        if (gridRef.current && index >= 0) {
+          const grid = gridRef.current;
+          const gridHeight = grid.clientHeight;
+          const targetCenter = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+          const scrollTop = Math.max(0, targetCenter - gridHeight / 2);
+
+          // Use a small delay to ensure DOM layout is done
+          requestAnimationFrame(() => {
+            if (gridRef.current) {
+              gridRef.current.scrollTop = scrollTop;
+            }
+          });
+        } else if (gridRef.current) {
+          gridRef.current.scrollTop = 0;
         }
       } catch (error) {
         console.error('Failed to skip to date:', error);
