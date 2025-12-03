@@ -345,7 +345,6 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         const topDate = new Date(skipDate); // clone
         topDate.setHours(0, 0, 0, 0);
         topDate.setDate(topDate.getDate() - DATE_LOOKBACK)
-        const topDateStr = topDate.toISOString().split('T')[0];
 
         // We want to look *backwards* from the chosen date, so build a
         // window that goes N-1 days into the past.
@@ -363,7 +362,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         rangeDays.forEach(d => dayMap.set(d.date, d));
 
         const allDays: DayEvents[] = [];
-        let cursor = new Date(from);
+        const cursor = new Date(from);
         while (cursor <= to && cursor <= today) {
           const dateStr = cursor.toISOString().split('T')[0];
           const existing = dayMap.get(dateStr);
