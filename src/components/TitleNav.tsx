@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useNavigate } from 'react-router-dom';
 import { Grid3X3, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
 import { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
+import { useHueInit } from '@/hooks/useHueInit';
 
 /**
  * TitleNav Component Props Interface
@@ -41,6 +42,9 @@ interface TitleNavProps {
  */
 export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, currentView = "grid" }: TitleNavProps) {
   const navigate = useNavigate();
+
+  // Ensure global hue CSS variable is initialised for every page using TitleNav
+  useHueInit();
 
   // Default mood values (happiness, wakefulness, health) for new events
   const [defaultValues, setDefaultValues] = useState({
