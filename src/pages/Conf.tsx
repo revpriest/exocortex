@@ -1,4 +1,4 @@
-/**
+/*
  * Conf.tsx - Conf Page
  *
  * Configure display and options along with help
@@ -136,6 +136,28 @@ const DBManagementSection = ({db}) => {
     input.click();
   };
 
+  // --- NEW: CSV Import Handler ---
+  const handleImportCsvDatabase = async () => { 
+    if (!db) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        await DataExporter.importCsvDatabase(db, file);
+        setError('CSV imported successfully.');
+        setTimeout(() => setError(null), 5000);
+      } catch (error) {
+        console.error('Failed to import CSV:', error);
+        setError(`CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    };
+    input.click();
+  };
+  // --- END CSV Import Handler ---
+
   return (
     <Card>
       <CardHeader>
@@ -180,6 +202,17 @@ const DBManagementSection = ({db}) => {
             <Upload className="h-4 w-4 mr-2" />
             Legacy
           </Button>
+          {/* --- ADD CSV Button here --- */}
+          <Button
+            variant="outline"
+            onClick={handleImportCsvDatabase}
+            disabled={!db}
+            className="w-full bg-yellow-600/20 border-yellow-600 text-yellow-600 hover:bg-yellow-700/20"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import CSV
+          </Button>
+          {/* --- END CSV Button --- */}
           <Button
             variant="outline"
             onClick={() => setShowTestConfirm(true)}
@@ -203,7 +236,7 @@ const DBManagementSection = ({db}) => {
         {/* Error/Success messages */}
         {error && (
           <div className={`px-3 py-2 rounded-md text-sm ${
-            error.includes('Successfully')
+            error.includes('Successfully') || error.includes('imported successfully')
               ? 'bg-green-900/20 border border-green-600 text-green-400'
               : 'bg-red-900/20 border border-red-600 text-red-400'
           }`}>
@@ -471,5 +504,3 @@ const Conf = () => {
 };
 
 export default Conf;
-
-

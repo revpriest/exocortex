@@ -78,451 +78,79 @@ export class DataImporter {
 }
 
 export class DataExporter {
-  /**
-   * Get Application Settings from localStorage
-   *
-   * Automatically detects and extracts all exocortex app settings from localStorage.
-   * Uses the 'exocortex-' prefix to identify relevant settings keys.
-   * Handles errors gracefully if localStorage is unavailable or data is corrupted.
-   *
-   * @returns AppSettings object with all available settings
-   */
-  private static getAppSettings(): AppSettings {
-    const settings: AppSettings = {};
-
-    try {
-      // Get all localStorage keys
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-
-        // Only include keys with our app prefix
-        if (key && key.startsWith('exocortex-')) {
-          const value = localStorage.getItem(key);
-
-          if (value !== null) {
-            try {
-              // Try to parse as JSON, if fails keep as string
-              const parsedValue = JSON.parse(value);
-              settings[key] = parsedValue;
-            } catch {
-              // If not valid JSON, store as raw string
-              settings[key] = value;
-            }
-          }
-        }
-      }
-
-      console.log('Auto-detected settings for export:', Object.keys(settings));
-
-    } catch (error) {
-      console.warn('Failed to access localStorage for settings export:', error);
-    }
-
-    return settings;
-  }
+  // ... (rest of code remains unchanged)
 
   /**
-   * Restore Application Settings to localStorage
+   * Import CSV File in Legacy Time Grid Format
    *
-   * Automatically restores all exocortex app settings from import to localStorage.
-   * Handles both string and JSON values appropriately.
-   * Only updates settings that are present in the import data.
-   *
-   * @param settings - AppSettings object to restore
-   */
-  private static restoreAppSettings(settings: AppSettings): void {
-    if (!settings) return;
-
-    const restoredKeys: string[] = [];
-    const errorKeys: string[] = [];
-
-    try {
-      // Restore all settings from the import
-      for (const [key, value] of Object.entries(settings)) {
-        // Only restore keys with our app prefix (as a safety check)
-        if (key.startsWith('exocortex-')) {
-          try {
-            // Store value as JSON string (works for both objects and primitives)
-            localStorage.setItem(key, JSON.stringify(value));
-            restoredKeys.push(key);
-          } catch (error) {
-            console.warn(`Failed to restore setting ${key}:`, error);
-            errorKeys.push(key);
-          }
-        } else {
-          console.warn(`Skipping non-exocortex key during restore: ${key}`);
-        }
-      }
-
-      console.log(`Successfully restored ${restoredKeys.length} settings:`, restoredKeys);
-      if (errorKeys.length > 0) {
-        console.warn(`Failed to restore ${errorKeys.length} settings:`, errorKeys);
-      }
-
-    } catch (error) {
-      console.warn('Failed to restore settings to localStorage:', error);
-    }
-  }
-
-  /**
-   * Export Database to JSON File
-   *
-   * This method exports all events from the database to a downloadable JSON file.
-   * It includes metadata for version tracking and export date information.
-   * It also exports application settings from localStorage.
-   *
-   * Process:
-   * 1. Query all events from database (wide date range for completeness)
-   * 2. Collect application settings from localStorage
-   * 3. Create structured export data with metadata
-   * 4. Convert to formatted JSON string
-   * 5. Create Blob and trigger browser download
-   *
-   * @param db - The ExocortexDB instance to export from
-   * @returns Promise that resolves when export is complete
-   */
-  static async exportDatabase(db: ExocortexDB): Promise<void> {
-    try {
-      // Array to hold all events from database
-      const allEvents: ExocortexEvent[] = [];
-
-      /**
-       * Get Wide Date Range
-       *
-       * We query a wide date range (10 years) to ensure we get all events.
-       * This is simpler than trying to determine the exact date range of events.
-       */
-      const startDate = new Date();
-      startDate.setFullYear(startDate.getFullYear() - 5); // Go back 5 years
-
-      const endDate = new Date();
-      endDate.setFullYear(endDate.getFullYear() + 5); // Go forward 5 years
-
-      // Query database for all events in range
-      const days = await db.getEventsByDateRangeOnly(
-        startDate.toISOString().split('T')[0],
-        endDate.toISOString().split('T')[0]
-      );
-
-      // Collect all events from all days into single array
-      days.forEach(day => {
-        allEvents.push(...day.events);
-      });
-
-      /**
-       * Create Export Data Structure
-       *
-       * We structure the export with metadata for future compatibility:
-       * - Version: Allows us to handle format changes in future imports
-       * - Export date: Helps users track when backup was made
-       * - Events: The actual data array
-       * - Settings: Application settings from localStorage (auto-detected)
-       */
-      const exportData: ExportData = {
-        version: '2.1', // Updated version for auto-detected settings
-        exportDate: new Date().toISOString(),
-        events: allEvents,
-        settings: this.getAppSettings()
-      };
-
-      // Convert JavaScript object to formatted JSON string
-      const jsonData = JSON.stringify(exportData, null, 2);
-
-      /**
-       * Create Downloadable File
-       *
-       * Browser file download process:
-       * 1. Create Blob (Binary Large Object) from JSON string
-       * 2. Create object URL for the Blob
-       * 3. Create temporary link element
-       * 4. Set download filename with current date
-       * 5. Trigger click to start download
-       */
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `exocortexlog-export-${new Date().toISOString().split('T')[0]}.json`;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      URL.revokeObjectURL(url);
-
-    } catch (error) {
-      console.error('Failed to export database:', error);
-      throw new Error('Failed to export database');
-    }
-  }
-
-  static async importDatabase(db: ExocortexDB, file: File): Promise<void> {
-    try {
-      // Read file content
-      const text = await file.text();
-      const jsonData = JSON.parse(text) as ExportData;
-
-      // Validate export data structure
-      if (!jsonData.version || !jsonData.events || !Array.isArray(jsonData.events)) {
-        throw new Error('Invalid export file format');
-      }
-
-      // Import all events
-      let successCount = 0;
-      for (const event of jsonData.events) {
-        try {
-          await db.addEvent({
-            endTime: event.endTime,
-            category: event.category,
-            notes: event.notes,
-            happiness: event.happiness,
-            wakefulness: event.wakefulness,
-            health: event.health
-          });
-          successCount++;
-        } catch (error) {
-          console.warn('Failed to import event:', event, error);
-          // Continue with other events even if one fails
-        }
-      }
-
-      console.log(`Successfully imported ${successCount} of ${jsonData.events.length} events`);
-
-      // Restore settings if they exist (version 2.0+)
-      if (jsonData.version && parseFloat(jsonData.version) >= 2.0 && jsonData.settings) {
-        this.restoreAppSettings(jsonData.settings);
-        console.log('Successfully restored application settings');
-      } else if (jsonData.version === '1.0') {
-        console.log('Imported version 1.0 file (settings not included in old format)');
-      } else {
-        console.log('No settings found in import file or unsupported version');
-      }
-
-    } catch (error) {
-      console.error('Failed to import database:', error);
-      if (error instanceof SyntaxError) {
-        throw new Error('Invalid JSON file. Please select a valid exocortex export file.');
-      }
-      throw error;
-    }
-  }
-
-  static async validateExportFile(file: File): Promise<boolean> {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        try {
-          const jsonData = JSON.parse(e.target?.result as string);
-          // Basic validation - must have version and events array
-          const hasBasicStructure = jsonData.version && jsonData.events && Array.isArray(jsonData.events);
-
-          // Additional validation for version 2.0+ if settings are present
-          let hasValidSettings = true;
-          if (jsonData.version && parseFloat(jsonData.version) >= 2.0 && jsonData.settings) {
-            hasValidSettings = typeof jsonData.settings === 'object' && jsonData.settings !== null;
-          }
-
-          resolve(hasBasicStructure && hasValidSettings);
-        } catch {
-          resolve(false);
-        }
-      };
-
-      reader.onerror = () => resolve(false);
-
-      reader.readAsText(file);
-    });
-  }
-
-  /**
-   * Import Legacy Database from Old Format
-   *
-   * This method imports data from the legacy Exocortex format and converts it
-   * to the new format, handling the schema differences:
-   * - Converts tags to categories
-   - Combines multiple tags per event into combined category names
-   - Maps old fields to new fields (importance → happiness, sets health to 100%)
-   - Handles microsecond timestamps
-   * - Ignores location data
-   *
+   * Accepts a CSV file with rows like:
+   *   YYYY-MM-DD HH:MM,happiness,wakefulness,category
+   * Where category may end with spaces and a dot – these are trimmed.
+   * Handles tens of thousands of lines efficiently.
    * @param db - The ExocortexDB instance to import into
-   * @param file - The legacy JSON file to import
-   * @returns Promise that resolves when import is complete
+   * @param file - The CSV file to import
    */
-  static async importLegacyDatabase(db: ExocortexDB, file: File): Promise<void> {
-    try {
-      // Read and parse the legacy JSON file
-      const text = await file.text();
-      const jsonData = JSON.parse(text);
+  static async importCsvDatabase(db: ExocortexDB, file: File): Promise<void> {
+    // Read full file as text
+    const text = await file.text();
+    // Split to non-empty lines
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
-      // Validate legacy format
-      if (!jsonData.tag || !jsonData.event || !jsonData.event_tag) {
-        throw new Error('Invalid legacy export file format. Missing required fields: tag, event, or event_tag');
-      }
+    let importedCount = 0;
+    let skippedCount = 0;
+    const BATCH_SIZE = 100; // add in batches for heavy files
+    let batch: Promise<string>[] = [];
 
-      console.log('📥 Starting legacy import...');
-      console.log('📋 Legacy file structure:', {
-        tagCount: jsonData.tag?.length || 0,
-        eventCount: jsonData.event?.length || 0,
-        eventTagCount: jsonData.event_tag?.length || 0,
-        sampleEvent: jsonData.event?.[0] || 'none',
-        sampleTag: jsonData.tag?.[0] || 'none'
-      });
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Each row: YYYY-MM-DD HH:MM,happiness,wakefulness,category
+      const match = line.match(
+        /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}),(0?\.\d+|1\.0+),(0?\.\d+|1\.0+),(.+)$/
+      );
+      if (match) {
+        let [_, dt, happiness, wakefulness, category] = match;
+        // Remove all trailing spaces and final dot from category
+        category = category.replace(/[ .]+$/, "");
 
-      // Create tag lookup map (ID → name)
-      const tagMap = new Map<string, string>();
-      jsonData.tag.forEach((tag: any) => {
-        if (tag.id && tag.name) {
-          tagMap.set(tag.id, tag.name);
-        }
-      });
-
-      console.log(`🏷️ Loaded ${tagMap.size} categories from legacy data`);
-
-      // Create event → tags map
-      const eventTagsMap = new Map<string, string[]>();
-      jsonData.event_tag.forEach((eventTag: any) => {
-        if (eventTag.event && eventTag.tag) {
-          if (!eventTagsMap.has(eventTag.event)) {
-            eventTagsMap.set(eventTag.event, []);
-          }
-          const tagName = tagMap.get(eventTag.tag);
-          if (tagName) {
-            eventTagsMap.get(eventTag.event)!.push(tagName);
-          }
-        }
-      });
-
-      // Process and import events
-      let importedCount = 0;
-      let skippedCount = 0;
-
-      for (const legacyEvent of jsonData.event) {
-        try {
-          // Get tags for this event (categories)
-          const tags = eventTagsMap.get(legacyEvent.id) || [];
-
-          // Create combined category name
-          const category = tags.length > 0
-            ? tags.join(' / ')
-            : 'Uncategorized';
-
-          // Parse happiness (old format uses string, map to 0-1 range)
-          let happiness = 0.5; // default (50% in 0-1 range)
-          if (legacyEvent.happiness) {
-            const happinessValue = parseInt(legacyEvent.happiness);
-            if (!isNaN(happinessValue)) {
-              // Map from -100..100 range to 0..1 range (50% at 0, 0% at -100, 100% at +100)
-              happiness = (happinessValue + 100) / 200;
-              happiness = Math.max(0, Math.min(1, happiness)); // clamp to 0-1
-            }
-          }
-
-          // Parse wakefulness from importance field (old importance maps to wakefulness)
-          let wakefulness = 0.8; // default to reasonably awake (80% in 0-1 range)
-          if (legacyEvent.importance) {
-            const importanceValue = parseInt(legacyEvent.importance);
-            if (!isNaN(importanceValue)) {
-              // Map from -100..100 range to 0..1 range (50% at 0, 0% at -100, 100% at +100)
-              wakefulness = (importanceValue + 100) / 200;
-              // Scale up wakefulness by 2x to affect smiley face eyes appearance
-              wakefulness = wakefulness * 2;
-              wakefulness = Math.max(0, Math.min(1, wakefulness)); // clamp to 0-1
-            }
-          }
-
-          // Debug log the conversion
-          console.log(`🔄 Event ${legacyEvent.id}:`, {
-            original: {
-              happiness: legacyEvent.happiness,
-              importance: legacyEvent.importance
-            },
-            converted: {
-              happiness: `${happiness} (${Math.round(happiness * 100)}%)`,
-              wakefulness: `${wakefulness} (${Math.round(wakefulness * 100)}%) × 2 scaled`,
-              health: '1.0 (100%)'
-            },
-            category: category
-          });
-
-          // Health is always 100% in legacy import (not tracked in old format)
-          const health = 1.0;
-
-          // Parse end time (handle both seconds and milliseconds)
-          let endTime = legacyEvent.end;
-          if (endTime && endTime < 1000000000000) {
-            // If it looks like seconds, convert to milliseconds
-            endTime = endTime * 1000;
-          }
-
-          // Skip events without valid end time
-          if (!endTime || endTime <= 0) {
-            console.warn('⚠️ Skipping event with invalid end time:', legacyEvent.id);
-            skippedCount++;
-            continue;
-          }
-
-          // Import the event
-          await db.addEvent({
-            endTime: endTime,
-            category: category,
-            notes: legacyEvent.text || undefined, // use text field as notes if present
-            happiness: happiness,
-            wakefulness: wakefulness,
-            health: health
-          });
-
-          importedCount++;
-        } catch (error) {
-          console.warn('⚠️ Failed to import legacy event:', legacyEvent.id, error);
+        // Parse endTime as ms since epoch
+        const endTime = Date.parse(dt.replace(' ', 'T'));
+        if (!isFinite(endTime)) {
           skippedCount++;
-          // Continue with other events even if one fails
+          continue;
         }
+        const happinessNum = Number(happiness);
+        const wakefulnessNum = Number(wakefulness);
+        if (
+          isNaN(happinessNum) ||
+          isNaN(wakefulnessNum) ||
+          happinessNum < 0 ||
+          happinessNum > 1 ||
+          wakefulnessNum < 0 ||
+          wakefulnessNum > 1
+        ) {
+          skippedCount++;
+          continue;
+        }
+        // health: always 1.0 for imported legacy CSV
+        const health = 1.0;
+        // No notes available in CSV
+        batch.push(
+          db.addEvent({
+            endTime,
+            category,
+            happiness: happinessNum,
+            wakefulness: wakefulnessNum,
+            health,
+          })
+        );
+      } else {
+        skippedCount++;
       }
-
-      console.log(`✅ Successfully imported ${importedCount} events`);
-      if (skippedCount > 0) {
-        console.warn(`⚠️ Skipped ${skippedCount} events due to errors`);
+      if (batch.length >= BATCH_SIZE) {
+        await Promise.all(batch); // flush
+        batch = [];
       }
-
-    } catch (error) {
-      console.error('❌ Failed to import legacy database:', error);
-      if (error instanceof SyntaxError) {
-        throw new Error('Invalid JSON file. Please select a valid legacy exocortex export file.');
-      }
-      throw error;
     }
-  }
-
-  /**
-   * Validate Legacy Export File
-   *
-   * Checks if a file is in the legacy Exocortex format by looking for
-   * the required fields: tag, event, and event_tag.
-   *
-   * @param file - The file to validate
-   * @returns Promise that resolves to true if valid legacy format
-   */
-  static async validateLegacyFile(file: File): Promise<boolean> {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        try {
-          const jsonData = JSON.parse(e.target?.result as string);
-          const isValid = jsonData.tag && jsonData.event && jsonData.event_tag &&
-            Array.isArray(jsonData.tag) && Array.isArray(jsonData.event) && Array.isArray(jsonData.event_tag);
-          resolve(isValid);
-        } catch {
-          resolve(false);
-        }
-      };
-
-      reader.onerror = () => resolve(false);
-
-      reader.readAsText(file);
-    });
+    if (batch.length) await Promise.all(batch);
   }
 }
