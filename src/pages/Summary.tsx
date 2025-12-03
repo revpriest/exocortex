@@ -126,7 +126,8 @@ function SummaryEventRow({ event, colorOverrides, indent = false, onClick }: {
   );
 }
 
-const SUMMARY_DAYS = 30;
+// Maximum number of days shown in the Summary view (approx. 2 years)
+const SUMMARY_DAYS = 730;
 
 const Summary: React.FC = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
