@@ -222,7 +222,6 @@ export class ExocortexDB {
     });
   }
 
-
   async getEventsByDateRangeOnly(startDate: string, endDate: string): Promise<DayEvents[]> {
     if (!this.db) throw new Error('Database not initialized');
 
@@ -371,7 +370,43 @@ export class ExocortexDB {
     });
   };
 
+  /**
+   * Delete all events for a specific calendar day.
+   *
+   * The date string must be in ISO format YYYY-MM-DD.
+   */
+  async clearEventsForDate(date: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
 
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('endTime');
+
+      const request = index.openCursor(IDBKeyRange.bound(
+        startOfDay.getTime(),
+        endOfDay.getTime()
+      ));
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
 
   async generateCategoryNotes(category: string): Promise<string> {
     const notesByCategory: Record<string, string[]> = {

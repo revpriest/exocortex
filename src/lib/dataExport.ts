@@ -165,6 +165,25 @@ export class DataExporter {
   }
 
   /**
+   * Helper to track and clear days during imports.
+   *
+   * Given an endTime, computes its YYYY-MM-DD date string. If this date
+   * has not been seen during the current import, it will clear all
+   * existing events in the database for that day before resolving.
+   */
+  private static async ensureDayCleared(
+    db: ExocortexDB,
+    endTime: number,
+    seenDays: Set<string>,
+  ): Promise<void> {
+    const dateStr = new Date(endTime).toISOString().split('T')[0];
+    if (!seenDays.has(dateStr)) {
+      await db.clearEventsForDate(dateStr);
+      seenDays.add(dateStr);
+    }
+  }
+
+  /**
    * Export Database to JSON File
    *
    * This method exports all events from the database to a downloadable JSON file.
@@ -270,8 +289,10 @@ export class DataExporter {
 
       // Import all events
       let successCount = 0;
+      const seenDays = new Set<string>();
       for (const event of jsonData.events) {
         try {
+          await this.ensureDayCleared(db, event.endTime, seenDays);
           await db.addEvent({
             endTime: event.endTime,
             category: event.category,
@@ -342,9 +363,9 @@ export class DataExporter {
    * This method imports data from the legacy Exocortex format and converts it
    * to the new format, handling the schema differences:
    * - Converts tags to categories
-   - Combines multiple tags per event into combined category names
-   - Maps old fields to new fields (importance → happiness, sets health to 100%)
-   - Handles microsecond timestamps
+   * - Combines multiple tags per event into combined category names
+   * - Maps old fields to new fields (importance → happiness, sets health to 100%)
+   * - Handles microsecond timestamps
    * - Ignores location data
    *
    * @param db - The ExocortexDB instance to import into
@@ -394,6 +415,8 @@ export class DataExporter {
           }
         }
       });
+
+      const seenDays = new Set<string>();
 
       for (const legacyEvent of jsonData.event) {
         try {
@@ -458,6 +481,8 @@ export class DataExporter {
             console.warn('⚠️ Skipping event with invalid end time:', legacyEvent.id);
             continue;
           }
+
+          await this.ensureDayCleared(db, endTime, seenDays);
 
           // Import the event
           await db.addEvent({
@@ -534,6 +559,7 @@ export class DataExporter {
 
     const BATCH_SIZE = 100; // add in batches for heavy files
     let batch: Promise<string>[] = [];
+    const seenDays = new Set<string>();
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -570,6 +596,7 @@ export class DataExporter {
         // health: always 1.0 for imported legacy CSV
         const health = 1.0;
         // No notes available in CSV
+        await this.ensureDayCleared(db, endTime, seenDays);
         batch.push(
           db.addEvent({
             endTime,
