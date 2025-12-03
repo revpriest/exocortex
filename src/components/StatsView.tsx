@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { CalendarIcon, BarChart3, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
-import { addDays, endOfDay, format, isBefore, isValid, startOfDay } from 'date-fns';
+import { addDays, addMonths, endOfDay, format, isBefore, isValid, startOfDay } from 'date-fns';
 
 /**
  * Component Props Interface
@@ -69,8 +69,10 @@ function calculateEndDate(start: Date, window: WindowOption): Date {
   const safeStart = startOfDay(start);
 
   if (window === 'month') {
-    const approxEnd = addDays(safeStart, 30); // reasonably bounded
-    return clampDateToToday(endOfDay(approxEnd));
+    // End of the same calendar month, clamped to today if needed
+    const monthEnd = endOfDay(addMonths(safeStart, 1));
+    const lastDayOfMonth = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), 0, 23, 59, 59, 999);
+    return clampDateToToday(lastDayOfMonth);
   }
 
   const approxEnd = addDays(safeStart, window - 1);
@@ -79,7 +81,14 @@ function calculateEndDate(start: Date, window: WindowOption): Date {
 
 function shiftStartDate(current: Date, window: WindowOption, direction: 1 | -1): Date {
   const base = startOfDay(current);
-  const amount = window === 'month' ? 30 : window; // Shift by window length
+
+  if (window === 'month') {
+    // Move by full calendar months, preserving day-of-month when possible
+    const shifted = addMonths(base, direction);
+    return clampDateToToday(startOfDay(shifted));
+  }
+
+  const amount = window;
   const next = addDays(base, direction * amount);
   return clampDateToToday(next);
 }
@@ -222,7 +231,7 @@ export function StatsView({ className }: StatsViewProps) {
 
     const cursor = new Date(rangeStart);
     while (!isBefore(rangeEnd, cursor)) {
-      const nextInterval = addDays(cursor, 0);
+      const nextInterval = new Date(cursor);
       nextInterval.setHours(cursor.getHours() + 1);
 
       const activeEvents = sortedEvents.filter(event => {
