@@ -215,7 +215,10 @@ export class DataExporter {
       const exportData: ExportData = {
         version: '1.0',
         exportDate: new Date().toISOString(),
-        events: allEvents,
+        events: allEvents.map(event => ({
+          ...event,
+          category: event.category.trim(),
+        })),
         settings: this.getAppSettings(),
       };
 

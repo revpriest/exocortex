@@ -675,9 +675,9 @@ export function getEventColor(
 ): string {
   // Find custom hue for this category if it exists
   const override = colorOverrides?.find(
-    (override) => override.category === event.category,
+    (override) => override.category.trim() === event.category.trim(),
   );
-  const hue = override ? override.hue : hashString(event.category) % 360;
+  const hue = override ? override.hue : hashString(event.category.trim()) % 360;
   const saturation = Math.round(event.happiness * 100);
   const value = Math.round(event.wakefulness * 100);
 
