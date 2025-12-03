@@ -330,6 +330,13 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       if (!skipDate || !db) return;
 
       try {
+
+        // Determine a small initial window after the top date so we don't
+        // render the entire history. Similar behavior to Summary: a fixed
+        // number of days around the jump point.
+        const INITIAL_WINDOW_DAYS = 50; // can tweak; small for perf
+        const DATE_LOOKBACK       = 0;
+
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
 
@@ -337,12 +344,8 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         // and then load days after it as the user scrolls.
         const topDate = new Date(skipDate); // clone
         topDate.setHours(0, 0, 0, 0);
+        topDate.setDate(topDate.getDate() - DATE_LOOKBACK)
         const topDateStr = topDate.toISOString().split('T')[0];
-
-        // Determine a small initial window after the top date so we don't
-        // render the entire history. Similar behavior to Summary: a fixed
-        // number of days around the jump point.
-        const INITIAL_WINDOW_DAYS = 30; // can tweak; small for perf
 
         const from = new Date(topDate);
         const to = new Date(topDate);
@@ -392,7 +395,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
         // Reset scroll back to top so the selected day is visible
         if (gridRef.current) {
-          gridRef.current.scrollTop = 0;
+          gridRef.current.scrollTop = ROW_HEIGHT*DATE_LOOKBACK;
         }
       } catch (error) {
         console.error('Failed to skip to date:', error);
