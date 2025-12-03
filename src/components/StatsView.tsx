@@ -178,6 +178,7 @@ export function StatsView({ className }: StatsViewProps) {
 
       while (!isBefore(last, cursor)) {
         const dateStr = cursor.toISOString().split('T')[0];
+        // eslint-disable-next-line no-await-in-loop
         const dayEvents = await database.getEventsByDate(dateStr);
         allEvents.push(...dayEvents);
         cursor.setDate(cursor.getDate() + 1);
@@ -355,14 +356,27 @@ export function StatsView({ className }: StatsViewProps) {
       {/* Header with Date Range Selection */}
       <div className="bg-card rounded-lg p-6 border border-border">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
-              <BarChart3 className="h-6 w-6" />
-              Statistics &amp; Analytics
-            </h1>
-            <p className="text-muted-foreground">
-              Visualize your time tracking patterns and mood trends
-            </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => {
+                void handleShift(-1);
+              }}
+              disabled={!startDate}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
+                <BarChart3 className="h-6 w-6" />
+                Statistics &amp; Analytics
+              </h1>
+              <p className="text-muted-foreground">
+                Visualize your time tracking patterns and mood trends
+              </p>
+            </div>
           </div>
 
           {/* Date Window Controls */}
@@ -448,19 +462,67 @@ export function StatsView({ className }: StatsViewProps) {
       {/* Error Display */}
       {error && (
         <Card className="border-destructive bg-destructive/20">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 flex items-center justify-between gap-4">
             <div className="text-destructive text-sm">{error}</div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Mood Trends Line Chart */}
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Mood Trends Over Time
-          </CardTitle>
+            <CardTitle className="text-foreground">Mood Trends Over Time</CardTitle>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                void handleShift(-1);
+              }}
+              disabled={!startDate}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                void handleShift(1);
+              }}
+              disabled={!startDate}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {moodData.length > 0 ? (
@@ -536,8 +598,32 @@ export function StatsView({ className }: StatsViewProps) {
 
       {/* Category Distribution Histogram */}
       <Card className="bg-card border-border">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-foreground">Time Distribution by Category</CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                void handleShift(-1);
+              }}
+              disabled={!startDate}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                void handleShift(1);
+              }}
+              disabled={!startDate}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {categoryData.length > 0 ? (
@@ -592,20 +678,73 @@ export function StatsView({ className }: StatsViewProps) {
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
-          <CardContent className="pt-6">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Average Happiness</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-destructive">
                 {moodData.length > 0
                   ? (moodData.reduce((sum, d) => sum + d.happiness, 0) / moodData.length).toFixed(2)
                   : '0.00'}
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Average Happiness</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border">
-          <CardContent className="pt-6">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Wakefulness (Sleep)</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary">
                 {(() => {
@@ -616,14 +755,39 @@ export function StatsView({ className }: StatsViewProps) {
                   return avgSleep.toFixed(2);
                 })()}
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Wakefulness (Sleep)</div>
-              <div className="text-xs text-muted-foreground/70 mt-1">During sleep periods</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border">
-          <CardContent className="pt-6">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Wakefulness (Awake)</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary">
                 {(() => {
@@ -634,21 +798,45 @@ export function StatsView({ className }: StatsViewProps) {
                   return avgAwake.toFixed(2);
                 })()}
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Wakefulness (Awake)</div>
-              <div className="text-xs text-muted-foreground/70 mt-1">During awake periods</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border">
-          <CardContent className="pt-6">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Average Health</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600">
                 {moodData.length > 0
                   ? (moodData.reduce((sum, d) => sum + d.health, 0) / moodData.length).toFixed(2)
                   : '0.00'}
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Average Health</div>
             </div>
           </CardContent>
         </Card>
