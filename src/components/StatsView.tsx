@@ -178,7 +178,6 @@ export function StatsView({ className }: StatsViewProps) {
 
       while (!isBefore(last, cursor)) {
         const dateStr = cursor.toISOString().split('T')[0];
-        // eslint-disable-next-line no-await-in-loop
         const dayEvents = await database.getEventsByDate(dateStr);
         allEvents.push(...dayEvents);
         cursor.setDate(cursor.getDate() + 1);
