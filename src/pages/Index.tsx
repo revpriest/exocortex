@@ -16,6 +16,9 @@ import { ExocortexDB } from '@/lib/exocortex';
 import { PageLayout } from '@/components/PageLayout';
 import { NewUserWelcomeDialog } from '../components/NewUserWelcomeDialog';
 
+
+
+
 /**
  * Index Component
  */
@@ -36,6 +39,7 @@ const Index = () => {
   // Force to generate empty days and skip to that day
   const [skipDate, setSkipDate] = useState<Date|null>(null);
 
+
   useEffect(() => {
     const initAll = async () => {
       const db = new ExocortexDB();
@@ -49,6 +53,7 @@ const Index = () => {
       setError('Failed to initialize database. Please refresh the page.');
     });
   }, []); // Empty dependency array means this runs only once on mount
+
 
   // React Router hooks for URL-based navigation
   const [searchParams, _setSearchParams] = useSearchParams();
@@ -86,15 +91,30 @@ const Index = () => {
       try {
         const db = new ExocortexDB();
         await db.init();
-        // True empty: check if any events at all
-        const trulyEmpty = !(await db.hasAnyEvents());
-        if (trulyEmpty) {
+
+        // Check if database has any events by querying a wider date range
+        // This is more reliable than just checking today
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7); // Check last 7 days
+
+        const days = await db.getEventsByDateRangeOnly(
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        );
+
+        // Check if any events exist in the last 7 days
+        const hasEvents = days.some(day => day.events.length > 0);
+
+        // Show welcome dialog if no events found in the last week (truly empty database)
+        if (!hasEvents) {
           setShowWelcomeDialog(true);
         }
       } catch (error) {
         console.error('Failed to check database:', error);
       }
     };
+
     checkDatabaseEmpty();
   }, [currentView]); // Dependency on currentView
 
@@ -110,6 +130,20 @@ const Index = () => {
     }
   };
 
+
+
+
+
+  /**
+   * Page Layout Structure
+   *
+   * We use Tailwind CSS classes for responsive design:
+   * - min-h-screen: Ensures page fills full viewport height
+   * - bg-background: Theme-aware background color (changes with dark/light mode)
+   * - p-2 md:p-4: Small padding on mobile, larger on desktop
+   * - pb-16 md:pb-20: Extra bottom padding to avoid floating add button overlap
+   * - max-w-7xl mx-auto: Center content and limit max width for readability
+   */
   return (
     <PageLayout setSkipDate={setSkipDate} triggerRefresh={setForceGridRefresh} currentView={currentView} db={db} title="Time Grid" explain="Jump to today">
       {/* New User Welcome Dialog */}
@@ -118,11 +152,14 @@ const Index = () => {
         onClose={() => setShowWelcomeDialog(false)}
         onGenerateTestData={async () => {
           await handleWelcomeGenerateTestData();
+          // Trigger grid refresh
           setForceGridRefresh(prev => prev + 1);
           setShowWelcomeDialog(false);
         }}
         onAbout={() => { navigate('/about'); }}
       />
+
+      {/* Main Content Area */}
       <ExocortexGrid skipDate={skipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} setRefreshTrigger={setForceGridRefresh}/>
     </PageLayout>
   );
