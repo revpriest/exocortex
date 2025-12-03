@@ -189,7 +189,7 @@ export class ExocortexDB {
       const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
-      console.log("Adding to store ",fullEvent);
+      console.log('Adding to store ', fullEvent);
       const request = store.add(fullEvent);
 
       request.onsuccess = () => resolve(id);
@@ -235,14 +235,14 @@ export class ExocortexDB {
   async getEventsByDateRangeOnly(startDate: string, endDate: string): Promise<DayEvents[]> {
     if (!this.db) throw new Error('Database not initialized');
 
-    let   start = new Date(startDate);
+    let start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
 
-    let   end = new Date(endDate);
+    let end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    if(start>end){
-      //Swap them if they're the wrong way around.
+    if (start > end) {
+      // Swap them if they're the wrong way around.
       const t = end;
       end = start;
       start = t;
@@ -277,7 +277,7 @@ export class ExocortexDB {
     // Group events by date - ONLY include dates that have events
     const eventsByDate = new Map<string, ExocortexEvent[]>();
 
-    events.forEach(event => {
+    events.forEach((event) => {
       const dateStr = new Date(event.endTime).toISOString().split('T')[0];
       if (!eventsByDate.has(dateStr)) {
         eventsByDate.set(dateStr, []);
@@ -302,12 +302,12 @@ export class ExocortexDB {
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
-      const request = index.openCursor(IDBKeyRange.bound(0,999999999999999,true,true));
+      const request = index.openCursor(IDBKeyRange.bound(0, 999999999999999, true, true));
 
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor) {
-          resolve(true)
+          resolve(true);
         } else {
           resolve(false);
         }
@@ -377,6 +377,34 @@ export class ExocortexDB {
     });
   }
 
+  /**
+   * Get all events in the database, ordered by endTime index.
+   */
+  async getAllEvents(): Promise<ExocortexEvent[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('endTime');
+
+      const events: ExocortexEvent[] = [];
+      const request = index.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          events.push(cursor.value as ExocortexEvent);
+          cursor.continue();
+        } else {
+          resolve(events);
+        }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async updateEvent(id: string, updates: Omit<ExocortexEvent, 'id'>): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
@@ -419,7 +447,7 @@ export class ExocortexDB {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
-  };
+  }
 
   /**
    * Delete all events for a specific calendar day.
@@ -461,48 +489,48 @@ export class ExocortexDB {
 
   async generateCategoryNotes(category: string): Promise<string> {
     const notesByCategory: Record<string, string[]> = {
-      'Work': [
+      Work: [
         'Productive morning session',
         'Good meetings with the team',
         'Made good progress on the project',
         'Challenging but rewarding work',
-        'Focus was high today'
+        'Focus was high today',
       ],
-      'Exercise': [
+      Exercise: [
         'Great workout! Feeling energized',
         'Pushed myself harder than usual',
         'Nice and relaxing session',
         'Cardio felt good today',
-        'Strength training was productive'
+        'Strength training was productive',
       ],
-      'Meal': [
+      Meal: [
         'Delicious and satisfying',
         'Healthy choice, feeling good',
         'Quick bite between tasks',
         'Enjoyed this meal',
-        'Felt nourished and ready'
+        'Felt nourished and ready',
       ],
-      'Break': [
+      Break: [
         'Needed this rest',
         'Quick recharge session',
         'Nice coffee break',
         'Mindful moment of peace',
-        'Good time to reflect'
+        'Good time to reflect',
       ],
-      'Study': [
+      Study: [
         'Learned something new',
         'Deep focus achieved',
         'Interesting material today',
         'Productive study session',
-        'Challenging concepts clicked'
+        'Challenging concepts clicked',
       ],
-      'Slack': [
+      Slack: [
         'Busy doing nothing',
         'Excellent doom scrolling',
         'Waiting till its times',
         'pottering around the kitchen',
-        'Lazing on the sofa'
-      ]
+        'Lazing on the sofa',
+      ],
     };
 
     const categoryNotes = notesByCategory[category] || [
@@ -510,16 +538,16 @@ export class ExocortexDB {
       'Good use of time',
       'Felt productive',
       'Nice moment today',
-      'Time well spent'
+      'Time well spent',
     ];
 
     return categoryNotes[Math.floor(Math.random() * categoryNotes.length)];
-  };
+  }
 
-  async generateTestData():Promise<string> {
-    console.log("Generating Test Data");
+  async generateTestData(): Promise<string> {
+    console.log('Generating Test Data');
     try {
-      console.log("Clearing events");
+      console.log('Clearing events');
       await this.clearAllEvents();
 
       const categories = ['Work', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
@@ -530,8 +558,12 @@ export class ExocortexDB {
 
       const events: Omit<any, 'id'>[] = [];
 
-      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
-        console.log("Doing Day ",currentDate);
+      for (
+        let currentDate = new Date(startDate);
+        currentDate <= endDate;
+        currentDate.setDate(currentDate.getDate() + 1)
+      ) {
+        console.log('Doing Day ', currentDate);
         const dayEvents: Omit<any, 'id'>[] = [];
 
         const sleepStartHour = 20 + Math.floor(Math.random() * 3);
@@ -546,26 +578,29 @@ export class ExocortexDB {
         today.setHours(0, 0, 0, 0);
         if (sleepEnd >= today) {
           const maxDuration = today.getTime() - sleepStart.getTime();
-          const adjustedDurationHours = Math.max(6, (maxDuration / (60 * 60 * 1000)) - 0.5);
+          const adjustedDurationHours = Math.max(6, maxDuration / (60 * 60 * 1000) - 0.5);
           sleepEnd = new Date(sleepStart.getTime() + adjustedDurationHours * 60 * 60 * 1000);
         }
 
         const sleepEvent = {
           endTime: sleepEnd.getTime(),
           category: 'Sleep' as const,
-          notes: Math.random() > 0.7 ? [
-            'Had some interesting dreams',
-            'Woke up feeling refreshed',
-            'Slept through the night',
-            'A bit restless but okay',
-            'Deep sleep cycle felt good'
-          ][Math.floor(Math.random() * 5)] : undefined,
+          notes:
+            Math.random() > 0.7
+              ? [
+                  'Had some interesting dreams',
+                  'Woke up feeling refreshed',
+                  'Slept through the night',
+                  'A bit restless but okay',
+                  'Deep sleep cycle felt good',
+                ][Math.floor(Math.random() * 5)]
+              : undefined,
           happiness: 0.8,
           wakefulness: Math.random() * 0.02,
           health: 0.9,
         };
 
-        console.log("Pushing To Day ",sleepEvent);
+        console.log('Pushing To Day ', sleepEvent);
         dayEvents.push(sleepEvent);
 
         let currentTime = new Date(currentDate);
@@ -578,7 +613,9 @@ export class ExocortexDB {
           const maxDuration = Math.min(3 * 60 * 60 * 1000, timeUntilSleep - 30 * 60 * 1000);
           if (maxDuration <= 0) break;
 
-          const durationMs = (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) * 60 * 60 * 1000;
+          const durationMs =
+            (Math.random() * (maxDuration / (60 * 60 * 1000)) * 2 + 0.5) *
+            60 * 60 * 1000;
           const actualDuration = Math.min(durationMs, maxDuration);
 
           const category = categories[Math.floor(Math.random() * categories.length)];
@@ -591,31 +628,34 @@ export class ExocortexDB {
           const event = {
             endTime: eventEndTime.getTime(),
             category,
-            notes: Math.random() > 0.6 ? await this.generateCategoryNotes(category) : undefined,
+            notes:
+              Math.random() > 0.6
+                ? await this.generateCategoryNotes(category)
+                : undefined,
             happiness,
             wakefulness,
             health,
           };
 
           dayEvents.push(event);
-          currentTime = new Date(eventEndTime.getTime() + Math.random() * 30 * 60 * 1000);
+          currentTime = new Date(
+            eventEndTime.getTime() + Math.random() * 30 * 60 * 1000,
+          );
         }
-        console.log("Pushing all days events to events");
+        console.log('Pushing all days events to events');
         events.push(...dayEvents);
       }
 
       for (const event of events) {
-        console.log("Adding an event",event);
+        console.log('Adding an event', event);
         await this.addEvent(event);
       }
-      return(`Successfully generated ${events.length} test events for the past 30 days`);
+      return `Successfully generated ${events.length} test events for the past 30 days`;
     } catch (error) {
       console.error('Failed to generate test data:', error);
-      return('Failed to generate test data. Please try again.');
+      return 'Failed to generate test data. Please try again.';
     }
   }
-
-
 }
 
 // Utility functions
@@ -623,16 +663,21 @@ export function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
 }
 
-export function getEventColor(event: ExocortexEvent, colorOverrides?: { category: string; hue: number }[]): string {
+export function getEventColor(
+  event: ExocortexEvent,
+  colorOverrides?: { category: string; hue: number }[],
+): string {
   // Find custom hue for this category if it exists
-  const override = colorOverrides?.find(override => override.category === event.category);
-  const hue = override ? override.hue : (hashString(event.category) % 360);
+  const override = colorOverrides?.find(
+    (override) => override.category === event.category,
+  );
+  const hue = override ? override.hue : hashString(event.category) % 360;
   const saturation = Math.round(event.happiness * 100);
   const value = Math.round(event.wakefulness * 100);
 
@@ -642,12 +687,12 @@ export function getEventColor(event: ExocortexEvent, colorOverrides?: { category
 export function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 }
 
 export function getHourSlots(): string[] {
-  const hours:any = [];
+  const hours: string[] = [];
   for (let i = 0; i < 24; i++) {
     hours.push(`${i.toString().padStart(2, '0')}:00`);
   }

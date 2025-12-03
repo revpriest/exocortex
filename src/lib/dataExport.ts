@@ -113,7 +113,6 @@ export class DataExporter {
       }
 
       console.log('Auto-detected settings for export:', Object.keys(settings));
-
     } catch (error) {
       console.warn('Failed to access localStorage for settings export:', error);
     }
@@ -158,7 +157,6 @@ export class DataExporter {
       if (errorKeys.length > 0) {
         console.warn(`Failed to restore ${errorKeys.length} settings:`, errorKeys);
       }
-
     } catch (error) {
       console.warn('Failed to restore settings to localStorage:', error);
     }
@@ -191,7 +189,7 @@ export class DataExporter {
    * It also exports application settings from localStorage.
    *
    * Process:
-   * 1. Query all events from database (wide date range for completeness)
+   * 1. Query all events from database
    * 2. Collect application settings from localStorage
    * 3. Create structured export data with metadata
    * 4. Convert to formatted JSON string
@@ -202,31 +200,8 @@ export class DataExporter {
    */
   static async exportDatabase(db: ExocortexDB): Promise<void> {
     try {
-      // Array to hold all events from database
-      const allEvents: ExocortexEvent[] = [];
-
-      /**
-       * Get Wide Date Range
-       *
-       * We query a wide date range (10 years) to ensure we get all events.
-       * This is simpler than trying to determine the exact date range of events.
-       */
-      const startDate = new Date();
-      startDate.setFullYear(startDate.getFullYear() - 5); // Go back 5 years
-
-      const endDate = new Date();
-      endDate.setFullYear(endDate.getFullYear() + 5); // Go forward 5 years
-
-      // Query database for all events in range
-      const days = await db.getEventsByDateRangeOnly(
-        startDate.toISOString().split('T')[0],
-        endDate.toISOString().split('T')[0]
-      );
-
-      // Collect all events from all days into single array
-      days.forEach(day => {
-        allEvents.push(...day.events);
-      });
+      // Get all events from database (no date range assumptions)
+      const allEvents: ExocortexEvent[] = await db.getAllEvents();
 
       /**
        * Create Export Data Structure
@@ -238,10 +213,10 @@ export class DataExporter {
        * - Settings: Application settings from localStorage (auto-detected)
        */
       const exportData: ExportData = {
-        version: '2.1', // Updated version for auto-detected settings
+        version: '1.0',
         exportDate: new Date().toISOString(),
         events: allEvents,
-        settings: this.getAppSettings()
+        settings: this.getAppSettings(),
       };
 
       // Convert JavaScript object to formatted JSON string
@@ -269,7 +244,6 @@ export class DataExporter {
       document.body.removeChild(link);
 
       URL.revokeObjectURL(url);
-
     } catch (error) {
       console.error('Failed to export database:', error);
       throw new Error('Failed to export database');
@@ -299,7 +273,7 @@ export class DataExporter {
             notes: event.notes,
             happiness: event.happiness,
             wakefulness: event.wakefulness,
-            health: event.health
+            health: event.health,
           });
           successCount++;
         } catch (error) {
@@ -310,16 +284,15 @@ export class DataExporter {
 
       console.log(`Successfully imported ${successCount} of ${jsonData.events.length} events`);
 
-      // Restore settings if they exist (version 2.0+)
-      if (jsonData.version && parseFloat(jsonData.version) >= 2.0 && jsonData.settings) {
+      // Restore settings if they exist (even in 1.0 files, since you're pre-release)
+      if (jsonData.settings) {
         this.restoreAppSettings(jsonData.settings);
         console.log('Successfully restored application settings');
       } else if (jsonData.version === '1.0') {
-        console.log('Imported version 1.0 file (settings not included in old format)');
+        console.log('Imported version 1.0 file without settings');
       } else {
         console.log('No settings found in import file or unsupported version');
       }
-
     } catch (error) {
       console.error('Failed to import database:', error);
       if (error instanceof SyntaxError) {
@@ -337,12 +310,14 @@ export class DataExporter {
         try {
           const jsonData = JSON.parse(e.target?.result as string);
           // Basic validation - must have version and events array
-          const hasBasicStructure = jsonData.version && jsonData.events && Array.isArray(jsonData.events);
+          const hasBasicStructure =
+            jsonData.version && jsonData.events && Array.isArray(jsonData.events);
 
-          // Additional validation for version 2.0+ if settings are present
+          // Additional validation for settings if present
           let hasValidSettings = true;
-          if (jsonData.version && parseFloat(jsonData.version) >= 2.0 && jsonData.settings) {
-            hasValidSettings = typeof jsonData.settings === 'object' && jsonData.settings !== null;
+          if (jsonData.settings) {
+            hasValidSettings =
+              typeof jsonData.settings === 'object' && jsonData.settings !== null;
           }
 
           resolve(hasBasicStructure && hasValidSettings);
@@ -380,7 +355,9 @@ export class DataExporter {
 
       // Validate legacy format
       if (!jsonData.tag || !jsonData.event || !jsonData.event_tag) {
-        throw new Error('Invalid legacy export file format. Missing required fields: tag, event, or event_tag');
+        throw new Error(
+          'Invalid legacy export file format. Missing required fields: tag, event, or event_tag',
+        );
       }
 
       console.log('📥 Starting legacy import...');
@@ -389,7 +366,7 @@ export class DataExporter {
         eventCount: jsonData.event?.length || 0,
         eventTagCount: jsonData.event_tag?.length || 0,
         sampleEvent: jsonData.event?.[0] || 'none',
-        sampleTag: jsonData.tag?.[0] || 'none'
+        sampleTag: jsonData.tag?.[0] || 'none',
       });
 
       // Create tag lookup map (ID → name)
@@ -424,9 +401,7 @@ export class DataExporter {
           const tags = eventTagsMap.get(legacyEvent.id) || [];
 
           // Create combined category name
-          const category = tags.length > 0
-            ? tags.join(' / ')
-            : 'Uncategorized';
+          const category = tags.length > 0 ? tags.join(' / ') : 'Uncategorized';
 
           // Parse happiness (old format uses string, map to 0-1 range)
           let happiness = 0.5; // default (50% in 0-1 range)
@@ -456,14 +431,14 @@ export class DataExporter {
           console.log(`🔄 Event ${legacyEvent.id}:`, {
             original: {
               happiness: legacyEvent.happiness,
-              importance: legacyEvent.importance
+              importance: legacyEvent.importance,
             },
             converted: {
               happiness: `${happiness} (${Math.round(happiness * 100)}%)`,
               wakefulness: `${wakefulness} (${Math.round(wakefulness * 100)}%) × 2 scaled`,
-              health: '1.0 (100%)'
+              health: '1.0 (100%)',
             },
-            category: category
+            category: category,
           });
 
           // Health is always 100% in legacy import (not tracked in old format)
@@ -491,9 +466,8 @@ export class DataExporter {
             notes: legacyEvent.text || undefined, // use text field as notes if present
             happiness: happiness,
             wakefulness: wakefulness,
-            health: health
+            health: health,
           });
-
         } catch (error) {
           console.warn('⚠️ Failed to import legacy event:', legacyEvent.id, error);
           // Continue with other events even if one fails
@@ -501,11 +475,12 @@ export class DataExporter {
       }
 
       console.log(`✅ Successfully imported events`);
-
     } catch (error) {
       console.error('❌ Failed to import legacy database:', error);
       if (error instanceof SyntaxError) {
-        throw new Error('Invalid JSON file. Please select a valid legacy exocortex export file.');
+        throw new Error(
+          'Invalid JSON file. Please select a valid legacy exocortex export file.',
+        );
       }
       throw error;
     }
@@ -527,8 +502,13 @@ export class DataExporter {
       reader.onload = (e) => {
         try {
           const jsonData = JSON.parse(e.target?.result as string);
-          const isValid = jsonData.tag && jsonData.event && jsonData.event_tag &&
-            Array.isArray(jsonData.tag) && Array.isArray(jsonData.event) && Array.isArray(jsonData.event_tag);
+          const isValid =
+            jsonData.tag &&
+            jsonData.event &&
+            jsonData.event_tag &&
+            Array.isArray(jsonData.tag) &&
+            Array.isArray(jsonData.event) &&
+            Array.isArray(jsonData.event_tag);
           resolve(isValid);
         } catch {
           resolve(false);
@@ -565,16 +545,16 @@ export class DataExporter {
       const line = lines[i];
       // Each row: YYYY-MM-DD HH:MM,happiness,wakefulness,category
       const match = line.match(
-        /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}),(0?\.\d+|1\.0+),(0?\.\d+|1\.0+),(.+)$/
+        /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}),(0?\.\d+|1\.0+),(0?\.\d+|1\.0+),(.+)$/,
       );
       if (match) {
         const dt = match[1];
         const happiness = match[2];
-        const wakefulness = match[3]
+        const wakefulness = match[3];
         let category = match[4];
 
         // Remove all trailing spaces and final dot from category
-        category = category.replace(/[ .]+$/, "");
+        category = category.replace(/[ .]+$/, '');
 
         // Parse endTime as ms since epoch
         const endTime = Date.parse(dt.replace(' ', 'T'));
@@ -604,7 +584,7 @@ export class DataExporter {
             happiness: happinessNum,
             wakefulness: wakefulnessNum,
             health,
-          })
+          }),
         );
       }
       if (batch.length >= BATCH_SIZE) {
