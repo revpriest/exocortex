@@ -326,100 +326,81 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
 
   useEffect(() => {
-    console.log("Skipping to date ",skipDate);
     const checkSkipDate = async () => {
-      if(!skipDate){return;}
-      if(!db){return;}
+      if (!skipDate || !db) return;
+
       try {
-        const targetDate = skipDate;
         const today = new Date();
-        let   targetDateStr = targetDate.toISOString().split('T')[0];
         const todayStr = today.toISOString().split('T')[0];
 
-        // Calculate how many days between target and today
-        const daysDiff = Math.ceil((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
-        const totalDays = Math.max(daysDiff + 1, 7); // Include both dates + buffer
+        // We want the skipped-to date to be the new "top" of the grid,
+        // and then load days after it as the user scrolls.
+        const topDate = new Date(skipDate); // clone
+        topDate.setHours(0, 0, 0, 0);
+        const topDateStr = topDate.toISOString().split('T')[0];
 
-        if(daysDiff < totalDays){
-          //get a good range even on skip to today.
-          targetDate.setDate(targetDate.getDate() - 8);
-          targetDateStr = targetDate.toISOString().split('T')[0];
-        }
+        // Determine a small initial window after the top date so we don't
+        // render the entire history. Similar behavior to Summary: a fixed
+        // number of days around the jump point.
+        const INITIAL_WINDOW_DAYS = 30; // can tweak; small for perf
 
-        // Generate all days from target to today
+        const from = new Date(topDate);
+        const to = new Date(topDate);
+        to.setDate(to.getDate() + (INITIAL_WINDOW_DAYS - 1));
+
+        const fromStr = from.toISOString().split('T')[0];
+        const toStr = to.toISOString().split('T')[0] <= todayStr ? to.toISOString().split('T')[0] : todayStr;
+
+        const rangeDays = await db.getEventsByDateRangeOnly(fromStr, toStr);
+
+        // Build a complete day list for [from..to]
+        const dayMap = new Map<string, DayEvents>();
+        rangeDays.forEach(d => dayMap.set(d.date, d));
+
         const allDays: DayEvents[] = [];
-        for (let i = 0; i < totalDays; i++) {
-          const currentDate = new Date(today);
-          currentDate.setDate(currentDate.getDate() - i);
-          const dateStr = currentDate.toISOString().split('T')[0];
-          allDays.push({ date: dateStr, events: [] }); // Start with empty days
+        let cursor = new Date(from);
+        while (cursor <= to && cursor <= today) {
+          const dateStr = cursor.toISOString().split('T')[0];
+          const existing = dayMap.get(dateStr);
+          if (existing) {
+            allDays.push(existing);
+          } else {
+            allDays.push({ date: dateStr, events: [] });
+          }
+          cursor.setDate(cursor.getDate() + 1);
         }
 
-        // Try to get days with events
-        const eventsByDate = await db.getEventsByDateRangeOnly(
-          targetDateStr,
-          todayStr
-        );
-
-        console.log('Found events for', eventsByDate.length, 'dates');
-
-        // Merge events with our generated days
-        eventsByDate.forEach(dayWithEvents => {
-          const dayIndex = allDays.findIndex(day => day.date === dayWithEvents.date);
-          if (dayIndex !== -1) {
-            allDays[dayIndex] = dayWithEvents; // Replace empty day with day that has events
-          }
-        });
-
-        // Sort by date (newest first for display)
+        // Sort newest-first for display (today at top in normal mode).
+        // But here, we want the skipped date at the visual top. So we'll
+        // sort descending, then find index of topDate and rotate the array
+        // so that index 0 is topDate.
         allDays.sort((a, b) => {
-          const aDate = new Date(a.date);
-          const bDate = new Date(b.date);
-          return bDate.getTime() - aDate.getTime(); // Newest first
+          const aDate = new Date(a.date).getTime();
+          const bDate = new Date(b.date).getTime();
+          return bDate - aDate;
         });
 
-        // Find the target date index in the sorted array
-        const targetDayIndex = allDays.findIndex(day => day.date === targetDateStr);
-        console.log("Target day index is ",targetDayIndex);
+        const topIndex = allDays.findIndex(d => d.date === topDateStr);
+        if (topIndex > 0) {
+          const before = allDays.slice(0, topIndex);
+          const after = allDays.slice(topIndex);
+          // Rotate so that `topDate` is first element (visual top row)
+          setDays([...after, ...before]);
+        } else {
+          setDays(allDays);
+        }
 
-        // Create a spacer element to ensure the target position is reachable
-        const spacerHeight = Math.max(0, targetDayIndex) * ROW_HEIGHT;
-
-        console.log('Target date index:', targetDayIndex, 'Spacer height:', spacerHeight);
-        console.log('Total days loaded:', allDays.length);
-
-        // Load all days immediately
-        setDays(allDays);
-
-        // Scroll to the target position
+        // Reset scroll back to top so the selected day is visible
         if (gridRef.current) {
-          // Create a temporary div to extend scrollable area if needed
-          if (spacerHeight > 0) {
-            const tempSpacer = document.createElement('div');
-            tempSpacer.style.height = `${spacerHeight}px`;
-            tempSpacer.className = 'temp-jump-spacer';
-            gridRef.current.appendChild(tempSpacer);
-          }
-
-          // Scroll to the target position
-          const scrollTarget = spacerHeight - ROW_HEIGHT;
-          console.log('Scrolling to position:', scrollTarget);
-          gridRef.current.scrollTop = scrollTarget;
-
-          // Remove spacer after scroll animation
-          setTimeout(() => {
-            const spacer = gridRef.current?.querySelector('.temp-jump-spacer');
-            if (spacer && spacer.parentNode) {
-              spacer.parentNode.removeChild(spacer);
-            }
-          }, 100);
+          gridRef.current.scrollTop = 0;
         }
       } catch (error) {
         console.error('Failed to skip to date:', error);
       }
-    }
+    };
+
     checkSkipDate();
-  }, [skipDate, days, db]);
+  }, [skipDate, db]);
 
 
   /**
