@@ -373,25 +373,25 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
           cursor.setDate(cursor.getDate() + 1);
         }
 
-        // Sort newest-first for display (today at top in normal mode).
-        // But here, we want the skipped date at the visual top. So we'll
-        // sort descending, then find index of topDate and rotate the array
-        // so that index 0 is topDate.
+        // For skip-to-date view we want the chosen date at the top
+        // and then earlier days underneath going backwards in time.
+        // Since `from` is already `topDate` and we increment `cursor`
+        // forwards, allDays is naturally in ascending order
+        // [topDate, topDate+1, ...]. We want descending order by date
+        // so that the newest of this window is at index 0. However,
+        // we specifically want the chosen topDate to be index 0 and
+        // then older days below it, so we instead sort *descending*
+        // and slice only days <= topDate.
         allDays.sort((a, b) => {
           const aDate = new Date(a.date).getTime();
           const bDate = new Date(b.date).getTime();
-          return bDate - aDate;
+          return bDate - aDate; // newest first
         });
 
-        const topIndex = allDays.findIndex(d => d.date === topDateStr);
-        if (topIndex > 0) {
-          const before = allDays.slice(0, topIndex);
-          const after = allDays.slice(topIndex);
-          // Rotate so that `topDate` is first element (visual top row)
-          setDays([...after, ...before]);
-        } else {
-          setDays(allDays);
-        }
+        // Filter out any dates after the chosen topDate so that our
+        // grid shows [topDate, topDate-1, topDate-2, ...].
+        const filtered = allDays.filter(d => new Date(d.date) <= topDate);
+        setDays(filtered);
 
         // Reset scroll back to top so the selected day is visible
         if (gridRef.current) {
