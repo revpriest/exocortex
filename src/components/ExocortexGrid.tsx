@@ -347,9 +347,11 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         topDate.setDate(topDate.getDate() - DATE_LOOKBACK)
         const topDateStr = topDate.toISOString().split('T')[0];
 
+        // We want to look *backwards* from the chosen date, so build a
+        // window that goes N-1 days into the past.
+        const to = new Date(topDate); // newest day in this window
         const from = new Date(topDate);
-        const to = new Date(topDate);
-        to.setDate(to.getDate() + (INITIAL_WINDOW_DAYS - 1));
+        from.setDate(from.getDate() - (INITIAL_WINDOW_DAYS - 1)); // older
 
         const fromStr = from.toISOString().split('T')[0];
         const toStr = to.toISOString().split('T')[0] <= todayStr ? to.toISOString().split('T')[0] : todayStr;
@@ -377,19 +379,16 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         // and then earlier days underneath going backwards in time.
         // Since `from` is already `topDate` and we increment `cursor`
         // forwards, allDays is naturally in ascending order
-        // [topDate, topDate+1, ...]. We want descending order by date
-        // so that the newest of this window is at index 0. However,
-        // we specifically want the chosen topDate to be index 0 and
-        // then older days below it, so we instead sort *descending*
-        // and slice only days <= topDate.
+        // Now we want days ordered as [topDate, topDate-1, topDate-2, ...]
+        // i.e. newest at index 0, then going backwards in time.
         allDays.sort((a, b) => {
           const aDate = new Date(a.date).getTime();
           const bDate = new Date(b.date).getTime();
           return bDate - aDate; // newest first
         });
 
-        // Filter out any dates after the chosen topDate so that our
-        // grid shows [topDate, topDate-1, topDate-2, ...].
+        // Filter to only dates up to and including the chosen topDate,
+        // then we already have the desired order: [topDate, older...].
         const filtered = allDays.filter(d => new Date(d.date) <= topDate);
         setDays(filtered);
 
