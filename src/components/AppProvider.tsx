@@ -21,6 +21,7 @@ const ColorOverrideSchema = z.object({
 // Zod schema for AppConfig validation
 const AppConfigSchema = z.object({
   theme: z.enum(['dark', 'light', 'system']),
+  hue: z.number().min(0).max(360).optional(),
   colorOverrides: z.array(ColorOverrideSchema).default([]),
 }) satisfies z.ZodType<AppConfig>;
 

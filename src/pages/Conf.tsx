@@ -17,6 +17,7 @@ import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
 import { ExocortexDB, EventSummary } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
+import { HueControl } from '@/components/HueControl';
 import { resetCacheAndReload } from '@/lib/cacheReset';
 import { Moon, Sun, Notebook, RefreshCw, Database, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
 
@@ -85,7 +86,7 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
     setShowTestConfirm(false);
     await refreshSummary();
   };
- 
+
   const handleGenerateTestData= async () => {
     if (!db) return;
     const t = await db.generateTestData();
@@ -379,7 +380,7 @@ const CacheResetSection = () => {
                       rel="noopener noreferrer"
                     >
                       shakespeare
-                    </a> 
+                    </a>
                      &nbsp; and a lot of manual clean up.
                   </p>
                   <p>Currlently running version {APP_VERSION}.</p>
@@ -484,14 +485,16 @@ const Conf = () => {
           <div className="space-y-6">
             {/* Theme Settings Section */}
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
-                    <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
+                    <p className="text-sm text-muted-foreground">Theme and accent color</p>
                   </div>
                   <ThemeSwitch />
                 </div>
+
+                <HueControl />
               </CardContent>
             </Card>
 

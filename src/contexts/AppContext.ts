@@ -44,6 +44,8 @@ export interface ColorOverride {
 export interface AppConfig {
   /** Current theme - dark, light, or system default */
   theme: Theme;
+  /** Global hue for primary/border (0-360). Defaults to current green. */
+  hue?: number;
   /** Custom color overrides for specific categories */
   colorOverrides?: ColorOverride[] | undefined;
 }
