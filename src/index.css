@@ -30,10 +30,10 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 80%;
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%;
+    --card: 0 0% 88%;
     --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
@@ -54,7 +54,7 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
+    --border: 90.3 91.8% 42.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
@@ -87,7 +87,7 @@
     --popover: 220 13% 12%;
     --popover-foreground: 210 40% 95%;
 
-    --primary: 220 13% 20%; /* Medium dark charcoal for primary elements */
+    --primary: 90 53% 20%; /* Medium dark charcoal for primary elements */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 220 10% 16%; /* Dark secondary background */
@@ -102,7 +102,7 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 10% 20%; /* Dark borders for tartan effect */
+    --border: 90 50% 20%; /* Dark borders for tartan effect */
     --input: 220 10% 18%;
     --ring: 220 13% 25%;
 
