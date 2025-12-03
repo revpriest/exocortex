@@ -100,28 +100,53 @@ This lets you understand your life at a glance—see exactly what stands out, hi
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── ui/            # Basic UI components (buttons, forms, etc.)
-│   ├── ExocortexGrid.tsx # Main time grid display
-│   ├── EventDialog.tsx   # Add/edit event popup
-│   └── SmileyFace.tsx   # Mood visualization
-├── contexts/           # Global state management
-│   └── AppContext.ts    # App-wide settings (theme, etc.)
-├── hooks/             # Reusable React logic
-│   ├── useLocalStorage.ts # Browser storage helper
-│   ├── useTheme.ts     # Theme switching logic
-│   └── useToast.ts     # Notification system
-├── lib/               # Utility functions
-│   ├── exocortex.ts    # Main data handling logic
-│   ├── dataExport.ts   # Import/export functionality
-│   └── utils.ts       # General helper functions
-├── pages/             # Different pages/screens
-│   ├── Index.tsx       # Main time tracking page
-│   └── NotFound.tsx    # 404 error page
-├── App.tsx            # Main app component with providers
-├── AppRouter.tsx      # URL routing configuration
-├── main.tsx           # App entry point
-└── index.css          # Global styles
+├── components/         # UI components and app providers
+│   ├── ui/             # Basic and advanced UI primitives (shadcn/ui style)
+│   ├── AppProvider.tsx           # Application-wide providers setup
+│   ├── ColorOverrideWidget.tsx   # Color theme override UI
+│   ├── ErrorBoundary.tsx         # Global error boundary
+│   ├── EventDialog.tsx           # Add/edit time event dialog
+│   ├── ExocortexGrid.tsx         # Main time-overview grid
+│   ├── NewUserWelcomeDialog.tsx  # Welcome dialog for new users
+│   ├── NotificationSettings.tsx  # User notification controls
+│   ├── PageLayout.tsx            # Shared page container
+│   ├── ScrollToTop.tsx           # Scroll restoration utility
+│   ├── SmileyFace.tsx            # Mood/emotion visualization
+│   ├── StatsView.tsx             # Analytics/stats widgets
+│   └── TitleNav.tsx              # Top navigation/title bar
+├── contexts/
+│   └── AppContext.ts           # App-wide context and config
+├── hooks/
+│   ├── useAppContext.ts        # App settings context hook
+│   ├── useIsMobile.tsx         # Responsive/mobile detection
+│   ├── useLocalStorage.ts      # Browser storage helper
+│   ├── useNotifications.ts     # Notifications/permissions logic
+│   ├── usePageData.ts          # Page data (events, summaries)
+│   ├── useTheme.ts             # Theme switch logic
+│   └── useToast.ts             # Toast (snack bar) feedback
+├── lib/
+│   ├── cacheReset.ts           # Cache handling utils
+│   ├── dataExport.ts           # Data import/export helpers
+│   ├── exocortex.ts            # Main app data logic
+│   ├── polyfills.ts            # Polyfills for compatibility
+│   └── utils.ts                # Misc helpers
+├── pages/
+│   ├── About.tsx               # About/info page
+│   ├── Conf.tsx                # (Experimental / config page)
+│   ├── Index.tsx               # Main grid view/welcome page
+│   ├── NotFound.tsx            # 404 page
+│   ├── Stats.tsx               # Analytics/stats page
+│   └── Summary.tsx             # Collapsed event summary view
+├── test/
+│   ├── ErrorBoundary.test.tsx  # Error boundary test
+│   ├── setup.ts                # Test setup/bootstrap
+│   └── TestApp.tsx             # Test context wrapper
+├── App.test.tsx                # App-level tests
+├── App.tsx                     # Top-level app wrapper/providers
+├── AppRouter.tsx               # React Router routes
+├── index.css                   # Global styles/theme variables
+├── main.tsx                    # App entry point (mount, font import)
+└── vite-env.d.ts               # Vite type declarations
 ```
 
 ## 🔧 Available Commands
