@@ -165,51 +165,6 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
     input.click();
   };
 
-  const handleImportLegacyDatabase = async() => { 
-    if (!db) return;
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      try {
-        await DataExporter.importLegacyDatabase(db, file);
-        setError('Legacy data imported successfully. Categories from multiple tags have been combined.');
-        setTimeout(() => setError(null), 5000);
-        await refreshSummary();
-      } catch (error) {
-        console.error('Failed to import legacy data:', error);
-        setError(`Legacy import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    };
-    input.click();
-  };
-
-  // --- NEW: CSV Import Handler ---
-  const handleImportCsvDatabase = async () => { 
-    if (!db) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      try {
-        await DataExporter.importCsvDatabase(db, file);
-        setError('CSV imported successfully.');
-        setTimeout(() => setError(null), 5000);
-        await refreshSummary();
-      } catch (error) {
-        console.error('Failed to import CSV:', error);
-        setError(`CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    };
-    input.click();
-  };
-  // --- END CSV Import Handler ---
 
   const formatDateTime = (timestamp: number | null): string => {
     if (!timestamp) return '—';
@@ -280,26 +235,6 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleImportLegacyDatabase}
-            disabled={!db}
-            className="w-full bg-orange-600/20 border-orange-600 text-orange-400 hover:bg-orange-600/30"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Legacy
-          </Button>
-          {/* --- ADD CSV Button here --- */}
-          <Button
-            variant="outline"
-            onClick={handleImportCsvDatabase}
-            disabled={!db}
-            className="w-full bg-yellow-600/20 border-yellow-600 text-yellow-600 hover:bg-yellow-700/20"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Import CSV
-          </Button>
-          {/* --- END CSV Button --- */}
           <Button
             variant="outline"
             onClick={() => setShowTestConfirm(true)}
