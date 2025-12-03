@@ -10,7 +10,7 @@ import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, Bell, Moon, Volume2, ListCollapse } from 'lucide-react';
+import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, ListCollapse } from 'lucide-react';
 import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
 
@@ -149,12 +149,11 @@ older data loads automatically.
               4
             </div>
             <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Set Up Reminders</h3>
+              <h3 className="font-semibold text-foreground">Make Logging a Habit</h3>
               <p className="text-muted-foreground">
-                Enable notification reminders in the <span className="font-mono bg-muted px-2 py-1 rounded">Conf</span> section
-                to get periodic prompts to update your log. You can choose from 15-minute, 30-minute, hourly, or every-2-hour reminders,
-                set night hours to avoid sleep interruptions, and configure silent vs sound notifications.
-                Never miss logging an important activity again!
+                Many people find it helpful to set up a repeating reminder in their phone's alarm or reminder app
+                to nudge them to update ExocortexLog regularly. For example, you might add an alarm every hour or
+                a few times a day to quickly record what you're doing.
               </p>
             </div>
           </div>
@@ -211,71 +210,6 @@ older data loads automatically.
           <p className="text-foreground">
             This is the best way to understand your life at a glance—see what stands out, hide what doesn’t, and zoom into every detail with a click when you want.
           </p>
-        </CardContent>
-      </Card>
-
-      {/* Notification Features */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Smart Notification Reminders
-          </CardTitle>
-          <CardDescription>
-            Never forget to log your activities with intelligent notification system.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-foreground leading-relaxed">
-            ExocortexLog helps you build consistent logging habits with customizable reminder notifications
-            that respect your schedule and preferences.
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Flexible Scheduling
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Choose from 15-minute, 30-minute, hourly, or every-2-hours reminders, or disable entirely.
-                Settings are saved automatically and persist across sessions.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Moon className="h-4 w-4" />
-                Night-Time Protection
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Define quiet hours when notifications won't disturb your sleep.
-                Smart logic handles overnight periods correctly.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Volume2 className="h-4 w-4" />
-                Sound & Silent Options
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Toggle between regular notifications with sound/vibration or silent alerts
-                depending on your environment and preference.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Grid3X3 className="h-4 w-4" />
-                Context-Aware Content
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Notifications show your last logged activity and time, making it easy
-                to continue tracking without opening the app first.
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -336,18 +270,6 @@ older data loads automatically.
                 </p>
               </div>
             </div>
-
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Bell className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Smart Reminders</h3>
-                <p className="text-sm text-muted-foreground">
-                  Configurable notification system with night-time protection and sound options.
-                </p>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -362,45 +284,33 @@ older data loads automatically.
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">e</span>
+            <span className="text-primary font-semibold">•</span>
             <p className="text-sm text-foreground">
               <strong>Be consistent:</strong> Try to log events at the same times each day to build a routine.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold"> 2e</span>
+            <span className="text-primary font-semibold">•</span>
             <p className="text-sm text-foreground">
               <strong>Use meaningful categories:</strong> Create categories that reflect your actual activities and lifestyle.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold"> 2e</span>
+            <span className="text-primary font-semibold">•</span>
             <p className="text-sm text-foreground">
               <strong>Add notes when significant:</strong> Journal entries for important events provide valuable context later.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold"> 2e</span>
+            <span className="text-primary font-semibold">•</span>
             <p className="text-sm text-foreground">
               <strong>Backup regularly:</strong> Use the export feature weekly to prevent data loss.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold"> 2e</span>
+            <span className="text-primary font-semibold">•</span>
             <p className="text-sm text-foreground">
               <strong>Review weekly:</strong> Check your stats every week to identify patterns and make adjustments.
-            </p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold"> 2e</span>
-            <p className="text-sm text-foreground">
-              <strong>Enable reminders:</strong> Set up notification reminders to build consistent logging habits.
-            </p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold"> 2e</span>
-            <p className="text-sm text-foreground">
-              <strong>Respect your sleep:</strong> Configure night hours to avoid interruptions during rest.
             </p>
           </div>
         </CardContent>

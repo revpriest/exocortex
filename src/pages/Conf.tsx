@@ -509,9 +509,6 @@ const Conf = () => {
               </CardContent>
             </Card>
 
-            {/* Notification Settings Section */}
-            <NotificationSettings />
-
             {/* Database Management Section */}
             <DBManagementSection db={db} />
 
