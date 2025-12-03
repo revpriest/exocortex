@@ -12,7 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { ExocortexGrid } from '@/components/ExocortexGrid';
-import { ExocortexDB, exocortexEventCount } from '@/lib/exocortex';
+import { ExocortexDB } from '@/lib/exocortex';
 import { PageLayout } from '@/components/PageLayout';
 import { NewUserWelcomeDialog } from '../components/NewUserWelcomeDialog';
 
@@ -91,9 +91,23 @@ const Index = () => {
       try {
         const db = new ExocortexDB();
         await db.init();
-        // Use new function to check for total events ever recorded
-        const eventCount = await exocortexEventCount(db.db!);
-        if (eventCount === 0) {
+
+        // Check if database has any events by querying a wider date range
+        // This is more reliable than just checking today
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7); // Check last 7 days
+
+        const days = await db.getEventsByDateRangeOnly(
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        );
+
+        // Check if any events exist in the last 7 days
+        const hasEvents = days.some(day => day.events.length > 0);
+
+        // Show welcome dialog if no events found in the last week (truly empty database)
+        if (!hasEvents) {
           setShowWelcomeDialog(true);
         }
       } catch (error) {
