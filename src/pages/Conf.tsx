@@ -372,7 +372,7 @@ const CacheResetSection = () => {
                   disabled={isResetting}
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  {isResetting ? 'Resetting...' : 'Reset Cache & Check For Upgrade'}
+                  {isResetting ? 'Resetting...' : 'Clear Cache & Check For Upgrade'}
                 </Button>
                 &nbsp;
                 <Button
@@ -389,16 +389,15 @@ const CacheResetSection = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Reset Application Cache?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will clear all browser caches and service workers, then reload the app from the network.
-                Your time tracking data in IndexedDB will be preserved.
+                This will clear all browser caches and service workers, then reload the app from the network.  Your time tracking data in IndexedDB will be preserved.
                 <br /><br />
-                Use this if the app isn't updating properly or if you're experiencing display issues.
+                Use this if the app isn't updating properly or if you're experiencing display issues. If you use it when offline it will stop the offline app working.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleResetCache} disabled={isResetting}>
-                {isResetting ? 'Resetting...' : 'Reset Cache'}
+                {isResetting ? 'Resetting...' : 'Clear and upgrade'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
