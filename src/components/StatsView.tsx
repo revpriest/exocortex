@@ -17,7 +17,19 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell,
+} from 'recharts';
 import { CalendarIcon, BarChart3, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { addDays, addMonths, endOfDay, format, isBefore, isValid, startOfDay } from 'date-fns';
 
@@ -35,7 +47,11 @@ interface StatsViewProps {
  * This helps maintain type safety throughout the component.
  */
 interface MoodDataPoint {
+  /** Full label used for axis: "MMM dd HH:00" */
+  label: string;
+  /** Date component: "MMM dd" */
   date: string;
+  /** Time component: "HH:00" */
   time: string;
   happiness: number;
   wakefulness: number;
@@ -69,9 +85,8 @@ function calculateEndDate(start: Date, window: WindowOption): Date {
   const safeStart = startOfDay(start);
 
   if (window === 'month') {
-    // End of the same calendar month, clamped to today if needed
-    const monthEnd = endOfDay(addMonths(safeStart, 1));
-    const lastDayOfMonth = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), 0, 23, 59, 59, 999);
+    const nextMonth = addMonths(safeStart, 1);
+    const lastDayOfMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 0, 23, 59, 59, 999);
     return clampDateToToday(lastDayOfMonth);
   }
 
@@ -83,7 +98,6 @@ function shiftStartDate(current: Date, window: WindowOption, direction: 1 | -1):
   const base = startOfDay(current);
 
   if (window === 'month') {
-    // Move by full calendar months, preserving day-of-month when possible
     const shifted = addMonths(base, direction);
     return clampDateToToday(startOfDay(shifted));
   }
@@ -270,9 +284,13 @@ export function StatsView({ className }: StatsViewProps) {
         const avgWakefulness = weightedWakefulness / totalWeight;
         const avgHealth = weightedHealth / totalWeight;
 
+        const dateLabel = format(cursor, 'MMM dd');
+        const timeLabel = format(cursor, 'HH:00');
+
         dataPoints.push({
-          date: format(cursor, 'MMM dd'),
-          time: format(cursor, 'HH:mm'),
+          label: `${dateLabel} ${timeLabel}`,
+          date: dateLabel,
+          time: timeLabel,
           happiness: Number(avgHappiness.toFixed(2)),
           wakefulness: Number(avgWakefulness.toFixed(2)),
           health: Number(avgHealth.toFixed(2)),
@@ -451,9 +469,15 @@ export function StatsView({ className }: StatsViewProps) {
               <LineChart data={moodData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
-                  dataKey="time"
+                  dataKey="label"
                   stroke="hsl(var(--muted-foreground))"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{
+                    fill: 'hsl(var(--muted-foreground))',
+                    fontSize: 11,
+                  }}
+                  angle={-90}
+                  textAnchor="end"
+                  height={80}
                 />
                 <YAxis
                   stroke="hsl(var(--muted-foreground))"
@@ -471,12 +495,7 @@ export function StatsView({ className }: StatsViewProps) {
                     `${(value * 100).toFixed(0)}%`,
                     name,
                   ]}
-                  labelFormatter={(label, payload) => {
-                    if (payload && payload[0]) {
-                      return `${payload[0].payload.date} ${label}`;
-                    }
-                    return label;
-                  }}
+                  labelFormatter={(label: string) => label}
                 />
                 <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
                 <Line
