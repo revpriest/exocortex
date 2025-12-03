@@ -288,14 +288,12 @@ export class ExocortexDB {
   async eventsExist(): Promise<boolean> {
     if (!this.db) throw new Error('Database not initialized');
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
-      const request = index.openCursor(IDBKeyRange.bound(0,999999999999999999,true,true));
-
-      const events: ExocortexEvent[] = [];
+      const request = index.openCursor(IDBKeyRange.bound(0,999999999999999,true,true));
 
       request.onsuccess = () => {
         const cursor = request.result;

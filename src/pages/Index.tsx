@@ -92,20 +92,7 @@ const Index = () => {
         const db = new ExocortexDB();
         await db.init();
 
-        // Check if database has any events by querying a wider date range
-        // This is more reliable than just checking today
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7); // Check last 7 days
-
-        const days = await db.getEventsByDateRangeOnly(
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0]
-        );
-
-        // Check if any events exist in the last 7 days
         const hasEvents = await db.eventsExist();
-        console.log("DId we have events?",hasEvents);
 
         // Show welcome dialog if no events found in the last week (truly empty database)
         if (!hasEvents) {
