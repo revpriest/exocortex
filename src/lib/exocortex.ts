@@ -59,6 +59,16 @@ export interface DayEvents {
   events: ExocortexEvent[];
 }
 
+/** Summary information about all events in the database. */
+export interface EventSummary {
+  /** Total number of events stored. */
+  totalEvents: number;
+  /** Earliest event end time, if any events exist. */
+  earliestEndTime: number | null;
+  /** Latest event end time, if any events exist. */
+  latestEndTime: number | null;
+}
+
 /**
  * IndexedDB Configuration Constants
  *
@@ -320,6 +330,47 @@ export class ExocortexDB {
       request.onsuccess = () => {
         const cursor = request.result;
         resolve(cursor ? cursor.value : null);
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Get a summary of all events in the database, including total count and
+   * the earliest and latest endTime values.
+   */
+  async getEventSummary(): Promise<EventSummary> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('endTime');
+
+      let totalEvents = 0;
+      let earliestEndTime: number | null = null;
+      let latestEndTime: number | null = null;
+
+      const request = index.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          const event = cursor.value as ExocortexEvent;
+          totalEvents += 1;
+
+          if (earliestEndTime === null || event.endTime < earliestEndTime) {
+            earliestEndTime = event.endTime;
+          }
+          if (latestEndTime === null || event.endTime > latestEndTime) {
+            latestEndTime = event.endTime;
+          }
+
+          cursor.continue();
+        } else {
+          resolve({ totalEvents, earliestEndTime, latestEndTime });
+        }
       };
 
       request.onerror = () => reject(request.error);

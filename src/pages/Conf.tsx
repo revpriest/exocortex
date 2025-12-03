@@ -15,7 +15,7 @@ import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
-import { ExocortexDB } from '@/lib/exocortex';
+import { ExocortexDB, EventSummary } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { resetCacheAndReload } from '@/lib/cacheReset';
@@ -28,30 +28,80 @@ import { Moon, Sun, Notebook, RefreshCw, Database, HardDrive, Download, Upload, 
  * Provides database operations including import, export, test data generation,
  * and database clearing functionality.
  */
-const DBManagementSection = ({db}) => {
+const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
   const [error, setError] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showTestConfirm, setShowTestConfirm] = useState(false);
+  const [summary, setSummary] = useState<EventSummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSummary = async () => {
+      if (!db) {
+        setSummary(null);
+        return;
+      }
+      setLoadingSummary(true);
+      try {
+        const result = await db.getEventSummary();
+        if (!cancelled) {
+          setSummary(result);
+        }
+      } catch (err) {
+        console.error('Failed to load event summary:', err);
+        if (!cancelled) {
+          setSummary(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSummary(false);
+        }
+      }
+    };
+
+    void loadSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [db]);
+
+  const refreshSummary = async () => {
+    if (!db) return;
+    setLoadingSummary(true);
+    try {
+      const result = await db.getEventSummary();
+      setSummary(result);
+    } catch (err) {
+      console.error('Failed to refresh event summary:', err);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
 
   const confirmGenerateTestData = async () => {
     await handleGenerateTestData();
     setShowTestConfirm(false);
+    await refreshSummary();
   };
  
   const handleGenerateTestData= async () => {
+    if (!db) return;
     const t = await db.generateTestData();
     setError(t);
-  }
+  };
 
   const cancelGenerateTestData = () => {
     setShowTestConfirm(false);
   };
 
 
-  const confirmClearAllData = () => {
-    handleClearAllData();
+  const confirmClearAllData = async () => {
+    await handleClearAllData();
     setShowClearConfirm(false);
+    await refreshSummary();
   };
 
   const cancelClearAllData = () => {
@@ -105,6 +155,7 @@ const DBManagementSection = ({db}) => {
         await DataExporter.importDatabase(db, file);
         setError(`Successfully imported events from ${file.name}`);
         setTimeout(() => setError(null), 3000);
+        await refreshSummary();
       } catch (error) {
         console.error('Import failed:', error);
         setError(error instanceof Error ? error.message : 'Failed to import database. Please try again.');
@@ -128,6 +179,7 @@ const DBManagementSection = ({db}) => {
         await DataExporter.importLegacyDatabase(db, file);
         setError('Legacy data imported successfully. Categories from multiple tags have been combined.');
         setTimeout(() => setError(null), 5000);
+        await refreshSummary();
       } catch (error) {
         console.error('Failed to import legacy data:', error);
         setError(`Legacy import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -149,6 +201,7 @@ const DBManagementSection = ({db}) => {
         await DataExporter.importCsvDatabase(db, file);
         setError('CSV imported successfully.');
         setTimeout(() => setError(null), 5000);
+        await refreshSummary();
       } catch (error) {
         console.error('Failed to import CSV:', error);
         setError(`CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -157,6 +210,11 @@ const DBManagementSection = ({db}) => {
     input.click();
   };
   // --- END CSV Import Handler ---
+
+  const formatDateTime = (timestamp: number | null): string => {
+    if (!timestamp) return '—';
+    return new Date(timestamp).toLocaleString();
+  };
 
   return (
     <Card>
@@ -173,6 +231,35 @@ const DBManagementSection = ({db}) => {
           <p className="text-destructive text-base md:text-lg leading-relaxed">
             You should probably back up with the export button often, no guarantees.
           </p>
+
+          {/* Database overview */}
+          <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm flex flex-col gap-2">
+            {loadingSummary ? (
+              <span className="text-muted-foreground">Loading database overview…</span>
+            ) : summary && summary.totalEvents > 0 ? (
+              <>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span>
+                    <span className="font-medium">Total events:</span>{' '}
+                    {summary.totalEvents.toLocaleString()}
+                  </span>
+                  <span>
+                    <span className="font-medium">Earliest:</span>{' '}
+                    {formatDateTime(summary.earliestEndTime)}
+                  </span>
+                  <span>
+                    <span className="font-medium">Latest:</span>{' '}
+                    {formatDateTime(summary.latestEndTime)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <span className="text-muted-foreground">
+                No events stored yet. Add some events or import data to get started.
+              </span>
+            )}
+          </div>
+
         {/* Action Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <Button
