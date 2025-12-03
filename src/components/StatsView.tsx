@@ -18,8 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-import { CalendarIcon, BarChart3, TrendingUp } from 'lucide-react';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { CalendarIcon, BarChart3, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import { addDays, endOfDay, format, isBefore, isValid, startOfDay } from 'date-fns';
 
 /**
  * Component Props Interface
@@ -49,6 +49,41 @@ interface CategoryDataPoint {
   count: number;
 }
 
+// Available window sizes (number of days)
+const WINDOW_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 14, 28, 'month'] as const;
+
+type WindowOption = (typeof WINDOW_OPTIONS)[number];
+
+function resolveWindowLabel(value: WindowOption): string {
+  if (value === 'month') return 'Month';
+  if (value === 1) return '1 day';
+  return `${value} days`;
+}
+
+function clampDateToToday(date: Date): Date {
+  const today = startOfDay(new Date());
+  return isBefore(date, today) ? date : today;
+}
+
+function calculateEndDate(start: Date, window: WindowOption): Date {
+  const safeStart = startOfDay(start);
+
+  if (window === 'month') {
+    const approxEnd = addDays(safeStart, 30); // reasonably bounded
+    return clampDateToToday(endOfDay(approxEnd));
+  }
+
+  const approxEnd = addDays(safeStart, window - 1);
+  return clampDateToToday(endOfDay(approxEnd));
+}
+
+function shiftStartDate(current: Date, window: WindowOption, direction: 1 | -1): Date {
+  const base = startOfDay(current);
+  const amount = window === 'month' ? 30 : window; // Shift by window length
+  const next = addDays(base, direction * amount);
+  return clampDateToToday(next);
+}
+
 /**
  * Main StatsView Component
  *
@@ -65,10 +100,15 @@ export function StatsView({ className }: StatsViewProps) {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [windowSize, setWindowSize] = useState<WindowOption>(7);
   const [showStartCalendar, setShowStartCalendar] = useState(false);
-  const [showEndCalendar, setShowEndCalendar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Derived end date from startDate + windowSize
+  const endDate = useMemo(() => {
+    if (!startDate || !isValid(startDate)) return undefined;
+    return calculateEndDate(startDate, windowSize);
+  }, [startDate, windowSize]);
 
   /**
    * Database Initialization
@@ -83,17 +123,13 @@ export function StatsView({ className }: StatsViewProps) {
         await database.init();
         setDb(database);
 
-        // Set default date range to last two days
-        const today = new Date();
-        const twoDaysAgo = new Date();
-        twoDaysAgo.setDate(today.getDate() - 2);
+        const today = startOfDay(new Date());
+        const oneWeekAgo = addDays(today, -6); // inclusive range: 7 days
 
-        setStartDate(twoDaysAgo);
-        setEndDate(today);
+        setStartDate(oneWeekAgo);
+        setWindowSize(7);
 
-        // Load events for the default range
-        console.log('Loading range:', twoDaysAgo.toISOString(), 'to', today.toISOString());
-        await loadEventsForRange(database, twoDaysAgo, today);
+        await loadEventsForRange(database, oneWeekAgo, calculateEndDate(oneWeekAgo, 7));
       } catch (err) {
         console.error('Failed to initialize database:', err);
         setError('Failed to load statistics data');
@@ -102,7 +138,7 @@ export function StatsView({ className }: StatsViewProps) {
       }
     };
 
-    initDb();
+    void initDb();
   }, []);
 
   /**
@@ -114,14 +150,15 @@ export function StatsView({ className }: StatsViewProps) {
   const loadEventsForRange = async (database: ExocortexDB, start: Date, end: Date) => {
     try {
       const allEvents: ExocortexEvent[] = [];
-      const current = new Date(start);
+      const cursor = new Date(startOfDay(start));
+      const last = startOfDay(end);
 
-      // Iterate through each day in the range
-      while (current <= end) {
-        const dateStr = current.toISOString().split('T')[0];
+      while (!isBefore(last, cursor)) {
+        const dateStr = cursor.toISOString().split('T')[0];
+        // eslint-disable-next-line no-await-in-loop
         const dayEvents = await database.getEventsByDate(dateStr);
         allEvents.push(...dayEvents);
-        current.setDate(current.getDate() + 1);
+        cursor.setDate(cursor.getDate() + 1);
       }
 
       setEvents(allEvents);
@@ -132,78 +169,81 @@ export function StatsView({ className }: StatsViewProps) {
   };
 
   /**
-   * Handle Date Range Changes
-   *
-   * These functions handle user interactions with the date pickers.
-   * They load new data when the date range changes.
+   * Handle Date / Window Changes
    */
-  const handleStartDateChange = async (date: Date | undefined) => {
-    if (!date || !endDate || !db) return;
+  const refreshRange = async (nextStart: Date | undefined, nextWindow: WindowOption | undefined) => {
+    if (!db) return;
 
-    setStartDate(date);
-    setShowStartCalendar(false);
-    await loadEventsForRange(db, date, endDate);
+    const effectiveStart = nextStart ?? startDate;
+    const effectiveWindow = nextWindow ?? windowSize;
+
+    if (!effectiveStart || !isValid(effectiveStart)) return;
+
+    const boundedStart = clampDateToToday(startOfDay(effectiveStart));
+    const boundedEnd = calculateEndDate(boundedStart, effectiveWindow);
+
+    setStartDate(boundedStart);
+    setWindowSize(effectiveWindow);
+
+    await loadEventsForRange(db, boundedStart, boundedEnd);
   };
 
-  const handleEndDateChange = async (date: Date | undefined) => {
-    if (!date || !startDate || !db) return;
+  const handleStartDateChange = async (date: Date | undefined) => {
+    setShowStartCalendar(false);
+    if (!date) return;
+    await refreshRange(date, undefined);
+  };
 
-    setEndDate(date);
-    setShowEndCalendar(false);
-    await loadEventsForRange(db, startDate, date);
+  const handleWindowChange = async (value: string) => {
+    const parsed = value === 'month' ? 'month' : Number(value);
+    if (!WINDOW_OPTIONS.includes(parsed as WindowOption)) return;
+    await refreshRange(undefined, parsed as WindowOption);
+  };
+
+  const handleShift = async (direction: 1 | -1) => {
+    if (!startDate) return;
+    const nextStart = shiftStartDate(startDate, windowSize, direction);
+    await refreshRange(nextStart, undefined);
   };
 
   /**
    * Process Data for Visualizations
-   *
-   * These useMemo hooks transform the raw event data into formats
-   * suitable for our charts. They automatically recalculate when events change.
    */
   const moodData = useMemo(() => {
     const dataPoints: MoodDataPoint[] = [];
-
-    // Create hourly sampling across the date range for better visualization
     if (events.length === 0) return dataPoints;
 
-    // Sort events by end time
     const sortedEvents = [...events].sort((a, b) => a.endTime - b.endTime);
 
-    // Get the date range
     const firstEvent = sortedEvents[0];
     const lastEvent = sortedEvents[sortedEvents.length - 1];
-    const startDate = startOfDay(new Date(firstEvent.endTime));
-    const endDate = endOfDay(new Date(lastEvent.endTime));
+    const rangeStart = startOfDay(new Date(firstEvent.endTime));
+    const rangeEnd = endOfDay(new Date(lastEvent.endTime));
 
-    // Create 1-hour intervals for maximum detail
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      const nextInterval = new Date(current);
-      nextInterval.setHours(nextInterval.getHours() + 1);
+    const cursor = new Date(rangeStart);
+    while (!isBefore(rangeEnd, cursor)) {
+      const nextInterval = addDays(cursor, 0);
+      nextInterval.setHours(cursor.getHours() + 1);
 
-      // Find events active during this 3-hour period
       const activeEvents = sortedEvents.filter(event => {
         const eventEnd = new Date(event.endTime);
-        // Estimate start time (simplified - assumes 1 hour duration)
-        const eventStart = new Date(eventEnd.getTime() - (60 * 60 * 1000));
+        const eventStart = new Date(eventEnd.getTime() - 60 * 60 * 1000);
 
-        // Check if event overlaps with current interval
         return (
-          (eventStart >= current && eventStart < nextInterval) ||
-          (eventEnd >= current && eventEnd < nextInterval) ||
-          (eventStart < current && eventEnd > current)
+          (eventStart >= cursor && eventStart < nextInterval) ||
+          (eventEnd >= cursor && eventEnd < nextInterval) ||
+          (eventStart < cursor && eventEnd > cursor)
         );
       });
 
       if (activeEvents.length > 0) {
-        // Calculate weighted average based on event duration
         let totalWeight = 0;
         let weightedHappiness = 0;
         let weightedWakefulness = 0;
         let weightedHealth = 0;
 
         activeEvents.forEach(event => {
-          // Estimate duration (simplified calculation)
-          let duration = 60; // Default 1 hour
+          let duration = 60;
           const eventIndex = sortedEvents.findIndex(e => e.id === event.id);
           if (eventIndex > 0) {
             const prevEvent = sortedEvents[eventIndex - 1];
@@ -217,51 +257,45 @@ export function StatsView({ className }: StatsViewProps) {
           weightedHealth += event.health * weight;
         });
 
-        // Create weighted averages
         const avgHappiness = weightedHappiness / totalWeight;
         const avgWakefulness = weightedWakefulness / totalWeight;
         const avgHealth = weightedHealth / totalWeight;
 
         dataPoints.push({
-          date: format(current, 'MMM dd'),
-          time: format(current, 'HH:mm'),
+          date: format(cursor, 'MMM dd'),
+          time: format(cursor, 'HH:mm'),
           happiness: Number(avgHappiness.toFixed(2)),
           wakefulness: Number(avgWakefulness.toFixed(2)),
           health: Number(avgHealth.toFixed(2)),
         });
       }
 
-      // Move to next interval
-      current.setTime(nextInterval.getTime());
+      cursor.setTime(cursor.getTime() + 60 * 60 * 1000);
     }
 
     return dataPoints;
   }, [events]);
 
   const categoryData = useMemo(() => {
-    // Sort events by end time to calculate durations properly
     const sortedEvents = [...events].sort((a, b) => a.endTime - b.endTime);
 
-    // Calculate total hours per category
     const categoryMap = new Map<string, { totalMinutes: number; count: number }>();
 
     sortedEvents.forEach((event, index) => {
-      // Calculate duration - estimate based on time from previous event or default to 1 hour
-      let durationMinutes = 60; // Default 1 hour
+      let durationMinutes = 60;
 
       if (index > 0) {
         const previousEvent = sortedEvents[index - 1];
-        durationMinutes = Math.max(15, (event.endTime - previousEvent.endTime) / (1000 * 60)); // At least 15 minutes
+        durationMinutes = Math.max(15, (event.endTime - previousEvent.endTime) / (1000 * 60));
       }
 
       const current = categoryMap.get(event.category) || { totalMinutes: 0, count: 0 };
       categoryMap.set(event.category, {
         totalMinutes: current.totalMinutes + durationMinutes,
-        count: current.count + 1
+        count: current.count + 1,
       });
     });
 
-    // Convert to chart format and get top categories
     const data: CategoryDataPoint[] = Array.from(categoryMap.entries())
       .map(([category, { totalMinutes, count }]) => ({
         category,
@@ -272,49 +306,41 @@ export function StatsView({ className }: StatsViewProps) {
           category,
           happiness: 0.7,
           wakefulness: 0.8,
-          health: 0.9
+          health: 0.9,
         }),
-        count
+        count,
       }))
       .sort((a, b) => b.hours - a.hours)
-      .slice(0, 10); // Top 10 categories
+      .slice(0, 10);
 
-    // Debug to see category order and check for "Exercise"
     return data;
   }, [events]);
 
-
-
-  /**
-   * Loading State
-   *
-   * Show a loading indicator while data is being fetched.
-   */
   if (loading) {
     return (
-      <div className={`flex items-center justify-center h-64 ${className}`}>
+      <div className={`flex items-center justify-center h-64 ${className ?? ''}`}>
         <div className="text-muted-foreground">Loading statistics...</div>
       </div>
     );
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-6 ${className ?? ''}`}>
       {/* Header with Date Range Selection */}
       <div className="bg-card rounded-lg p-6 border border-border">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
               <BarChart3 className="h-6 w-6" />
-              Statistics & Analytics
+              Statistics &amp; Analytics
             </h1>
             <p className="text-muted-foreground">
               Visualize your time tracking patterns and mood trends
             </p>
           </div>
 
-          {/* Date Range Selectors */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          {/* Date Window Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
             {/* Start Date */}
             <div className="relative">
               <Label className="text-sm text-foreground mb-1 block">Start Date</Label>
@@ -339,31 +365,58 @@ export function StatsView({ className }: StatsViewProps) {
               )}
             </div>
 
-            {/* End Date */}
-            <div className="relative">
-              <Label className="text-sm text-foreground mb-1 block">End Date</Label>
+            {/* Window Size */}
+            <div>
+              <Label className="text-sm text-foreground mb-1 block">Length</Label>
+              <select
+                className="w-full sm:w-40 bg-secondary border border-border text-secondary-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                value={windowSize}
+                onChange={e => {
+                  void handleWindowChange(e.target.value);
+                }}
+              >
+                {WINDOW_OPTIONS.map(option => (
+                  <option key={option} value={option}>
+                    {resolveWindowLabel(option)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Navigation Arrows */}
+            <div className="flex items-end gap-2">
               <Button
                 variant="outline"
-                className="w-full sm:w-40"
-                onClick={() => setShowEndCalendar(!showEndCalendar)}
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
               >
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                {endDate ? format(endDate, 'MMM dd, yyyy') : 'Select date'}
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-              {showEndCalendar && (
-                <div className="absolute top-full mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={handleEndDateChange}
-                    initialFocus
-                    className="rounded-lg"
-                  />
-                </div>
-              )}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
+
+        {startDate && endDate && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Showing data from <span className="font-medium">{format(startDate, 'MMM dd, yyyy')}</span> to{' '}
+            <span className="font-medium">{format(endDate, 'MMM dd, yyyy')}</span>
+          </p>
+        )}
       </div>
 
       {/* Error Display */}
@@ -402,12 +455,12 @@ export function StatsView({ className }: StatsViewProps) {
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
                   }}
                   labelStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: number, name: string) => [
                     `${(value * 100).toFixed(0)}%`,
-                    name
+                    name,
                   ]}
                   labelFormatter={(label, payload) => {
                     if (payload && payload[0]) {
@@ -416,9 +469,7 @@ export function StatsView({ className }: StatsViewProps) {
                     return label;
                   }}
                 />
-                <Legend
-                  wrapperStyle={{ color: 'hsl(var(--foreground))' }}
-                />
+                <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
                 <Line
                   type="monotone"
                   dataKey="happiness"
@@ -459,17 +510,12 @@ export function StatsView({ className }: StatsViewProps) {
       {/* Category Distribution Histogram */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground">
-            Time Distribution by Category
-          </CardTitle>
+          <CardTitle className="text-foreground">Time Distribution by Category</CardTitle>
         </CardHeader>
         <CardContent>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={500}>
-              <BarChart
-                data={categoryData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-              >
+              <BarChart data={categoryData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   type="category"
@@ -485,25 +531,23 @@ export function StatsView({ className }: StatsViewProps) {
                   type="number"
                   stroke="hsl(var(--muted-foreground))"
                   tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { fill: 'hsl(var(--muted-foreground))' } }}
+                  label={{
+                    value: 'Hours',
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { fill: 'hsl(var(--muted-foreground))' },
+                  }}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
                   }}
                   labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: number, name: string) => [
-                    `${value} hours`,
-                    name
-                  ]}
+                  formatter={(value: number, name: string) => [`${value} hours`, name]}
                 />
-                <Bar
-                  dataKey="hours"
-                  name="Hours"
-                  radius={[4, 4, 0, 0]}
-                >
+                <Bar dataKey="hours" name="Hours" radius={[4, 4, 0, 0]}>
                   {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -526,8 +570,7 @@ export function StatsView({ className }: StatsViewProps) {
               <div className="text-3xl font-bold text-destructive">
                 {moodData.length > 0
                   ? (moodData.reduce((sum, d) => sum + d.happiness, 0) / moodData.length).toFixed(2)
-                  : '0.00'
-                }
+                  : '0.00'}
               </div>
               <div className="text-sm text-muted-foreground mt-1">Average Happiness</div>
             </div>
@@ -541,7 +584,8 @@ export function StatsView({ className }: StatsViewProps) {
                 {(() => {
                   const sleepEvents = events.filter(e => e.category.toLowerCase() === 'sleep');
                   if (sleepEvents.length === 0) return '0.00';
-                  const avgSleep = sleepEvents.reduce((sum, e) => sum + e.wakefulness, 0) / sleepEvents.length;
+                  const avgSleep =
+                    sleepEvents.reduce((sum, e) => sum + e.wakefulness, 0) / sleepEvents.length;
                   return avgSleep.toFixed(2);
                 })()}
               </div>
@@ -558,7 +602,8 @@ export function StatsView({ className }: StatsViewProps) {
                 {(() => {
                   const awakeEvents = events.filter(e => e.category.toLowerCase() !== 'sleep');
                   if (awakeEvents.length === 0) return '0.00';
-                  const avgAwake = awakeEvents.reduce((sum, e) => sum + e.wakefulness, 0) / awakeEvents.length;
+                  const avgAwake =
+                    awakeEvents.reduce((sum, e) => sum + e.wakefulness, 0) / awakeEvents.length;
                   return avgAwake.toFixed(2);
                 })()}
               </div>
@@ -574,8 +619,7 @@ export function StatsView({ className }: StatsViewProps) {
               <div className="text-3xl font-bold text-green-600">
                 {moodData.length > 0
                   ? (moodData.reduce((sum, d) => sum + d.health, 0) / moodData.length).toFixed(2)
-                  : '0.00'
-                }
+                  : '0.00'}
               </div>
               <div className="text-sm text-muted-foreground mt-1">Average Health</div>
             </div>
