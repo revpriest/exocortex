@@ -4,8 +4,6 @@
 // errors and make future re-introduction easier if platform support
 // improves.
 
-import React from 'react';
-
 export function NotificationSettings() {
   return null;
 }

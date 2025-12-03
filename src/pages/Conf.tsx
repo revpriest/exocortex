@@ -17,7 +17,6 @@ import { DataExporter } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
 import { ExocortexDB, EventSummary } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
-import { NotificationSettings } from '@/components/NotificationSettings';
 import { resetCacheAndReload } from '@/lib/cacheReset';
 import { Moon, Sun, Notebook, RefreshCw, Database, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
 
