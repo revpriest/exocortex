@@ -285,6 +285,31 @@ export class ExocortexDB {
     return days;
   }
 
+  async eventsExist(): Promise<boolean> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('endTime');
+
+      const request = index.openCursor(IDBKeyRange.bound(0,999999999999999999,true,true));
+
+      const events: ExocortexEvent[] = [];
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          resolve(true)
+        } else {
+          resolve(false);
+        }
+      };
+
+      request.onerror = () => resolve(false);
+    });
+  }
+
   async getLatestEvent(): Promise<ExocortexEvent | null> {
     if (!this.db) throw new Error('Database not initialized');
 

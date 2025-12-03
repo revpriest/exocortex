@@ -104,7 +104,8 @@ const Index = () => {
         );
 
         // Check if any events exist in the last 7 days
-        const hasEvents = days.some(day => day.events.length > 0);
+        const hasEvents = await db.eventsExist();
+        console.log("DId we have events?",hasEvents);
 
         // Show welcome dialog if no events found in the last week (truly empty database)
         if (!hasEvents) {
