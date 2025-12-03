@@ -333,20 +333,20 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
 
-        // We want the skipped-to date to be the new "top" of the grid,
-        // and then load days after it as the user scrolls.
-        const topDate = new Date(skipDate); // clone
-        topDate.setHours(0, 0, 0, 0);
-        const topDateStr = topDate.toISOString().split('T')[0];
+        // We want to see a month *before* and some time *after* the selected
+        // date. The selected date itself should appear one month down from
+        // the top so you can scroll up to see earlier and down to see later.
+        const selectedDate = new Date(skipDate); // clone
+        selectedDate.setHours(0, 0, 0, 0);
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
 
-        // Determine a small initial window after the top date so we don't
-        // render the entire history. Similar behavior to Summary: a fixed
-        // number of days around the jump point.
-        const INITIAL_WINDOW_DAYS = 30; // can tweak; small for perf
+        const WINDOW_BEFORE_DAYS = 30; // days before the selected date
+        const WINDOW_AFTER_DAYS = 30;  // days after the selected date
 
-        const from = new Date(topDate);
-        const to = new Date(topDate);
-        to.setDate(to.getDate() + (INITIAL_WINDOW_DAYS - 1));
+        const from = new Date(selectedDate);
+        from.setDate(from.getDate() - WINDOW_BEFORE_DAYS);
+        const to = new Date(selectedDate);
+        to.setDate(to.getDate() + WINDOW_AFTER_DAYS);
 
         const fromStr = from.toISOString().split('T')[0];
         const toStr = to.toISOString().split('T')[0] <= todayStr ? to.toISOString().split('T')[0] : todayStr;
@@ -370,29 +370,31 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
           cursor.setDate(cursor.getDate() + 1);
         }
 
-        // Sort newest-first for display (today at top in normal mode).
-        // But here, we want the skipped date at the visual top. So we'll
-        // sort descending, then find index of topDate and rotate the array
-        // so that index 0 is topDate.
+        // Sort newest-first for display, then scroll so that the selected
+        // date is roughly one month down from the top (i.e., 30 rows).
         allDays.sort((a, b) => {
           const aDate = new Date(a.date).getTime();
           const bDate = new Date(b.date).getTime();
           return bDate - aDate;
         });
 
-        const topIndex = allDays.findIndex(d => d.date === topDateStr);
-        if (topIndex > 0) {
-          const before = allDays.slice(0, topIndex);
-          const after = allDays.slice(topIndex);
-          // Rotate so that `topDate` is first element (visual top row)
-          setDays([...after, ...before]);
-        } else {
-          setDays(allDays);
-        }
+        setDays(allDays);
 
-        // Reset scroll back to top so the selected day is visible
+        // After React renders, position the scroll so that the selected
+        // date row sits 30 rows from the top (if possible).
         if (gridRef.current) {
-          gridRef.current.scrollTop = 0;
+          const index = allDays.findIndex(d => d.date === selectedDateStr);
+          if (index >= 0) {
+            const targetOffset = Math.max(0, index - WINDOW_BEFORE_DAYS) * ROW_HEIGHT;
+            // Use requestAnimationFrame so the DOM has applied the new rows
+            requestAnimationFrame(() => {
+              if (gridRef.current) {
+                gridRef.current.scrollTop = targetOffset;
+              }
+            });
+          } else {
+            gridRef.current.scrollTop = 0;
+          }
         }
       } catch (error) {
         console.error('Failed to skip to date:', error);
