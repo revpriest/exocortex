@@ -180,6 +180,9 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
               const oldestDay = days[days.length - 1];
               const oldestDate = oldestDay ? new Date(oldestDay.date) : new Date();
 
+              // Normalise oldestDate to midnight so ranges line up exactly
+              oldestDate.setHours(0, 0, 0, 0);
+
               // Don't load data from more than 10 years ago
               const tenYearsAgo = new Date();
               tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
@@ -273,40 +276,36 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
           const todayEvents = await db.getEventsByDate(today);
 
           if (todayEvents.length === 0) {
-            // Database was empty, load initial data
+            // Database was empty, load initial data (same logic as first mount)
             const screenHeight = window.innerHeight - 100;
             const rowsNeeded = Math.ceil(screenHeight / 80) + 2;
             const daysToLoad = Math.max(7, rowsNeeded);
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - daysToLoad + 1);
+
             const todayDate = new Date();
             const todayStr = todayDate.toISOString().split('T')[0];
+            const startDate = new Date(todayDate);
+            startDate.setDate(startDate.getDate() - daysToLoad + 1);
 
             const daysWithEvents = await db.getEventsByDateRangeOnly(
               startDate.toISOString().split('T')[0],
               todayStr
             );
 
+            const dayMap = new Map<string, DayEvents>();
+            daysWithEvents.forEach(d => dayMap.set(d.date, d));
+
             const allDays: DayEvents[] = [];
-            for (let i = 0; i < daysToLoad; i++) {
-              const currentDate = new Date(todayDate);
-              currentDate.setDate(currentDate.getDate() - i);
-              const dateStr = currentDate.toISOString().split('T')[0];
-
-              const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
-
-              if (dayWithEvents) {
-                allDays.push(dayWithEvents);
+            const cursor = new Date(todayDate);
+            while (cursor >= startDate) {
+              const dateStr = cursor.toISOString().split('T')[0];
+              const existing = dayMap.get(dateStr);
+              if (existing) {
+                allDays.push(existing);
               } else {
                 allDays.push({ date: dateStr, events: [] });
               }
+              cursor.setDate(cursor.getDate() - 1);
             }
-
-            allDays.sort((a, b) => {
-              const aDate = new Date(a.date);
-              const bDate = new Date(b.date);
-              return bDate.getTime() - aDate.getTime();
-            });
 
             setDays(allDays);
           } else {
