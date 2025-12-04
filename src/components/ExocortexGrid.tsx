@@ -123,39 +123,34 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       const daysToLoad = Math.max(7, rowsNeeded); // At least 7 days
 
       const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
       const startDate = new Date(today);
       startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
 
-      // Try to get days with events
+      // Get only days that actually have events in this range
       const daysWithEvents = await db.getEventsByDateRangeOnly(
         startDate.toISOString().split('T')[0],
-        today.toISOString().split('T')[0]
+        todayStr
       );
 
-      // Generate all days in the range
+      // Build a continuous list of calendar days between startDate and today
+      const dayMap = new Map<string, DayEvents>();
+      daysWithEvents.forEach(d => dayMap.set(d.date, d));
+
       const allDays: DayEvents[] = [];
-      for (let i = 0; i < daysToLoad; i++) {
-        const currentDate = new Date(today);
-        currentDate.setDate(currentDate.getDate() - i);
-        const dateStr = currentDate.toISOString().split('T')[0];
-
-        // Check if we have events for this day
-        const dayWithEvents = daysWithEvents.find(day => day.date === dateStr);
-
-        if (dayWithEvents) {
-          allDays.push(dayWithEvents);
+      const cursor = new Date(today);
+      while (cursor >= startDate) {
+        const dateStr = cursor.toISOString().split('T')[0];
+        const existing = dayMap.get(dateStr);
+        if (existing) {
+          allDays.push(existing);
         } else {
           allDays.push({ date: dateStr, events: [] });
         }
+        cursor.setDate(cursor.getDate() - 1);
       }
 
-      // Sort by date (newest first)
-      allDays.sort((a, b) => {
-        const aDate = new Date(a.date);
-        const bDate = new Date(b.date);
-        return bDate.getTime() - aDate.getTime();
-      });
-
+      // allDays is built newest-first (today downwards)
       setDays(allDays);
 
       // Hide loading indicator once data is loaded
