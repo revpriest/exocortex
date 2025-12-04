@@ -20,6 +20,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from '@/components/AppProvider';
 import { AppConfig } from '@/contexts/AppContext';
+import { HueProvider } from '@/components/HueProvider';
 import AppRouter from './AppRouter';
 
 /**
@@ -74,24 +75,27 @@ const defaultConfig: AppConfig = {
  * Provider Stack (from outside to inside):
  * 1. UnheadProvider - Manages HTML head (SEO, titles, meta tags)
  * 2. AppProvider - Provides global app settings (theme, user preferences)
- * 3. QueryClientProvider - Provides data fetching and caching (React Query)
- * 4. TooltipProvider - Enables tooltip functionality for UI components
- * 5. Suspense - Shows fallback UI while components are loading
- * 6. Toaster - Renders notification messages (success, error, info)
- * 7. AppRouter - Handles page routing and displays the correct page
+ * 3. HueProvider - Syncs hue from config to CSS variables globally
+ * 4. QueryClientProvider - Provides data fetching and caching (React Query)
+ * 5. TooltipProvider - Enables tooltip functionality for UI components
+ * 6. Suspense - Shows fallback UI while components are loading
+ * 7. Toaster - Renders notification messages (success, error, info)
+ * 8. AppRouter - Handles page routing and displays the correct page
  */
 export function App() {
   return (
     <UnheadProvider head={head}>
       <AppProvider storageKey="exocortexlog:app-config" defaultConfig={defaultConfig}>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Suspense>
-              <AppRouter />
-            </Suspense>
-          </TooltipProvider>
-        </QueryClientProvider>
+        <HueProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <Toaster />
+              <Suspense>
+                <AppRouter />
+              </Suspense>
+            </TooltipProvider>
+          </QueryClientProvider>
+        </HueProvider>
       </AppProvider>
     </UnheadProvider>
   );

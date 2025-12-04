@@ -1,7 +1,6 @@
 // Central helper for updating hue-driven CSS variables.
-// Having this in one place ensures both useHue and useHueInit use exactly the
-// same logic, which is critical for consistent behaviour across browsers
-// (especially Firefox on Android).
+// This is the single place that touches CSS custom properties
+// for the global accent hue.
 
 export function applyHueVariables(hue: number) {
   if (typeof window === "undefined") return;
@@ -13,11 +12,9 @@ export function applyHueVariables(hue: number) {
   // Raw hue, if anything wants to read it directly
   root.style.setProperty("--hue", h);
 
-  // Light-mode / base border colour: matches the initial CSS ratios
+  // Base / light-mode border colour: matches initial CSS ratios
   root.style.setProperty("--border", `${h} 91.8% 42.4%`);
 
-  // Dark-mode tints: these get picked up via hsl(var(--primary)) etc.
-  // If you later want different behaviour for light vs dark, we can extend
-  // this function to look at document.documentElement.classList.
+  // Dark-mode primary tint: picked up by hsl(var(--primary)) in Tailwind theme
   root.style.setProperty("--primary", `${h} 53% 20%`);
 }
