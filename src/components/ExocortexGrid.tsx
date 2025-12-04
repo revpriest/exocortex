@@ -177,8 +177,9 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
           if (entries[0].isIntersecting && !loading) {
             const loadMoreDays = async () => {
               setLoading(true);
+              // Use the earliest date we have loaded so far (last in the array)
               const oldestDay = days[days.length - 1];
-              const oldestDate = oldestDay ? new Date(oldestDay.date) : new Date();
+              const oldestDate = oldestDay ? new Date(oldestDay.date + 'T00:00:00') : new Date();
 
               // Normalise oldestDate to midnight so ranges line up exactly
               oldestDate.setHours(0, 0, 0, 0);
