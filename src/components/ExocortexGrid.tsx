@@ -236,7 +236,14 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
               if (newDays.length > 0) {
-                setDays(prev => [...prev, ...newDays]);
+                setDays(prev => {
+                  // Re-check against the latest prev inside setState to
+                  // avoid races where `days` changed between building
+                  // existingDates and this update.
+                  const latestExisting = new Set(prev.map(d => d.date));
+                  const deduped = newDays.filter(d => !latestExisting.has(d.date));
+                  return deduped.length > 0 ? [...prev, ...deduped] : prev;
+                });
               }
 
               setLoading(false);
