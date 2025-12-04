@@ -88,6 +88,7 @@
     --popover: 220 13% 12%;
     --popover-foreground: 210 40% 95%;
 
+    --hue: 90;
     --primary: var(--hue) 53% 20%; /* Medium dark charcoal for primary elements */
     --primary-foreground: 210 40% 98%;
 
