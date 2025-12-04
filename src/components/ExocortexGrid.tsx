@@ -261,7 +261,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, [loading, days, db]); 
+  }, [loading, db]); 
 
 
   // Refresh grid when refreshTrigger changes
