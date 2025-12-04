@@ -83,6 +83,13 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   // Array containing events grouped by day
   const [days, setDays] = useState<DayEvents[]>([]);
 
+  // Debug helper: log date sequences whenever days change
+  useEffect(() => {
+    if (days.length === 0) return;
+    const seq = days.map(d => d.date).join(' -> ');
+    console.log('[ExocortexGrid] days sequence:', seq);
+  }, [days]);
+
   // Loading state for showing loading indicators as we fill that days array
   const [loading, setLoading] = useState(true);
 
