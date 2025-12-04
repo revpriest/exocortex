@@ -175,7 +175,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   //Initalize when days change
   useEffect(() => {
     const initDaysChange = async () => {
-      if (!loadingRef.current || !db) return;
+      if (!loadingRef.current || !db || !gridRef.current) return;
 
       observerRef.current = new IntersectionObserver(
         (entries) => {
@@ -205,9 +205,29 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
                 oldestDate.toISOString().split('T')[0]
               );
 
-              // Filter out days we already have
+              // Build a complete list of days for [fromDate..oldestDate]
+              const dayMap = new Map<string, DayEvents>();
+              allDaysInRange.forEach(d => dayMap.set(d.date, d));
+
+              const completeDays: DayEvents[] = [];
+              const cursor = new Date(fromDate);
+              while (cursor <= oldestDate) {
+                const dateStr = cursor.toISOString().split('T')[0];
+                const existing = dayMap.get(dateStr);
+                if (existing) {
+                  completeDays.push(existing);
+                } else {
+                  completeDays.push({ date: dateStr, events: [] });
+                }
+                cursor.setDate(cursor.getDate() + 1);
+              }
+
+              // Filter out days we already have and sort newest-first to
+              // match the main grid ordering (today at top, older below)
               const existingDates = new Set(days.map(d => d.date));
-              const newDays = allDaysInRange.filter(day => !existingDates.has(day.date));
+              const newDays = completeDays
+                .filter(day => !existingDates.has(day.date))
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
               if (newDays.length > 0) {
                 setDays(prev => [...prev, ...newDays]);
@@ -223,7 +243,10 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
             });
           }
         },
-        { threshold: 0.1 }
+        {
+          root: gridRef.current,
+          threshold: 0.1,
+        }
       );
 
       observerRef.current.observe(loadingRef.current);
