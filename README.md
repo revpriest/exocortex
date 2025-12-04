@@ -8,6 +8,9 @@ It can be installed as a Progressive Web App, and run offline.
 
 Use it at https://exocortexlog.com/
 
+> **Screenshot: Time Grid view with test data**  
+> ![Time Grid screenshot](public/screenshots/grid.png)
+
 ## 🌟 Features
 
 - **Visual Time Grid**: See your entire day laid out in 24-hour blocks

@@ -10,7 +10,7 @@ import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, ListCollapse } from 'lucide-react';
+import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, ListCollapse, Image as ImageIcon } from 'lucide-react';
 import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
 
@@ -21,9 +21,9 @@ const About = () => {
   //Include the DB so header add-event can work.
   useEffect(() => {
     const initAll = async () => {
-      const db = new ExocortexDB();
-      await db.init();
-      setDb(db);
+      const database = new ExocortexDB();
+      await database.init();
+      setDb(database);
     };
     initAll().catch((error) => {
       console.error('Failed to initialize database:', error);
@@ -54,6 +54,58 @@ const About = () => {
               ExocortexLog is a visual time tracking application that helps you understand your daily patterns,
               track your activities, and build a personal archive of your life's moments.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Visual Preview - Screenshots */}
+      <Card className="border-primary/30 bg-background/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            See the app in action
+          </CardTitle>
+          <CardDescription>
+            Screenshots of the main Time Grid, Summary, and Stats pages with sample data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <aside className="rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+              <h3 className="mb-2 font-semibold text-foreground">Time Grid view</h3>
+              <p className="mb-3 text-muted-foreground">
+                The Time Grid lays out your day as a colourful 24-hour timeline so you can see patterns at a glance.
+              </p>
+              <img
+                src="/screenshots/grid.png"
+                alt="Screenshot of the Time Grid page showing a colourful day timeline with test data."
+                className="w-full rounded-md border border-border shadow-sm"
+              />
+            </aside>
+
+            <aside className="rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+              <h3 className="mb-2 font-semibold text-foreground">Summary view</h3>
+              <p className="mb-3 text-muted-foreground">
+                The Summary page collapses routine stretches and highlights moments with notes so you can skim quickly.
+              </p>
+              <img
+                src="/screenshots/summary.png"
+                alt="Screenshot of the Summary page listing grouped events and notes with test data."
+                className="w-full rounded-md border border-border shadow-sm"
+              />
+            </aside>
+
+            <aside className="rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+              <h3 className="mb-2 font-semibold text-foreground">Stats view</h3>
+              <p className="mb-3 text-muted-foreground">
+                The Stats view shows mood trends and how your time is distributed between different activities.
+              </p>
+              <img
+                src="/screenshots/stats.png"
+                alt="Screenshot of the Stats page with mood trend lines and time distribution charts based on test data."
+                className="w-full rounded-md border border-border shadow-sm"
+              />
+            </aside>
           </div>
         </CardContent>
       </Card>
