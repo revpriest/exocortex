@@ -10,7 +10,7 @@ import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, Heart, Brain, Play, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, ListCollapse, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Clock, Heart, Brain, Play, Newspaper as NewsIcon, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, ListCollapse, Image as ImageIcon } from 'lucide-react';
 import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
 
@@ -54,6 +54,126 @@ const About = () => {
               ExocortexLog is a visual time tracking application that helps you understand your daily patterns,
               track your activities, and build a personal archive of your life's moments.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* What It Is */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            What is ExocortexLog?
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-foreground leading-relaxed">
+            ExocortexLog is more than just a time tracker
+
+it's your personal exocortex, an external
+            memory system that helps you capture, organize, and reflect on your daily experiences.
+            By visualizing your time in an intuitive grid format, you can discover patterns, track moods,
+            and build a comprehensive record of your life.
+          </p>
+          <p className="text-foreground leading-relaxed">
+            The app stays completely on your device
+
+no data is sent to external servers. Your memories
+            and patterns remain private and secure, accessible only to you.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* How to Use */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            How to Use the App
+          </CardTitle>
+          <CardDescription>
+            Getting started with ExocortexLog is simple and intuitive.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Step 1 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
+              1
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-foreground">Add Your First Event</h3>
+              <p className="text-muted-foreground">
+                Click the blue <span className="font-mono bg-muted px-2 py-1 rounded">+</span> button
+                in the title row to create your first time entry. Enter a category
+                (like "Work", "Exercise", or "Sleep"), when you finished, and adjust your mood sliders.
+                The fastest way to use it is to just add an event when you finish
+                doing a thing and are starting a new thing. So it's optimized to
+                just add from the last thing to the current time.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
+              2
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-foreground">Understand the Grid</h3>
+              <p className="text-muted-foreground">
+                The main grid shows your daily activities as colored blocks. Each row represents a day,
+                and columns represent hours. Colors indicate different categories, and smiley faces show your mood.
+                Scroll down to see past days
+
+older data loads automatically.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
+              3
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-foreground">Track Your Patterns</h3>
+              <p className="text-muted-foreground">
+                Use the <span className="font-mono bg-muted px-2 py-1 rounded">Stats</span> view to analyze
+                your time distribution, see trends, and understand your daily rhythms. Track how different
+                activities affect your mood and energy levels over time. Use the <span className="font-mono bg-muted px-2 py-1 rounded">Summary</span> view to get a quick overview of the notable events in last few days.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
+              4
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-foreground">Make Logging a Habit</h3>
+              <p className="text-muted-foreground">
+                Many people find it helpful to set up a repeating reminder in their phone's alarm or reminder app
+                to nudge them to update ExocortexLog regularly. For example, you might add an alarm every hour or
+                a few times a day to quickly record what you're doing.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 5 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
+              5
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-foreground">Customize & Export</h3>
+              <p className="text-muted-foreground">
+                Visit the <span className="font-mono bg-muted px-2 py-1 rounded">Conf</span> section to
+                customize category colors, manage your data, and export your timeline as JSON for backup.
+                Regular exports are recommended since all data is stored locally in your browser.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -110,122 +230,7 @@ const About = () => {
         </CardContent>
       </Card>
 
-      {/* What It Is */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            What is ExocortexLog?
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-foreground leading-relaxed">
-            ExocortexLog is more than just a time tracker
 
-it's your personal exocortex, an external
-            memory system that helps you capture, organize, and reflect on your daily experiences.
-            By visualizing your time in an intuitive grid format, you can discover patterns, track moods,
-            and build a comprehensive record of your life.
-          </p>
-          <p className="text-foreground leading-relaxed">
-            The app stays completely on your device
-
-no data is sent to external servers. Your memories
-            and patterns remain private and secure, accessible only to you.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* How to Use */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            How to Use the App
-          </CardTitle>
-          <CardDescription>
-            Getting started with ExocortexLog is simple and intuitive.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Step 1 */}
-          <div className="flex gap-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
-              1
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Add Your First Event</h3>
-              <p className="text-muted-foreground">
-                Click the blue <span className="font-mono bg-muted px-2 py-1 rounded">+</span> button
-                in the bottom-right corner to create your first time entry. Enter a category
-                (like "Work", "Exercise", or "Sleep"), set the duration, and adjust your mood sliders.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 2 */}
-          <div className="flex gap-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
-              2
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Understand the Grid</h3>
-              <p className="text-muted-foreground">
-                The main grid shows your daily activities as colored blocks. Each row represents a day,
-                and columns represent hours. Colors indicate different categories, and smiley faces show your mood.
-                Scroll down to see past days
-
-older data loads automatically.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 3 */}
-          <div className="flex gap-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
-              3
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Track Your Patterns</h3>
-              <p className="text-muted-foreground">
-                Use the <span className="font-mono bg-muted px-2 py-1 rounded">Stats</span> view to analyze
-                your time distribution, see trends, and understand your daily rhythms. Track how different
-                activities affect your mood and energy levels over time.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 4 */}
-          <div className="flex gap-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
-              4
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Make Logging a Habit</h3>
-              <p className="text-muted-foreground">
-                Many people find it helpful to set up a repeating reminder in their phone's alarm or reminder app
-                to nudge them to update ExocortexLog regularly. For example, you might add an alarm every hour or
-                a few times a day to quickly record what you're doing.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 5 */}
-          <div className="flex gap-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
-              5
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Customize & Export</h3>
-              <p className="text-muted-foreground">
-                Visit the <span className="font-mono bg-muted px-2 py-1 rounded">Conf</span> section to
-                customize category colors, manage your data, and export your timeline as JSON for backup.
-                Regular exports are recommended since all data is stored locally in your browser.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Summary Page */}
       <Card>
@@ -405,6 +410,15 @@ older data loads automatically.
                     ? 'Go to grid'
                     : 'Start empty'
                 }
+              </Button>
+              <Button
+                onClick={() => {
+                  window.location.href = "/news/index.html";
+                }}
+                className="flex items-center gap-2"
+              >
+                <NewsIcon className="h-4 w-4" />
+                News
               </Button>
             </div>
           </div>

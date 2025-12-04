@@ -33,3 +33,5 @@ yarn.lock
 !.env.example
 
 publish.sh
+
+public/news/*
