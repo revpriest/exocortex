@@ -55,7 +55,8 @@
     --destructive-foreground: 210 40% 98%;
 
     --hue: 90.3;
-    --border: var(--hue) 91.8% 42.4%;
+    /* Default tints; JS will overwrite these with precise values based on stored hue */
+    --border: 90.3 91.8% 42.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
@@ -89,7 +90,8 @@
     --popover-foreground: 210 40% 95%;
 
     --hue: 90;
-    --primary: var(--hue) 53% 20%; /* Medium dark charcoal for primary elements */
+    /* Default primary tint for dark mode; JS will overwrite this based on stored hue */
+    --primary: 90.3 53% 20%; /* Medium dark charcoal for primary elements */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 220 10% 16%; /* Dark secondary background */
@@ -104,7 +106,8 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: var(--hue) 50% 20%; /* Dark borders for tartan effect */
+    /* Default dark-mode border tint; JS will overwrite this based on stored hue */
+    --border: 90.3 50% 20%; /* Dark borders for tartan effect */
     --input: 220 10% 18%;
     --ring: 220 13% 25%;
 
