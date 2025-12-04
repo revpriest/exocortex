@@ -1,0 +1,4 @@
+baseURL = "https://exocortexlog.com/news/"
+languageCode = "en-us"
+title = "ExocortexLog News"
+theme = "hugo-cards"

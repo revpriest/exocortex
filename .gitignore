@@ -35,3 +35,4 @@ yarn.lock
 publish.sh
 
 public/news/*
+exoblog/.hugo_build.lock

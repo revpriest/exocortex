@@ -1,0 +1,232 @@
+html,body {
+    font-family: $base-font-family;
+    font-size: $base-font-size;
+}
+
+dt {
+  margin-left:0em;
+}
+dd {
+  margin-left:4em;
+  font-size: 0.6em;
+  float:right;
+}
+
+.brand, .brand:hover, .brand:active, .brand:link, .brand:visited {
+  font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-decoration: none;
+  padding: 0.2em;
+  border: 1px solid #8f8;
+  background: rgba(250,255,250,.2);
+  border-radius: .2em;
+  color: #0f0;
+}
+
+.brand:hover {
+  border: 1px solid #0f0;
+  border: 1px solid #8f8;
+}
+
+.navbut, .navbut:hover, .navbut:active, .navbut:link, .navbut:visited {
+  font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-decoration: none;
+  padding: 0.2em;
+  border: 1px solid #8f8;
+  background: rgba(250,255,250,.2);
+  border-radius: .2em;
+  color: #0f0;
+}
+
+.navbut:hover {
+}
+.navbut:active {
+}
+
+.navbar-default {
+    border-color: transparent;
+    background-color: transparent;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+
+
+img {
+    max-width: 100%;
+}
+
+img.idx {
+    max-width: 40%;
+    max-height: 400px;
+}
+
+div.idx{
+    max-width: 12em;
+    @media screen and (max-width: 50em) {
+        max-width: 99%;
+    }
+}
+
+.mt50 {
+    margin-top: 50px;
+}
+.mt20 {
+    margin-top: 20px;
+}
+
+.mt10 {
+    margin-top: 10px;
+}
+.mt25 {
+    margin-top: 0;
+    @include media-query($on-palm) {
+        margin-top: 25px;
+    }
+}
+
+.p20{
+    padding: 20px 0;
+}
+.navbar-brand {
+    font-weight: 900;
+    font-size: 1.85em;
+    padding: 10px;
+    margin-left: 15px !important;
+    @media screen and (max-width: $on-palm) {
+        font-size: 1.5em;
+    }
+    color: red;
+}
+.post-meta {
+    color: $grey-color;
+}
+
+.panel {
+    margin-bottom: 2em;
+   border: none;
+   padding: 0.2em 0.6em;
+   border-radius: 1em;
+   box-shadow: 2px 2px 12px rgba(50,100,50,.5);
+   transition: all 0.3s ease;
+    &:hover, &:focus, &:active {
+           box-shadow: 
+                    0px 1px 0px #ccc,
+                    0px 2px 0px #c9c9c9,
+                    0px 3px 0px #bbb,
+                    0px 4px 0px #b9b9b9,
+                    0px 6px 0px rgba(0,0,0,.1),
+                    0px 1px 0px rgba(0,0,0,.3),
+                    0px 3px 0px rgba(0,0,0,.2),
+                    0px 5px 0px rgba(0,0,0,.25),
+                    0 7px  7px rgba(0,0,0,.1),
+                    0 8px  7px rgba(0,0,0,.1),
+                    0 9px  9px rgba(0,0,0,.1),
+                    0 10px  10px rgba(0,0,0,.15),
+                    0 15px  15px rgba(0,0,0,.16),
+
+
+    }
+
+}
+
+
+
+
+footer {
+    border-top: 1px solid $grey-color-light;
+}
+
+.social {
+    list-style: none;
+    display: inline;
+    margin-left: 10px;
+    padding: 5px 8px;
+    font-size: 1.25em;
+    }
+.social:hover {
+     opacity: 0.7;
+}
+.social img {
+    width: 20px;
+}
+
+.quora img{
+    width: 17px;
+}
+
+.facebook img {
+    width: 16px;
+}
+
+.recent ul {
+    list-style: none;
+    padding: 0;
+    text-align: justify;
+}
+
+.recent {
+    padding: 10px;
+    border: 1px solid $grey-color-light;
+    border-radius: .3em;
+}
+
+.sidebar-profile-content h2 {
+    margin-top: 0;
+}
+
+.sidebar-profile-content {
+    padding: 10px;
+    border: 1px solid $grey-color-light;
+}
+
+.sidebar-profile-content ul {
+    padding: 0;
+    margin-left: 15px;
+    margin-bottom: 0;
+    text-align: justify;
+}
+
+.sidebar-profile-content ul li {
+    height: 30px;
+}
+
+.post-img img {
+    width: 100%;
+}
+
+
+.pack {
+
+
+    display: -webkit-inline-flex;
+    display: -ms-inline-flexbox;
+    display: inline-flex;
+    flex-wrap: wrap;
+    -webkit-flex-wrap: wrap;
+}
+
+.card {
+    float: none;
+}
+
+.post-title {
+    line-height: 2;
+    text-decoration: underline;
+}
+
+.post-header h1 {
+    margin-top: -10px;
+}
+
+.index-anchor {
+    text-decoration: none;
+    color: $text-color;
+    &:hover {
+            text-decoration: none;
+            color: $text-color;
+    }
+}
+
+article.post {
+    margin-bottom: 5em;
+}

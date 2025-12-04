@@ -1,0 +1,24 @@
+<div class="col-md-4 mt20">
+
+        <div class="mt10 recent">
+            <h2>Recent</h2>
+             <ul>
+                {{ range first 3 (where .Site.RegularPages "Params.category" "intersect" (slice "news")) }}
+                      <dt><a href="{{ .Permalink }}">{{ .Title }}</dt><dd>{{ .Date.Format "January 2, 2006" }}</dd>
+
+                {{ end }}
+              </ul>
+        </div><br/>
+
+        <div class="post-img">
+            {{ if .Params.cover.image }}
+            {{ with .Params.cover.image }}
+                 <img  src="{{ . | relURL }}" alt="{{ $.Params.cover.alt | default "Cover image" }}">
+            {{ end }}
+            {{ else }}
+              <img width="600" src="{{ .Site.BaseURL }}img/{{ .Site.Params.defaultImage }}" alt="shite image">
+            {{ end }}
+        </div>
+            
+        
+</div>
