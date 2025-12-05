@@ -356,17 +356,6 @@ export function StatsView({ className }: StatsViewProps) {
       <div className="bg-card rounded-lg p-6 border border-border">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => {
-                void handleShift(-1);
-              }}
-              disabled={!startDate}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
             <div>
               <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <BarChart3 className="h-6 w-6" />
