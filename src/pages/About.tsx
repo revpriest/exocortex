@@ -10,7 +10,7 @@ import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, Heart, Play, Newspaper as NewsIcon, Database as DatabaseIcon, Brain as BrainIcon, BarChart3, Settings, Database, ListCollapse, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Clock, Heart, Play, Newspaper as NewsIcon, Database as DatabaseIcon, Brain as BrainIcon, BarChart3, Settings, Database, Image as ImageIcon } from 'lucide-react';
 import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
 
