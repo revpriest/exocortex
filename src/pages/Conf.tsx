@@ -1,4 +1,4 @@
-/*
+/**
  * Conf.tsx - Conf Page
  *
  * Configure display and options along with help
@@ -586,7 +586,7 @@ const ColorCustomizationSection = () => {
  */
 const ConfPage = () => {
   useSeoMeta({
-    title: 'Settings',
+    title: 'Settings - ExocortexLog',
     description: 'Configure ExocortexLog display, data, and behaviour.',
   });
 
@@ -603,7 +603,12 @@ const ConfPage = () => {
   }, []);
 
   return (
-    <PageLayout>
+    <PageLayout
+      db={db}
+      title="Settings"
+      explain="Configure ExocortexLog display, data, and behaviour."
+      currentView="conf"
+    >
       <div className="max-w-4xl mx-auto space-y-6 py-6">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
