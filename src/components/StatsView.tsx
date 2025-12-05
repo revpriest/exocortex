@@ -874,6 +874,169 @@ export function StatsView({ className }: StatsViewProps) {
           )}
         </CardContent>
       </Card>
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Average Happiness</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-destructive">
+                {moodData.length > 0
+                  ? (moodData.reduce((sum, d) => sum + d.happiness, 0) / moodData.length).toFixed(2)
+                  : '0.00'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Wakefulness (Sleep)</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">
+                {(() => {
+                  const sleepEvents = events.filter(e => e.category.toLowerCase() === 'sleep');
+                  if (sleepEvents.length === 0) return '0.00';
+                  const avgSleep =
+                    sleepEvents.reduce((sum, e) => sum + e.wakefulness, 0) / sleepEvents.length;
+                  return avgSleep.toFixed(2);
+                })()}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Wakefulness (Awake)</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">
+                {(() => {
+                  const awakeEvents = events.filter(e => e.category.toLowerCase() !== 'sleep');
+                  if (awakeEvents.length === 0) return '0.00';
+                  const avgAwake =
+                    awakeEvents.reduce((sum, e) => sum + e.wakefulness, 0) / awakeEvents.length;
+                  return avgAwake.toFixed(2);
+                })()}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
+            <CardTitle className="text-sm font-medium">Average Health</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(-1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  void handleShift(1);
+                }}
+                disabled={!startDate}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600">
+                {moodData.length > 0
+                  ? (moodData.reduce((sum, d) => sum + d.health, 0) / moodData.length).toFixed(2)
+                  : '0.00'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
       {/* Day details dialog for clicked mood point */}
       <Dialog open={!!selectedDateKey} onOpenChange={(open) => {
