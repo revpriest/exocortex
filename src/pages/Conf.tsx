@@ -386,36 +386,36 @@ const CacheResetSection = () => {
                   <p>Currlently running version {APP_VERSION}.</p>
         {/* Reset Button */}
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-             <div>
-                <Button
-                  variant="outline"
-                  disabled={isResetting}
-                  className="w-full sm:w-auto " >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  {isResetting ? 'Resetting...' : 'Check for upgrade'}
-                </Button>
-                &nbsp;
-                <Button
-                  onClick={() => navigate('/about')}
-                  className="w-full sm:w-auto"
-                >
-                  <Notebook className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  about
-                </Button>
-                &nbsp;
-                <Button
-                  onClick={() => {
-                    window.location.href = "/news/index.html";
-                  }}
-                  className="w-full sm:w-auto"
-                >
-                  <NewsIcon className="h-4 w-4" />
-                  News Blog
-                </Button>
-                &nbsp;
-             </div>
-          </AlertDialogTrigger>
+          <div className="flex flex-wrap gap-2">
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={isResetting}
+                className="w-full sm:w-auto"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                {isResetting ? 'Resetting...' : 'Check for upgrade'}
+              </Button>
+            </AlertDialogTrigger>
+
+            <Button
+              onClick={() => navigate('/about')}
+              className="w-full sm:w-auto"
+            >
+              <Notebook className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+              about
+            </Button>
+
+            <Button
+              onClick={() => {
+                window.location.href = "/news/index.html";
+              }}
+              className="w-full sm:w-auto"
+            >
+              <NewsIcon className="h-4 w-4" />
+              News Blog
+            </Button>
+          </div>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Reset Application Cache?</AlertDialogTitle>
