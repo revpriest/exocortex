@@ -1,6 +1,6 @@
 ---
 draft: false
-title: 'A Whole New Era - Jan 2025'
+title: 'Exocortex Log Blog'
 author: pre
 category:
 - navigation
@@ -10,4 +10,4 @@ cover:
   image: /news/img/exocortexlog.png
 ---
 
-And your mum
+Welcome, here is the news.

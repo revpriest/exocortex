@@ -44,15 +44,19 @@ const About = () => {
           <div className="text-center space-y-4">
             <div className="flex justify-center">
               <div className="p-3 bg-primary/10 rounded-full">
-                <img src="public/news/img/exocortexlog.png" style={{width: "120px"}}/>
+                <img src="news/img/exocortexlog.png" style={{width: "120px"}}/>
               </div>
             </div>
             <h2 className="text-2xl font-bold text-foreground">
               Your Personal Life Logger & Memory Aid
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              ExocortexLog is a visual time tracking application that helps you understand your daily patterns,
-              track your activities, and build a personal archive of your life's moments.
+              ExocortexLog is a time tracking application and memory log
+              to track and understand your life. 
+            </p>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+               It is a crutch for
+              a poor memory, a way to build a diary you can look back on.
             </p>
           </div>
         </CardContent>
@@ -61,39 +65,76 @@ const About = () => {
       {/* What It Is */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            What is ExocortexLog?
-          </CardTitle>
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  What is ExocortexLog?
+                </CardTitle>
+              </div>
+            </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-foreground leading-relaxed">
-            ExocortexLog is more than just a time tracker
-
-it's your personal exocortex, an external
-            memory system that helps you capture, organize, and reflect on your daily experiences.
-            By visualizing your time in an intuitive grid format, you can discover patterns, track moods,
-            and build a comprehensive record of your life.
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          You see a detective on the TV and he's interviewing all
+          the suspects asking them what they were doing on the night
+          of the murder a month ago last Tuesday night.
           </p>
-          <p className="text-foreground leading-relaxed">
-            The app stays completely on your device
 
-no data is sent to external servers. Your memories
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          And on the TV, the suspects all know!
+          </p>
+
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          But most real people would barely have any clue. If you're
+          lucky it'd have been a night planned in your calendar, but mostly:
+          Dunno. Watching TV maybe? No idea what show. Was I at the gym
+          that night?
+          </p>
+
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          As we all get older this problem increases I'm told.
+          Eventually full on senility sets in.
+          </p>
+
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          But what if you have already built the habit to record
+          what you're doing? To be able to look back and revise
+          and review how you spent your days? An external aid
+          as a crutch to your own forgetful brain's cortex?
+          </p>
+
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          That's what Exocortex Log is for.
+          </p>
+
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            The app stays completely on your device
+            no data is sent to external servers. Your memories
             and patterns remain private and secure, accessible only to you.
           </p>
+
         </CardContent>
       </Card>
 
       {/* How to Use */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            How to Use the App
-          </CardTitle>
-          <CardDescription>
-            Getting started with ExocortexLog is simple and intuitive.
-          </CardDescription>
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                How to Use the App
+              </CardTitle>
+              </div>
+            </div>
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <CardDescription>
+                Getting started.
+              </CardDescription>
+              </div>
+            </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Step 1 */}
@@ -102,14 +143,15 @@ no data is sent to external servers. Your memories
               1
             </div>
             <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Add Your First Event</h3>
+              <h3 className="font-semibold text-foreground">Fill with a test data</h3>
               <p className="text-muted-foreground">
-                Click the blue <span className="font-mono bg-muted px-2 py-1 rounded">+</span> button
-                in the title row to create your first time entry. Enter a category
-                (like "Work", "Exercise", or "Sleep"), when you finished, and adjust your mood sliders.
-                The fastest way to use it is to just add an event when you finish
-                doing a thing and are starting a new thing. So it's optimized to
-                just add from the last thing to the current time.
+                When you open the app with an empty DB, it offers you the chance
+                to load up on test data. Accept that offer, or press the button
+                for test data at the bottom of the conf screen.
+              </p>
+              <p className="text-muted-foreground">
+                The grid will fill up with fake events over the last few days so
+                you can test all the functions of the app before you build a personal log.
               </p>
             </div>
           </div>
@@ -120,13 +162,17 @@ no data is sent to external servers. Your memories
               2
             </div>
             <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Understand the Grid</h3>
+              <h3 className="font-semibold text-foreground">Add Your First Event</h3>
               <p className="text-muted-foreground">
-                The main grid shows your daily activities as colored blocks. Each row represents a day,
-                and columns represent hours. Colors indicate different categories, and smiley faces show your mood.
-                Scroll down to see past days
-
-older data loads automatically.
+                Click the blue <span className="font-mono bg-muted px-2 py-1 rounded">+</span> button
+                in the title row to create your first time entry. 
+              </p>
+              <p className="text-muted-foreground">
+                Enter a category
+                (like "Work", "Exercise", or "Sleep"), when you finished, and adjust your mood sliders.
+                The fastest way to use it is to just add an event when you finish
+                doing a thing and are starting a new thing. So it's optimized to
+                just add from the last thing to the current time.
               </p>
             </div>
           </div>
@@ -137,11 +183,28 @@ older data loads automatically.
               3
             </div>
             <div className="space-y-2">
-              <h3 className="font-semibold text-foreground">Track Your Patterns</h3>
+              <h3 className="font-semibold text-foreground">Review your log</h3>
               <p className="text-muted-foreground">
-                Use the <span className="font-mono bg-muted px-2 py-1 rounded">Stats</span> view to analyze
-                your time distribution, see trends, and understand your daily rhythms. Track how different
-                activities affect your mood and energy levels over time. Use the <span className="font-mono bg-muted px-2 py-1 rounded">Summary</span> view to get a quick overview of the notable events in last few days.
+                The <span className="font-mono bg-muted px-2 py-1 rounded">Grid</span> view 
+                shows your daily activities as colored blocks. 
+                Each row represents a day, and columns represent hours. Colors 
+                indicate different categories, and smiley faces show your mood.
+                Scroll down to see past days older data loads automatically.
+              </p>
+              <p className="text-muted-foreground">
+                The <span className="font-mono bg-muted px-2 py-1 rounded">Summary</span> view 
+                highlights only those events notable enough to have notes. Mundane
+                events are collapsed to save room.
+              </p>
+              <p className="text-muted-foreground">
+                Use the <span className="font-mono bg-muted px-2 py-1 rounded">Stats</span> view to 
+                view graphs and stats on your past log. Track how different
+                activities affect your mood and energy levels over time. 
+              </p>
+              <p className="text-muted-foreground">
+                The app can be installed as a Progressive Web App
+                for use offline, and all data is stored only on
+                you local machine, never shared to any server.
               </p>
             </div>
           </div>
@@ -154,8 +217,9 @@ older data loads automatically.
             <div className="space-y-2">
               <h3 className="font-semibold text-foreground">Make Logging a Habit</h3>
               <p className="text-muted-foreground">
-                Many people find it helpful to set up a repeating reminder in their phone's alarm or reminder app
-                to nudge them to update ExocortexLog regularly. For example, you might add an alarm every hour or
+                Many people find it helpful to set up a repeating reminder in their 
+                phone's alarm or reminder app to nudge them to update ExocortexLog 
+                regularly. For example, you might add an alarm every hour or
                 a few times a day to quickly record what you're doing.
               </p>
             </div>
@@ -170,8 +234,15 @@ older data loads automatically.
               <h3 className="font-semibold text-foreground">Customize & Export</h3>
               <p className="text-muted-foreground">
                 Visit the <span className="font-mono bg-muted px-2 py-1 rounded">Conf</span> section to
-                customize category colors, manage your data, and export your timeline as JSON for backup.
-                Regular exports are recommended since all data is stored locally in your browser.
+                customize category colors, manage your data, and export your timeline as 
+                JSON for backup.  Regular exports are recommended since all data is stored 
+                locally in your browser. Nobody else can rescue your data! You are responsible
+                for it!
+              </p>
+              <p className="text-muted-foreground">
+                The conf page also has a button to clear caches and
+                check for upgrades of the app. Make sure to be online
+                when you press that!
               </p>
             </div>
           </div>
@@ -181,13 +252,19 @@ older data loads automatically.
       {/* Visual Preview - Screenshots */}
       <Card className="border-primary/30 bg-background/60">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5" />
-            See the app in action
-          </CardTitle>
-          <CardDescription>
-            Screenshots of the main Time Grid, Summary, and Stats pages with sample data.
-          </CardDescription>
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                See the app in action
+              </CardTitle>
+            </div>
+            <div className="flex justify-center">
+              <CardDescription>
+                Screenshots of the main Time Grid, Summary, and Stats pages with sample data.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
@@ -232,43 +309,6 @@ older data loads automatically.
 
 
 
-      {/* Summary Page */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListCollapse className="h-5 w-5" />
-            Summary Page: How It Works
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-foreground leading-relaxed">
-            The <strong>Summary</strong> page provides a smart, compact overview of your recent activity log. Events are grouped in a way that highlights what’s most important while keeping the page easy to scan.
-          </p>
-          <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
-            <li>
-              <strong>Notable Moments Stand Out:</strong> Any event with personal notes is always shown as a separate row, with your note and event details prominently displayed.
-            </li>
-            <li>
-              <strong>Batched Mundane Activities:</strong> Multiple consecutive events without notes are automatically “collapsed” into a single summary row, making longer streaks of routine activities easy to skim past.
-            </li>
-            <li>
-              <strong>Expand Groups:</strong> You can click to expand any collapsed group and view all the individual events inside.
-            </li>
-            <li>
-              <strong>Mood At a Glance:</strong> Each row shows mood faces (happiness, wakefulness, health). Color bars represent event types.
-            </li>
-            <li>
-              <strong>Day Separators:</strong> Days are clearly separated and labeled for quick navigation.
-            </li>
-            <li>
-              <strong>Quick Edits:</strong> Click any event to quickly edit, add notes, or change details right from the summary.
-            </li>
-          </ul>
-          <p className="text-foreground">
-            This is the best way to understand your life at a glance—see what stands out, hide what doesn’t, and zoom into every detail with a click when you want.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Key Features */}
       <Card>
@@ -343,7 +383,7 @@ older data loads automatically.
           <div className="flex items-start gap-2">
             <span className="text-primary font-semibold">•</span>
             <p className="text-sm text-foreground">
-              <strong>Be consistent:</strong> Try to log events at the same times each day to build a routine.
+              <strong>Be consistent:</strong> Try to log events as they finish and you swap tasks. Build a routine that any time you switch tasks, you update the log of what you've been doing.
             </p>
           </div>
           <div className="flex items-start gap-2">
@@ -362,12 +402,6 @@ older data loads automatically.
             <span className="text-primary font-semibold">•</span>
             <p className="text-sm text-foreground">
               <strong>Backup regularly:</strong> Use the export feature weekly to prevent data loss.
-            </p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-primary font-semibold">•</span>
-            <p className="text-sm text-foreground">
-              <strong>Review weekly:</strong> Check your stats every week to identify patterns and make adjustments.
             </p>
           </div>
         </CardContent>
@@ -390,16 +424,7 @@ older data loads automatically.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
-                onClick={handleStartWithTestData}
-                disabled={isGenerating || hasData === null}
-                className="flex items-center gap-2"
-              >
-                <DatabaseIcon className="h-4 w-4" />
-                {isGenerating ? 'Generating...' : 'Start with test data'}
-              </Button>
-              <Button
                 onClick={hasData ? handleGotoGrid : handleStartEmpty}
-                variant="outline"
                 disabled={hasData === null}
                 className="flex items-center gap-2"
               >
@@ -412,13 +437,21 @@ older data loads automatically.
                 }
               </Button>
               <Button
+                onClick={handleStartWithTestData}
+                disabled={isGenerating || hasData === null}
+                className="flex items-center gap-2"
+              >
+                <DatabaseIcon className="h-4 w-4" />
+                {isGenerating ? 'Generating...' : 'Start with test data'}
+              </Button>
+              <Button
                 onClick={() => {
                   window.location.href = "/news/index.html";
                 }}
                 className="flex items-center gap-2"
               >
                 <NewsIcon className="h-4 w-4" />
-                News
+                News Blog
               </Button>
             </div>
           </div>

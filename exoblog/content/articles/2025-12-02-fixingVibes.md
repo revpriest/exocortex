@@ -1,5 +1,5 @@
 ---
-date: '2025-12-02T23:03:58Z'
+date: '2025-12-01T23:03:58Z'
 draft: false
 title: 'Fixing The Vibes'
 author: pre

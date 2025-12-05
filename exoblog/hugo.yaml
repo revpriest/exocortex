@@ -1,6 +1,6 @@
 languageCode: en-GB
 publishDir: "../public/news/"
-title: ExocortexLog
+title: Exocortex Blog
 theme: hugo-cards
 baseURL: "https://exocortexlog.com/news/"
 taxonomies:

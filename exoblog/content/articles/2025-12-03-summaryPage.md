@@ -1,5 +1,5 @@
 ---
-date: '2025-12-04T23:32:12Z'
+date: '2025-12-02T23:32:12Z'
 draft: false
 title: 'Summary Page'
 author: pre
