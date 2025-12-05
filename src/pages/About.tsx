@@ -44,7 +44,7 @@ const About = () => {
           <div className="text-center space-y-4">
             <div className="flex justify-center">
               <div className="p-3 bg-primary/10 rounded-full">
-                <img src="news/img/exocortexlog.png" style={{width: "120px"}}/>
+                <img src="/exocortexlog.png" style={{width: "120px"}}/>
               </div>
             </div>
             <h2 className="text-2xl font-bold text-foreground">
