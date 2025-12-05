@@ -203,7 +203,13 @@ function buildMoodSeries(events: ExocortexEvent[], rangeStartDate?: Date, rangeE
     // If this sample time lies between current.start and current.end,
     // use that interval's mood. This effectively means that the
     // event's mood persists backwards until the prior event.
-    if (sampleTime >= current.start && sampleTime <= current.end) {
+    // Also, once we reach beyond the last interval, we keep using
+    // the last known mood so that the graph extends through the
+    // full selected window even if no new events occur.
+    if (
+      (sampleTime >= current.start && sampleTime <= current.end) ||
+      (intervalIndex === intervals.length - 1 && sampleTime > current.end)
+    ) {
       happiness = current.happiness;
       wakefulness = current.wakefulness;
       health = current.health;
