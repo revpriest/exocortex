@@ -16,9 +16,6 @@ import { ExocortexDB } from '@/lib/exocortex';
 import { PageLayout } from '@/components/PageLayout';
 import { NewUserWelcomeDialog } from '../components/NewUserWelcomeDialog';
 
-
-
-
 /**
  * Index Component
  */
@@ -37,8 +34,10 @@ const Index = () => {
   const [forceGridRefresh, setForceGridRefresh] = useState(0);
 
   // Force to generate empty days and skip to that day
-  const [skipDate, setSkipDate] = useState<Date|null>(null);
+  const [skipDate, setSkipDate] = useState<Date | null>(null);
 
+  // React Router hooks for URL-based navigation
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const initAll = async () => {
@@ -54,16 +53,24 @@ const Index = () => {
     });
   }, []); // Empty dependency array means this runs only once on mount
 
+  // Initialise skipDate from ?date=YYYY-MM-DD when first loading
+  useEffect(() => {
+    const dateParam = searchParams.get('date');
+    if (!dateParam) return;
 
-  // React Router hooks for URL-based navigation
-  const [searchParams, _setSearchParams] = useSearchParams();
+    const parsed = new Date(`${dateParam}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      setSkipDate(parsed);
+    }
+  }, [searchParams]);
+
   /**
    * Get current view from URL query parameter
    * Defaults to 'grid' if no view parameter is provided
    */
   const getCurrentView = (): 'grid' | 'stats' | 'conf' => {
     const view = searchParams.get('view');
-    return (view === 'stats' || view === 'conf') ? view : 'grid';
+    return view === 'stats' || view === 'conf' ? view : 'grid';
   };
 
   const currentView = getCurrentView();
@@ -110,17 +117,13 @@ const Index = () => {
    * Generate test data for welcome dialog
    */
   const handleWelcomeGenerateTestData = async () => {
-    if(db!=null){
+    if (db != null) {
       const t = await db.generateTestData();
       setError(t);
-    }else{
-      setError("No DB");
+    } else {
+      setError('No DB');
     }
   };
-
-
-
-
 
   /**
    * Page Layout Structure
@@ -133,7 +136,14 @@ const Index = () => {
    * - max-w-7xl mx-auto: Center content and limit max width for readability
    */
   return (
-    <PageLayout setSkipDate={setSkipDate} triggerRefresh={setForceGridRefresh} currentView={currentView} db={db} title="Time Grid" explain="Jump to today">
+    <PageLayout
+      setSkipDate={setSkipDate}
+      triggerRefresh={setForceGridRefresh}
+      currentView={currentView}
+      db={db}
+      title="Time Grid"
+      explain="Jump to today"
+    >
       {/* New User Welcome Dialog */}
       <NewUserWelcomeDialog
         isOpen={showWelcomeDialog}
@@ -141,14 +151,22 @@ const Index = () => {
         onGenerateTestData={async () => {
           await handleWelcomeGenerateTestData();
           // Trigger grid refresh
-          setForceGridRefresh(prev => prev + 1);
+          setForceGridRefresh((prev) => prev + 1);
           setShowWelcomeDialog(false);
         }}
-        onAbout={() => { navigate('/about'); }}
+        onAbout={() => {
+          navigate('/about');
+        }}
       />
 
       {/* Main Content Area */}
-      <ExocortexGrid skipDate={skipDate} db={db} className="w-full" refreshTrigger={forceGridRefresh} setRefreshTrigger={setForceGridRefresh}/>
+      <ExocortexGrid
+        skipDate={skipDate}
+        db={db}
+        className="w-full"
+        refreshTrigger={forceGridRefresh}
+        setRefreshTrigger={setForceGridRefresh}
+      />
     </PageLayout>
   );
 };

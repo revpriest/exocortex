@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ExocortexEvent, ExocortexDB, getEventColor } from '@/lib/exocortex';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -259,12 +260,24 @@ function buildDayStats(events: ExocortexEvent[]): Map<string, DayStats> {
 
     const notes: string[] = [];
 
-    // Sort by endTime for duration approximations
+    // To approximate durations we need to look at neighbouring events
     const sorted = [...dayEvents].sort((a, b) => a.endTime - b.endTime);
 
     sorted.forEach((event, index) => {
+      // Default to 1h. For non-first events, extend back to previous
+      // event in this day; for the very first event of the day, extend
+      // back to midnight so we pick up the full sleep chunk whose
+      // endTime falls in the early morning.
       const durationMinutes = (() => {
-        if (index === 0) return SAMPLE_MINUTES;
+        if (index === 0) {
+          const end = event.endTime;
+          const endDate = new Date(end);
+          const dayStart = new Date(endDate);
+          dayStart.setHours(0, 0, 0, 0);
+          const diff = (endDate.getTime() - dayStart.getTime()) / (1000 * 60);
+          // At least one hour so that tiny early events still show up
+          return Math.max(SAMPLE_MINUTES, diff);
+        }
         const prevEnd = sorted[index - 1].endTime;
         return Math.max(SAMPLE_MINUTES / 4, (event.endTime - prevEnd) / (1000 * 60));
       })();
@@ -324,6 +337,8 @@ export function StatsView({ className }: StatsViewProps) {
 
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [selectedDayStats, setSelectedDayStats] = useState<DayStats | null>(null);
+
+  const navigate = useNavigate();
 
   // Derived end date from startDate + windowSize
   const endDate = useMemo(() => {
@@ -908,13 +923,12 @@ export function StatsView({ className }: StatsViewProps) {
             </div>
 
             <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-border mt-4">
-              {/* These buttons just navigate to the other pages; the header's Skip to Date dialog there can then be used if desired. */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   if (!selectedDateKey) return;
-                  window.location.href = `/?date=${selectedDateKey}`;
+                  navigate({ pathname: '/', search: `?date=${selectedDateKey}` });
                 }}
               >
                 Open in Grid view
@@ -924,7 +938,7 @@ export function StatsView({ className }: StatsViewProps) {
                 size="sm"
                 onClick={() => {
                   if (!selectedDateKey) return;
-                  window.location.href = `/summary?date=${selectedDateKey}`;
+                  navigate({ pathname: '/summary', search: `?date=${selectedDateKey}` });
                 }}
               >
                 Open in Summary view

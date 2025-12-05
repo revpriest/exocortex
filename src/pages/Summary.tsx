@@ -5,6 +5,7 @@
  * those with notes are shown individually. Expand group to see individuals. Provides skip-to-date via PageLayout.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import { ColorOverride } from '@/contexts/AppContext';
 // --- helpers: makeSummaryRows, compactCats, DaySeparatorRow, SummaryGroupHeader, SummaryEventRow ...
 
 function makeSummaryRows(events: ExocortexEvent[]) {
-  const rows: { type: string; events?: ExocortexEvent[]; event?: ExocortexEvent; }[] = [];
+  const rows: { type: string; events?: ExocortexEvent[]; event?: ExocortexEvent }[] = [];
   let group: ExocortexEvent[] = [];
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
@@ -39,7 +40,7 @@ function makeSummaryRows(events: ExocortexEvent[]) {
 }
 
 function compactCats(events: ExocortexEvent[]) {
-  const cats = [...new Set(events.map(e => e.category))];
+  const cats = [...new Set(events.map((e) => e.category))];
   let label = cats.join(', ');
   if (label.length > 64) {
     label = label.slice(0, 61).replace(/,\s?$/, '') + '…';
@@ -50,18 +51,28 @@ function compactCats(events: ExocortexEvent[]) {
 function DaySeparatorRow({ dateString }: { dateString: string }) {
   const dt = new Date(dateString);
   const nice = dt.toLocaleDateString(undefined, {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
   });
   return (
     <div className="flex items-center mt-6 mb-2">
-      <div className="flex-grow border-t border-border mr-3"></div>
-      <span className="px-3 py-0.5 text-xs font-semibold bg-muted text-muted-foreground rounded shadow-sm">{nice}</span>
-      <div className="flex-grow border-t border-border ml-3"></div>
+      <div className="flex-grow border-t border-border mr-3" />
+      <span className="px-3 py-0.5 text-xs font-semibold bg-muted text-muted-foreground rounded shadow-sm">
+        {nice}
+      </span>
+      <div className="flex-grow border-t border-border ml-3" />
     </div>
   );
 }
 
-function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
+function SummaryGroupHeader({
+  events,
+  expanded,
+  onToggle,
+  colorOverrides,
+}: {
   events: ExocortexEvent[];
   expanded: boolean;
   onToggle: () => void;
@@ -89,19 +100,38 @@ function SummaryGroupHeader({ events, expanded, onToggle, colorOverrides }: {
       </button>
       <div className="h-11 w-2 rounded-l-lg" style={{ backgroundColor: color, minWidth: 8 }} />
       <div className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-4 overflow-x-hidden whitespace-nowrap">
-        <SmileyFace happiness={first.happiness} wakefulness={first.wakefulness} health={first.health} size={32} className="shrink-0" />
+        <SmileyFace
+          happiness={first.happiness}
+          wakefulness={first.wakefulness}
+          health={first.health}
+          size={32}
+          className="shrink-0"
+        />
         <div className="grow overflow-x-hidden">
-          <span className="text-muted-foreground text-xs mr-3">{formatTime(first.endTime - (events.length > 1 ? (first.endTime - events[0].endTime) : 0))}–{formatTime(last.endTime)}</span>
+          <span className="text-muted-foreground text-xs mr-3">
+            {formatTime(first.endTime - (events.length > 1 ? first.endTime - events[0].endTime : 0))}–
+            {formatTime(last.endTime)}
+          </span>
           <span className="text-sm font-medium">{compactCats(events)}</span>
         </div>
-        <span className="text-blue-700 text-xs font-semibold select-none">{expanded ? `Collapse` : `Expand (${events.length})`}</span>
+        <span className="text-blue-700 text-xs font-semibold select-none">
+          {expanded ? `Collapse` : `Expand (${events.length})`}
+        </span>
       </div>
     </Card>
   );
 }
 
-function SummaryEventRow({ event, colorOverrides, indent = false, onClick }: {
-  event: ExocortexEvent, colorOverrides?: any[], indent?: boolean, onClick?: () => void
+function SummaryEventRow({
+  event,
+  colorOverrides,
+  indent = false,
+  onClick,
+}: {
+  event: ExocortexEvent;
+  colorOverrides?: any[];
+  indent?: boolean;
+  onClick?: () => void;
 }) {
   const color = getEventColor(event, colorOverrides);
   return (
@@ -115,9 +145,17 @@ function SummaryEventRow({ event, colorOverrides, indent = false, onClick }: {
       <div style={{ width: 40 }} />
       <div className="h-11 w-2 rounded-l-lg" style={{ backgroundColor: color, minWidth: 8 }} />
       <div className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-3">
-        <SmileyFace happiness={event.happiness} wakefulness={event.wakefulness} health={event.health} size={32} className="shrink-0" />
+        <SmileyFace
+          happiness={event.happiness}
+          wakefulness={event.wakefulness}
+          health={event.health}
+          size={32}
+          className="shrink-0"
+        />
         <div className="grow">
-          <span className="inline-block text-muted-foreground text-xs mr-3">{formatTime(event.endTime - 36*60*1000)}–{formatTime(event.endTime)}</span>
+          <span className="inline-block text-muted-foreground text-xs mr-3">
+            {formatTime(event.endTime - 36 * 60 * 1000)}–{formatTime(event.endTime)}
+          </span>
           <span className="text-sm font-semibold mr-3">{event.category}</span>
           <span className="block text-xs mt-1 text-card-foreground/80 italic truncate max-w-lg">{event.notes}</span>
         </div>
@@ -137,11 +175,23 @@ const Summary: React.FC = () => {
   const [skipDate, setSkipDate] = useState<Date | null>(null);
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
   const { config } = useAppContext();
+  const [searchParams] = useSearchParams();
 
   useSeoMeta({
     title: 'Summary - ExocortexLog',
     description: 'View summary of recent notable events',
   });
+
+  // Initialise skipDate from ?date=YYYY-MM-DD when first loading
+  useEffect(() => {
+    const dateParam = searchParams.get('date');
+    if (!dateParam) return;
+
+    const parsed = new Date(`${dateParam}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      setSkipDate(parsed);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!db) return;
@@ -152,19 +202,19 @@ const Summary: React.FC = () => {
         to.setHours(23, 59, 59, 999);
         from = new Date(skipDate);
         from.setDate(from.getDate() - (SUMMARY_DAYS - 1));
-        from.setHours(0,0,0,0);
+        from.setHours(0, 0, 0, 0);
       } else {
         to = new Date();
-        to.setHours(23,59,59,999);
+        to.setHours(23, 59, 59, 999);
         from = new Date(to);
         from.setDate(from.getDate() - (SUMMARY_DAYS - 1));
-        from.setHours(0,0,0,0);
+        from.setHours(0, 0, 0, 0);
       }
       const days: DayEvents[] = await db.getEventsByDateRangeOnly(
         from.toISOString().split('T')[0],
-        to.toISOString().split('T')[0]
+        to.toISOString().split('T')[0],
       );
-      const events = days.flatMap(d => d.events).sort((a, b) => b.endTime - a.endTime);
+      const events = days.flatMap((d) => d.events).sort((a, b) => b.endTime - a.endTime);
       setRows(makeSummaryRows(events));
     };
     load();
@@ -177,20 +227,22 @@ const Summary: React.FC = () => {
   }, [db]);
 
   const handleToggle = useCallback((idx: number) => {
-    setExpandedGroups(prev => ({ ...prev, [idx]: !prev[idx] }));
+    setExpandedGroups((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }, []);
-  const handleDialogOpenChange = (open: boolean) => { if (!open) setEditingEvent(null); };
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) setEditingEvent(null);
+  };
   const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
     await db.updateEvent(id, eventData);
     setEditingEvent(null);
-    setForceRefresh(f => f + 1);
+    setForceRefresh((f) => f + 1);
   };
   const handleDeleteEvent = async (id: string) => {
     if (!db) return;
     await db.deleteEvent(id);
     setEditingEvent(null);
-    setForceRefresh(f => f + 1);
+    setForceRefresh((f) => f + 1);
   };
 
   const renderRowsWithDaySeparators = () => {
@@ -209,7 +261,12 @@ const Summary: React.FC = () => {
       }
       if (row.type === 'single') {
         result.push(
-          <SummaryEventRow key={row.event.id} event={row.event} colorOverrides={config.colorOverrides} onClick={() => setEditingEvent(row.event)} />
+          <SummaryEventRow
+            key={row.event.id}
+            event={row.event}
+            colorOverrides={config.colorOverrides}
+            onClick={() => setEditingEvent(row.event)}
+          />,
         );
       } else if (row.type === 'collapsed') {
         result.push(
@@ -219,12 +276,18 @@ const Summary: React.FC = () => {
             expanded={!!expandedGroups[i]}
             onToggle={() => handleToggle(i)}
             colorOverrides={config.colorOverrides}
-          />
+          />,
         );
         if (expandedGroups[i]) {
           row.events.forEach((ev: ExocortexEvent) => {
             result.push(
-              <SummaryEventRow key={ev.id} event={ev} colorOverrides={config.colorOverrides} indent onClick={() => setEditingEvent(ev)} />
+              <SummaryEventRow
+                key={ev.id}
+                event={ev}
+                colorOverrides={config.colorOverrides}
+                indent
+                onClick={() => setEditingEvent(ev)}
+              />,
             );
           });
         }
@@ -239,7 +302,7 @@ const Summary: React.FC = () => {
       title="Summary"
       explain="A summary of recent events. Rows with notes are always shown; consecutive no-note events are collapsed into a single row. Click expand to show all."
       currentView="summary"
-      triggerRefresh={() => setForceRefresh(f => f+1)}
+      triggerRefresh={() => setForceRefresh((f) => f + 1)}
       setSkipDate={setSkipDate}
     >
       {/* Dialog for edit events */}
@@ -252,7 +315,11 @@ const Summary: React.FC = () => {
         editEvent={editingEvent}
       />
       <div className="max-w-3xl mx-auto mt-8">
-        {rows.length === 0 && <div className="text-muted-foreground text-center p-8">No events found for the selected period.</div>}
+        {rows.length === 0 && (
+          <div className="text-muted-foreground text-center p-8">
+            No events found for the selected period.
+          </div>
+        )}
         {renderRowsWithDaySeparators()}
       </div>
     </PageLayout>
