@@ -405,7 +405,7 @@ export function StatsView({ className }: StatsViewProps) {
 
     if (!effectiveStart || !isValid(effectiveStart)) return;
 
-    const boundedStart = clampDateToToday(startOfDay(effectiveStart));
+    const boundedStart = startOfDay(effectiveStart);
     const boundedEnd = calculateEndDate(boundedStart, effectiveWindow);
 
     setStartDate(boundedStart);
