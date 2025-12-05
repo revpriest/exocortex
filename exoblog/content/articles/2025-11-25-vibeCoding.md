@@ -11,7 +11,7 @@ cover:
   image: img/2025/shakespeare.png
 ---
 
-After watching <a href="https://primal.net/derekross">derekross@grownostr.org</a>
+After watching <a href="https://primal.net/derekross">@derekross@grownostr.org</a>
 do a talk and demo of <a href="https://shakespeare.diy/">Shakespeare</a> 
 I figured I probably ought to try this vibe coding everyone's
 going on about more deeply than pasting function from ChatGTP.
