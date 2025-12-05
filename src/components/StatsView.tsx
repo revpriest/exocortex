@@ -163,9 +163,17 @@ function buildMoodSeries(events: ExocortexEvent[], rangeStartDate?: Date, rangeE
   const rangeStart = rangeStartDate
     ? startOfDay(rangeStartDate).getTime()
     : startOfDay(new Date(firstEnd)).getTime();
-  const rangeEnd = rangeEndDate
+  let rangeEnd = rangeEndDate
     ? endOfDay(rangeEndDate).getTime()
     : endOfDay(new Date(lastEnd)).getTime();
+
+  // Ensure the sampling range always extends at least to the last
+  // known event, so the last mood value clearly persists forward
+  // through the rest of the selected window.
+  const lastEventEnd = endOfDay(new Date(lastEnd)).getTime();
+  if (lastEventEnd > rangeEnd) {
+    rangeEnd = lastEventEnd;
+  }
 
   const stepMs = SAMPLE_MINUTES * 60_000;
 
