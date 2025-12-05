@@ -401,7 +401,7 @@ const CacheResetSection = () => {
                   className="w-full sm:w-auto"
                 >
                   <Notebook className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  about
+                  About
                 </Button>
                 &nbsp;
                 <Button
