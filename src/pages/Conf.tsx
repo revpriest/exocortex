@@ -491,8 +491,7 @@ const CacheResetSection = () => {
         {/* Exocortex Blog Button */}
         <div className="flex flex-wrap gap-2">
           <Button
-            variant="outline"
-            className="w-full sm:w-auto"
+            className="flex items-center gap-2"
             onClick={() => navigate('/about')}
           >
             <NewsIcon className="h-4 w-4 mr-2" />
@@ -500,12 +499,13 @@ const CacheResetSection = () => {
           </Button>
 
           <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => navigate('/')}
+            onClick={() => {
+              window.location.href = "/news/index.html";
+            }}
+            className="flex items-center gap-2"
           >
-            <Notebook className="h-4 w-4 mr-2" />
-            Back to Log
+            <NewsIcon className="h-4 w-4" />
+            News Blog
           </Button>
         </div>
       </CardContent>
