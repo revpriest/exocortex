@@ -501,12 +501,30 @@ export function StatsView({ className }: StatsViewProps) {
     setSelectedDayStats(stats);
   };
 
-  const handleShiftSelectedDay = (direction: 1 | -1) => {
-    if (!selectedDateKey) return;
+  const handleShiftSelectedDay = async (direction: 1 | -1) => {
+    if (!db || !selectedDateKey) return;
+
     const currentDate = new Date(selectedDateKey + 'T00:00:00');
     currentDate.setDate(currentDate.getDate() + direction);
     const newKey = format(currentDate, DATE_KEY_FORMAT);
-    handleDateClick(newKey);
+
+    try {
+      const dayEvents = await db.getEventsByDate(newKey);
+      if (!dayEvents || dayEvents.length === 0) {
+        setSelectedDateKey(newKey);
+        setSelectedDayStats(null);
+        return;
+      }
+
+      const [statsMap] = [buildDayStats(dayEvents)];
+      const stats = statsMap.get(newKey) ?? null;
+      setSelectedDateKey(newKey);
+      setSelectedDayStats(stats);
+    } catch (err) {
+      console.error('Failed to load events for selected day:', err);
+      setSelectedDateKey(newKey);
+      setSelectedDayStats(null);
+    }
   };
 
   if (loading) {
