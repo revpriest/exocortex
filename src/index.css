@@ -128,3 +128,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.nobr {
+  white-space: nowrap;
+}

@@ -19,7 +19,7 @@ import { ExocortexDB, EventSummary } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { HueControl } from '@/components/HueControl';
 import { resetCacheAndReload } from '@/lib/cacheReset';
-import { Moon, Sun, Notebook, RefreshCw, Database, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
+import { Moon, Sun, Notebook, RefreshCw, Database, Newspaper as NewsIcon, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
 
 
 /**
@@ -389,21 +389,30 @@ const CacheResetSection = () => {
           <AlertDialogTrigger asChild>
              <div>
                 <Button
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  disabled={isResetting}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  {isResetting ? 'Resetting...' : 'Clear Cache & Check For Upgrade'}
-                </Button>
-                &nbsp;
-                <Button
-                  variant="outline"
                   onClick={() => navigate('/about')}
                   className="w-full sm:w-auto"
                 >
                   <Notebook className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
                   about
+                </Button>
+                &nbsp;
+                <Button
+                  onClick={() => {
+                    window.location.href = "/news/index.html";
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  <NewsIcon className="h-4 w-4" />
+                  News Blog
+                </Button>
+                &nbsp;
+                <Button
+                  variant="outline"
+                  disabled={isResetting}
+                  className="sm:w-auto bg-destructive border-destructive text-destructive-foreground"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                  {isResetting ? 'Resetting...' : 'Clear & Upgrade'}
                 </Button>
              </div>
           </AlertDialogTrigger>
