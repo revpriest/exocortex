@@ -333,11 +333,13 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
               className="group inline-flex items-center gap-3 nobr text-2xl md:text-3xl font-bold text-foreground rounded-full px-3 py-1 transition-colors hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="About Exocortex Log"
             >
-              <img
-                src="/exocortexlog.png"
-                alt="Exocortex Log logo"
-                className="w-10 h-10 md:w-12 md:h-12"
-              />
+              <span className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12">
+                <img
+                  src="/exocortexlog.png"
+                  alt="Exocortex Log logo"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </span>
               <span className="group-hover:text-primary">Exocortex Log</span>
             </button>
 
