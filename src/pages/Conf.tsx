@@ -19,7 +19,7 @@ import { ExocortexDB, EventSummary } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
 import { HueControl } from '@/components/HueControl';
 import { resetCacheAndReload } from '@/lib/cacheReset';
-import { Moon, Sun, Notebook, RefreshCw, Database, Newspaper as NewsIcon, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
+import { Moon, Sun, RefreshCw, Database, Newspaper as NewsIcon, HardDrive, Download, Upload, Trash2  } from 'lucide-react';
 
 
 /**
