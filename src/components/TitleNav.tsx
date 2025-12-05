@@ -246,7 +246,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
   const handleScrollToToday = useCallback(() => {
     if(setSkipDate){
       const targetDate = new Date();
-      setSkipDate(targetDate); 
+      setSkipDate(targetDate);
     }
   }, [setSkipDate]);
 
@@ -258,7 +258,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     const targetDate = selectedSkipDate;
     console.log("Calling setSkipDate function at Grid",targetDate,setSkipDate);
     if(setSkipDate){
-      setSkipDate(targetDate); 
+      setSkipDate(targetDate);
     }
   };
 
@@ -327,9 +327,19 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
           </Dialog>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h1 onClick={() => navigate('/about')} className="nobr text-2xl md:text-3xl font-bold text-foreground">
-                <img src="/exocortexlog.png" style={{width: "64px", float:"left"}}/> Exocortex Log
-            </h1>
+            <button
+              type="button"
+              onClick={() => navigate('/about')}
+              className="group inline-flex items-center gap-3 nobr text-2xl md:text-3xl font-bold text-foreground rounded-full px-3 py-1 transition-colors hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              aria-label="About Exocortex Log"
+            >
+              <img
+                src="/exocortexlog.png"
+                alt="Exocortex Log logo"
+                className="w-10 h-10 md:w-12 md:h-12"
+              />
+              <span className="group-hover:text-primary">Exocortex Log</span>
+            </button>
 
             {/* View Toggle Buttons */}
             <div className="flex gap-2">
