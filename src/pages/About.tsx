@@ -52,7 +52,7 @@ const About = () => {
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               ExocortexLog is a time tracking application and memory log
-              to track and understand your life. 
+              to track and understand your life.
             </p>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                It is a crutch for
@@ -165,7 +165,7 @@ const About = () => {
               <h3 className="font-semibold text-foreground">Add Your First Event</h3>
               <p className="text-muted-foreground">
                 Click the blue <span className="font-mono bg-muted px-2 py-1 rounded">+</span> button
-                in the title row to create your first time entry. 
+                in the title row to create your first time entry.
               </p>
               <p className="text-muted-foreground">
                 Enter a category
@@ -185,21 +185,21 @@ const About = () => {
             <div className="space-y-2">
               <h3 className="font-semibold text-foreground">Review your log</h3>
               <p className="text-muted-foreground">
-                The <span className="font-mono bg-muted px-2 py-1 rounded">Grid</span> view 
-                shows your daily activities as colored blocks. 
-                Each row represents a day, and columns represent hours. Colors 
+                The <span className="font-mono bg-muted px-2 py-1 rounded">Grid</span> view
+                shows your daily activities as colored blocks.
+                Each row represents a day, and columns represent hours. Colors
                 indicate different categories, and smiley faces show your mood.
                 Scroll down to see past days older data loads automatically.
               </p>
               <p className="text-muted-foreground">
-                The <span className="font-mono bg-muted px-2 py-1 rounded">Summary</span> view 
+                The <span className="font-mono bg-muted px-2 py-1 rounded">Summary</span> view
                 highlights only those events notable enough to have notes. Mundane
                 events are collapsed to save room.
               </p>
               <p className="text-muted-foreground">
-                Use the <span className="font-mono bg-muted px-2 py-1 rounded">Stats</span> view to 
+                Use the <span className="font-mono bg-muted px-2 py-1 rounded">Stats</span> view to
                 view graphs and stats on your past log. Track how different
-                activities affect your mood and energy levels over time. 
+                activities affect your mood and energy levels over time.
               </p>
               <p className="text-muted-foreground">
                 The app can be installed as a Progressive Web App
@@ -217,8 +217,8 @@ const About = () => {
             <div className="space-y-2">
               <h3 className="font-semibold text-foreground">Make Logging a Habit</h3>
               <p className="text-muted-foreground">
-                Many people find it helpful to set up a repeating reminder in their 
-                phone's alarm or reminder app to nudge them to update ExocortexLog 
+                Many people find it helpful to set up a repeating reminder in their
+                phone's alarm or reminder app to nudge them to update ExocortexLog
                 regularly. For example, you might add an alarm every hour or
                 a few times a day to quickly record what you're doing.
               </p>
@@ -234,8 +234,8 @@ const About = () => {
               <h3 className="font-semibold text-foreground">Customize & Export</h3>
               <p className="text-muted-foreground">
                 Visit the <span className="font-mono bg-muted px-2 py-1 rounded">Conf</span> section to
-                customize category colors, manage your data, and export your timeline as 
-                JSON for backup.  Regular exports are recommended since all data is stored 
+                customize category colors, manage your data, and export your timeline as
+                JSON for backup.  Regular exports are recommended since all data is stored
                 locally in your browser. Nobody else can rescue your data! You are responsible
                 for it!
               </p>
@@ -436,14 +436,16 @@ const About = () => {
                     : 'Start empty'
                 }
               </Button>
-              <Button
-                onClick={handleStartWithTestData}
-                disabled={isGenerating || hasData === null}
-                className="flex items-center gap-2"
-              >
-                <DatabaseIcon className="h-4 w-4" />
-                {isGenerating ? 'Generating...' : 'Start with test data'}
-              </Button>
+              {!hasData && (
+                <Button
+                  onClick={handleStartWithTestData}
+                  disabled={isGenerating || hasData === null}
+                  className="flex items-center gap-2"
+                >
+                  <DatabaseIcon className="h-4 w-4" />
+                  {isGenerating ? 'Generating...' : 'Start with test data'}
+                </Button>
+              )}
               <Button
                 onClick={() => {
                   window.location.href = "/news/index.html";
