@@ -96,30 +96,17 @@ function resolveWindowLabel(value: WindowOption): string {
   return `${value} days`;
 }
 
-function clampDateToToday(date: Date): Date {
-  const today = startOfDay(new Date());
-  return isBefore(date, today) ? date : today;
-}
-
 function calculateEndDate(start: Date, window: WindowOption): Date {
   const safeStart = startOfDay(start);
 
   if (window === 'month') {
-    const nextMonth = addMonths(safeStart, 1);
-    const lastDayOfMonth = new Date(
-      nextMonth.getFullYear(),
-      nextMonth.getMonth(),
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
-    return clampDateToToday(lastDayOfMonth);
+    // Exactly one month after the chosen start date, minus 1 millisecond
+    const nextMonthSameDay = addMonths(safeStart, 1);
+    return new Date(nextMonthSameDay.getTime() - 1);
   }
 
   const approxEnd = addDays(safeStart, window - 1);
-  return clampDateToToday(endOfDay(approxEnd));
+  return endOfDay(approxEnd);
 }
 
 function shiftStartDate(current: Date, window: WindowOption, direction: 1 | -1): Date {
@@ -127,12 +114,12 @@ function shiftStartDate(current: Date, window: WindowOption, direction: 1 | -1):
 
   if (window === 'month') {
     const shifted = addMonths(base, direction);
-    return clampDateToToday(startOfDay(shifted));
+    return startOfDay(shifted);
   }
 
   const amount = window;
   const next = addDays(base, direction * amount);
-  return clampDateToToday(next);
+  return startOfDay(next);
 }
 
 /**
@@ -141,7 +128,7 @@ function shiftStartDate(current: Date, window: WindowOption, direction: 1 | -1):
  * event that ends at or after that time. In other words, event state
  * persists "backwards" until the previous event's end time.
  */
-function buildMoodSeries(events: ExocortexEvent[]): MoodDataPoint[] {
+function buildMoodSeries(events: ExocortexEvent[], rangeStartDate?: Date, rangeEndDate?: Date): MoodDataPoint[] {
   if (events.length === 0) return [];
 
   const sorted = [...events].sort((a, b) => a.endTime - b.endTime);
@@ -173,8 +160,12 @@ function buildMoodSeries(events: ExocortexEvent[]): MoodDataPoint[] {
   const firstEnd = sorted[0].endTime;
   const lastEnd = sorted[sorted.length - 1].endTime;
 
-  const rangeStart = startOfDay(new Date(firstEnd)).getTime();
-  const rangeEnd = endOfDay(new Date(lastEnd)).getTime();
+  const rangeStart = rangeStartDate
+    ? startOfDay(rangeStartDate).getTime()
+    : startOfDay(new Date(firstEnd)).getTime();
+  const rangeEnd = rangeEndDate
+    ? endOfDay(rangeEndDate).getTime()
+    : endOfDay(new Date(lastEnd)).getTime();
 
   const stepMs = SAMPLE_MINUTES * 60_000;
 
@@ -445,8 +436,8 @@ export function StatsView({ className }: StatsViewProps) {
    * Process Data for Visualizations
    */
   const moodData = useMemo(() => {
-    return buildMoodSeries(events);
-  }, [events]);
+    return buildMoodSeries(events, startDate, endDate);
+  }, [events, startDate, endDate]);
 
   const dayStatsMap = useMemo(() => {
     return buildDayStats(events);
