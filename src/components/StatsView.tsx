@@ -47,11 +47,11 @@ interface StatsViewProps {
  * This helps maintain type safety throughout the component.
  */
 interface MoodDataPoint {
-  /** Full label used for axis: "MMM dd HH:00" */
+  /** Full label used for axis: "MMM dd HH:mm" */
   label: string;
   /** Date component: "MMM dd" */
   date: string;
-  /** Time component: "HH:00" */
+  /** Time component: "HH:mm" */
   time: string;
   happiness: number;
   wakefulness: number;
@@ -70,6 +70,10 @@ const WINDOW_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 14, 28, 'month'] as const;
 
 type WindowOption = (typeof WINDOW_OPTIONS)[number];
 
+// Sampling resolution for mood graph in minutes.
+// Smaller values give smoother lines at the cost of more points.
+const SAMPLE_MINUTES = 60;
+
 function resolveWindowLabel(value: WindowOption): string {
   if (value === 'month') return 'Month';
   if (value === 1) return '1 day';
@@ -86,7 +90,15 @@ function calculateEndDate(start: Date, window: WindowOption): Date {
 
   if (window === 'month') {
     const nextMonth = addMonths(safeStart, 1);
-    const lastDayOfMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 0, 23, 59, 59, 999);
+    const lastDayOfMonth = new Date(
+      nextMonth.getFullYear(),
+      nextMonth.getMonth(),
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
     return clampDateToToday(lastDayOfMonth);
   }
 
@@ -105,6 +117,103 @@ function shiftStartDate(current: Date, window: WindowOption, direction: 1 | -1):
   const amount = window;
   const next = addDays(base, direction * amount);
   return clampDateToToday(next);
+}
+
+/**
+ * Build a time-regular mood series where each sample represents a fixed
+ * SAMPLE_MINUTES-sized bin, and the mood at that time is taken from the
+ * event that ends at or after that time. In other words, event state
+ * persists "backwards" until the previous event's end time.
+ */
+function buildMoodSeries(events: ExocortexEvent[]): MoodDataPoint[] {
+  if (events.length === 0) return [];
+
+  const sorted = [...events].sort((a, b) => a.endTime - b.endTime);
+
+  // Build event intervals: each event owns the time from the previous
+  // event's end (or a small default window for the first event) up
+  // to its own endTime.
+  const intervals = sorted.map((event, index) => {
+    const end = event.endTime;
+
+    // For the first event, assume a short default duration backward so
+    // that it has a non-zero interval. For subsequent events, the
+    // interval starts at the previous event's end.
+    const prevEnd = index === 0
+      ? end - SAMPLE_MINUTES * 60_000
+      : sorted[index - 1].endTime;
+
+    const start = Math.min(prevEnd, end);
+
+    return {
+      start,
+      end,
+      happiness: event.happiness,
+      wakefulness: event.wakefulness,
+      health: event.health,
+    };
+  });
+
+  const firstEnd = sorted[0].endTime;
+  const lastEnd = sorted[sorted.length - 1].endTime;
+
+  const rangeStart = startOfDay(new Date(firstEnd)).getTime();
+  const rangeEnd = endOfDay(new Date(lastEnd)).getTime();
+
+  const stepMs = SAMPLE_MINUTES * 60_000;
+
+  const samples: MoodDataPoint[] = [];
+
+  let t = rangeStart;
+  let intervalIndex = 0;
+
+  while (t <= rangeEnd) {
+    const binStart = t;
+    const binEnd = t + stepMs;
+    // Use the end of the bin as the sample time so that the last
+    // event in a gap owns the entire stretch leading up to its end.
+    const sampleTime = binEnd;
+
+    // Advance intervalIndex until the interval that could own sampleTime.
+    while (intervalIndex < intervals.length - 1 && intervals[intervalIndex].end < sampleTime) {
+      intervalIndex++;
+    }
+
+    const current = intervals[intervalIndex];
+
+    let happiness: number | null = null;
+    let wakefulness: number | null = null;
+    let health: number | null = null;
+
+    // If this sample time lies between current.start and current.end,
+    // use that interval's mood. This effectively means that the
+    // event's mood persists backwards until the prior event.
+    if (sampleTime >= current.start && sampleTime <= current.end) {
+      happiness = current.happiness;
+      wakefulness = current.wakefulness;
+      health = current.health;
+    }
+
+    // If we have data for this bin, push a sample.
+    if (happiness !== null && wakefulness !== null && health !== null) {
+      const binDate = new Date(binStart);
+      const dateLabel = format(binDate, 'MMM dd');
+      const timeLabel = format(binDate, 'HH:mm');
+
+      samples.push({
+        label: `${dateLabel} ${timeLabel}`,
+        date: dateLabel,
+        time: timeLabel,
+        happiness,
+        wakefulness,
+        health,
+      });
+    }
+
+    t = binEnd;
+  }
+
+  return samples;
 }
 
 /**
@@ -232,74 +341,7 @@ export function StatsView({ className }: StatsViewProps) {
    * Process Data for Visualizations
    */
   const moodData = useMemo(() => {
-    const dataPoints: MoodDataPoint[] = [];
-    if (events.length === 0) return dataPoints;
-
-    const sortedEvents = [...events].sort((a, b) => a.endTime - b.endTime);
-
-    const firstEvent = sortedEvents[0];
-    const lastEvent = sortedEvents[sortedEvents.length - 1];
-    const rangeStart = startOfDay(new Date(firstEvent.endTime));
-    const rangeEnd = endOfDay(new Date(lastEvent.endTime));
-
-    const cursor = new Date(rangeStart);
-    while (!isBefore(rangeEnd, cursor)) {
-      const nextInterval = new Date(cursor);
-      nextInterval.setHours(cursor.getHours() + 1);
-
-      const activeEvents = sortedEvents.filter(event => {
-        const eventEnd = new Date(event.endTime);
-        const eventStart = new Date(eventEnd.getTime() - 60 * 60 * 1000);
-
-        return (
-          (eventStart >= cursor && eventStart < nextInterval) ||
-          (eventEnd >= cursor && eventEnd < nextInterval) ||
-          (eventStart < cursor && eventEnd > cursor)
-        );
-      });
-
-      if (activeEvents.length > 0) {
-        let totalWeight = 0;
-        let weightedHappiness = 0;
-        let weightedWakefulness = 0;
-        let weightedHealth = 0;
-
-        activeEvents.forEach(event => {
-          let duration = 60;
-          const eventIndex = sortedEvents.findIndex(e => e.id === event.id);
-          if (eventIndex > 0) {
-            const prevEvent = sortedEvents[eventIndex - 1];
-            duration = Math.max(15, (event.endTime - prevEvent.endTime) / (1000 * 60));
-          }
-
-          const weight = duration;
-          totalWeight += weight;
-          weightedHappiness += event.happiness * weight;
-          weightedWakefulness += event.wakefulness * weight;
-          weightedHealth += event.health * weight;
-        });
-
-        const avgHappiness = weightedHappiness / totalWeight;
-        const avgWakefulness = weightedWakefulness / totalWeight;
-        const avgHealth = weightedHealth / totalWeight;
-
-        const dateLabel = format(cursor, 'MMM dd');
-        const timeLabel = format(cursor, 'HH:00');
-
-        dataPoints.push({
-          label: `${dateLabel} ${timeLabel}`,
-          date: dateLabel,
-          time: timeLabel,
-          happiness: Number(avgHappiness.toFixed(2)),
-          wakefulness: Number(avgWakefulness.toFixed(2)),
-          health: Number(avgHealth.toFixed(2)),
-        });
-      }
-
-      cursor.setTime(cursor.getTime() + 60 * 60 * 1000);
-    }
-
-    return dataPoints;
+    return buildMoodSeries(events);
   }, [events]);
 
   const categoryData = useMemo(() => {
@@ -308,11 +350,14 @@ export function StatsView({ className }: StatsViewProps) {
     const categoryMap = new Map<string, { totalMinutes: number; count: number }>();
 
     sortedEvents.forEach((event, index) => {
-      let durationMinutes = 60;
+      let durationMinutes = SAMPLE_MINUTES;
 
       if (index > 0) {
         const previousEvent = sortedEvents[index - 1];
-        durationMinutes = Math.max(15, (event.endTime - previousEvent.endTime) / (1000 * 60));
+        durationMinutes = Math.max(
+          SAMPLE_MINUTES / 4,
+          (event.endTime - previousEvent.endTime) / (1000 * 60),
+        );
       }
 
       const current = categoryMap.get(event.category) || { totalMinutes: 0, count: 0 };
@@ -619,27 +664,22 @@ export function StatsView({ className }: StatsViewProps) {
               <BarChart data={categoryData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
-                  type="category"
                   dataKey="category"
                   stroke="hsl(var(--muted-foreground))"
-                  tick={{
-                    fill: 'hsl(var(--muted-foreground))',
-                    fontSize: 11,
-                  }}
-                  angle={-90}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  interval={0}
+                  angle={-45}
                   textAnchor="end"
                   height={80}
-                  interval={0}
                 />
                 <YAxis
-                  type="number"
                   stroke="hsl(var(--muted-foreground))"
                   tick={{ fill: 'hsl(var(--muted-foreground))' }}
                   label={{
                     value: 'Hours',
                     angle: -90,
                     position: 'insideLeft',
-                    style: { fill: 'hsl(var(--muted-foreground))' },
+                    fill: 'hsl(var(--muted-foreground))',
                   }}
                 />
                 <Tooltip
@@ -649,11 +689,14 @@ export function StatsView({ className }: StatsViewProps) {
                     borderRadius: '8px',
                   }}
                   labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: number, name: string) => [`${value} hours`, name]}
+                  formatter={(value: number, name: string) => [
+                    `${value.toFixed(1)} hours`,
+                    name === 'hours' ? 'Time spent' : name,
+                  ]}
                 />
-                <Bar dataKey="hours" name="Hours" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="hours" name="Time spent (hours)">
                   {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${entry.category}-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
@@ -665,173 +708,6 @@ export function StatsView({ className }: StatsViewProps) {
           )}
         </CardContent>
       </Card>
-
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
-            <CardTitle className="text-sm font-medium">Average Happiness</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(-1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-destructive">
-                {moodData.length > 0
-                  ? (moodData.reduce((sum, d) => sum + d.happiness, 0) / moodData.length).toFixed(2)
-                  : '0.00'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
-            <CardTitle className="text-sm font-medium">Wakefulness (Sleep)</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(-1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary">
-                {(() => {
-                  const sleepEvents = events.filter(e => e.category.toLowerCase() === 'sleep');
-                  if (sleepEvents.length === 0) return '0.00';
-                  const avgSleep =
-                    sleepEvents.reduce((sum, e) => sum + e.wakefulness, 0) / sleepEvents.length;
-                  return avgSleep.toFixed(2);
-                })()}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
-            <CardTitle className="text-sm font-medium">Wakefulness (Awake)</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(-1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary">
-                {(() => {
-                  const awakeEvents = events.filter(e => e.category.toLowerCase() !== 'sleep');
-                  if (awakeEvents.length === 0) return '0.00';
-                  const avgAwake =
-                    awakeEvents.reduce((sum, e) => sum + e.wakefulness, 0) / awakeEvents.length;
-                  return avgAwake.toFixed(2);
-                })()}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-0">
-            <CardTitle className="text-sm font-medium">Average Health</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(-1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  void handleShift(1);
-                }}
-                disabled={!startDate}
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {moodData.length > 0
-                  ? (moodData.reduce((sum, d) => sum + d.health, 0) / moodData.length).toFixed(2)
-                  : '0.00'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
