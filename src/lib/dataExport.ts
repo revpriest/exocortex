@@ -77,6 +77,11 @@ export class DataImporter {
   }
 }
 
+// LocalStorage key used to track the last time an export was performed.
+// This is an internal runtime-only setting and is intentionally excluded
+// from import/export payloads.
+export const LAST_EXPORT_AT_KEY = 'exocortex-last-export-at';
+
 export class DataExporter {
   /**
    * Get Application Settings from localStorage
@@ -84,6 +89,9 @@ export class DataExporter {
    * Automatically detects and extracts all exocortex app settings from localStorage.
    * Uses the 'exocortex-' prefix to identify relevant settings keys.
    * Handles errors gracefully if localStorage is unavailable or data is corrupted.
+   *
+   * IMPORTANT: This intentionally skips the internal last-export timestamp key,
+   * so that export/import operations do not affect the backup tracking UI.
    *
    * @returns AppSettings object with all available settings
    */
@@ -95,8 +103,8 @@ export class DataExporter {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
 
-        // Only include keys with our app prefix
-        if (key && key.startsWith('exocortex-')) {
+        // Only include keys with our app prefix, and skip internal tracking key
+        if (key && key.startsWith('exocortex-') && key !== LAST_EXPORT_AT_KEY) {
           const value = localStorage.getItem(key);
 
           if (value !== null) {
@@ -127,6 +135,10 @@ export class DataExporter {
    * Handles both string and JSON values appropriately.
    * Only updates settings that are present in the import data.
    *
+   * IMPORTANT: The internal last-export timestamp key is never restored
+   * from imports, so import/export does not change the user's backup
+   * tracking history.
+   *
    * @param settings - AppSettings object to restore
    */
   private static restoreAppSettings(settings: AppSettings): void {
@@ -139,7 +151,8 @@ export class DataExporter {
       // Restore all settings from the import
       for (const [key, value] of Object.entries(settings)) {
         // Only restore keys with our app prefix (as a safety check)
-        if (key.startsWith('exocortex-')) {
+        // and skip the internal last-export timestamp key.
+        if (key.startsWith('exocortex-') && key !== LAST_EXPORT_AT_KEY) {
           try {
             // Store value as JSON string (works for both objects and primitives)
             localStorage.setItem(key, JSON.stringify(value));
@@ -148,7 +161,7 @@ export class DataExporter {
             console.warn(`Failed to restore setting ${key}:`, error);
             errorKeys.push(key);
           }
-        } else {
+        } else if (!key.startsWith('exocortex-')) {
           console.warn(`Skipping non-exocortex key during restore: ${key}`);
         }
       }
@@ -195,6 +208,10 @@ export class DataExporter {
    * 4. Convert to formatted JSON string
    * 5. Create Blob and trigger browser download
    *
+   * Additionally, this method records the time the export was run in
+   * localStorage under LAST_EXPORT_AT_KEY so the UI can display how
+   * long it has been since the last backup.
+   *
    * @param db - The ExocortexDB instance to export from
    * @returns Promise that resolves when export is complete
    */
@@ -202,6 +219,9 @@ export class DataExporter {
     try {
       // Get all events from database (no date range assumptions)
       const allEvents: ExocortexEvent[] = await db.getAllEvents();
+
+      const now = new Date();
+      const nowIso = now.toISOString();
 
       /**
        * Create Export Data Structure
@@ -214,7 +234,7 @@ export class DataExporter {
        */
       const exportData: ExportData = {
         version: '1.0',
-        exportDate: new Date().toISOString(),
+        exportDate: nowIso,
         events: allEvents.map(event => ({
           ...event,
           category: event.category.trim(),
@@ -240,13 +260,20 @@ export class DataExporter {
 
       const link = document.createElement('a');
       link.href = url;
-      link.download = `exocortexlog-export-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `exocortexlog-export-${nowIso.split('T')[0]}.json`;
 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       URL.revokeObjectURL(url);
+
+      // Record the time this export was created for UI reference.
+      try {
+        localStorage.setItem(LAST_EXPORT_AT_KEY, nowIso);
+      } catch (err) {
+        console.warn('Failed to persist last export time to localStorage:', err);
+      }
     } catch (error) {
       console.error('Failed to export database:', error);
       throw new Error('Failed to export database');

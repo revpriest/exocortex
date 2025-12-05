@@ -1,4 +1,4 @@
-/*
+/**
  * Conf.tsx - Conf Page
  *
  * Configure display and options along with help
@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DataExporter } from '@/lib/dataExport';
+import { DataExporter, LAST_EXPORT_AT_KEY } from '@/lib/dataExport';
 import { Button } from '@/components/ui/button';
 import { ExocortexDB, EventSummary } from '@/lib/exocortex';
 import { ColorOverrideWidget } from '@/components/ColorOverrideWidget';
@@ -34,6 +34,7 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
   const [showTestConfirm, setShowTestConfirm] = useState(false);
   const [summary, setSummary] = useState<EventSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [lastExportAt, setLastExportAt] = useState<Date | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +62,27 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
       }
     };
 
+    const loadLastExport = () => {
+      try {
+        const value = localStorage.getItem(LAST_EXPORT_AT_KEY);
+        if (!value) {
+          setLastExportAt(null);
+          return;
+        }
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          setLastExportAt(parsed);
+        } else {
+          setLastExportAt(null);
+        }
+      } catch (error) {
+        console.warn('Failed to read last export time from localStorage:', error);
+        setLastExportAt(null);
+      }
+    };
+
     void loadSummary();
+    loadLastExport();
 
     return () => {
       cancelled = true;
@@ -78,6 +99,25 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
       console.error('Failed to refresh event summary:', err);
     } finally {
       setLoadingSummary(false);
+    }
+  };
+
+  const refreshLastExport = () => {
+    try {
+      const value = localStorage.getItem(LAST_EXPORT_AT_KEY);
+      if (!value) {
+        setLastExportAt(null);
+        return;
+      }
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        setLastExportAt(parsed);
+      } else {
+        setLastExportAt(null);
+      }
+    } catch (error) {
+      console.warn('Failed to refresh last export time from localStorage:', error);
+      setLastExportAt(null);
     }
   };
 
@@ -128,6 +168,7 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
       await DataExporter.exportDatabase(db);
       setError('Export completed! Check your downloads folder for the JSON file.');
       setTimeout(() => setError(null), 5000);
+      refreshLastExport();
     } catch (error) {
       console.error('Export failed:', error);
       setError('Failed to export database. Please try again.');
@@ -171,6 +212,36 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
     return new Date(timestamp).toLocaleString();
   };
 
+  const formatLastExportMessage = (): string => {
+    if (!lastExportAt) {
+      return 'You should probably back up with the export button often, no guarantees. (No exports recorded yet.)';
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - lastExportAt.getTime();
+
+    if (diffMs < 0) {
+      return 'You should probably back up with the export button often, no guarantees. (Last export time looks to be in the future; clock mismatch?)';
+    }
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    let humanReadable: string;
+    if (diffMinutes < 1) {
+      humanReadable = 'just now';
+    } else if (diffMinutes < 60) {
+      humanReadable = `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    } else if (diffHours < 48) {
+      humanReadable = `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    } else {
+      humanReadable = `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    }
+
+    return `You should probably back up with the export button often, no guarantees. (Last export was ${humanReadable}.)`;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -184,7 +255,7 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
       </CardHeader>
       <CardContent className="space-y-4">
           <p className="text-destructive text-base md:text-lg leading-relaxed">
-            You should probably back up with the export button often, no guarantees.
+            {formatLastExportMessage()}
           </p>
 
           {/* Database overview */}
@@ -386,150 +457,176 @@ const CacheResetSection = () => {
                   <p>Currlently running version {APP_VERSION}.</p>
         {/* Reset Button */}
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-             <div>
-                <Button
-                  variant="outline"
-                  disabled={isResetting}
-                  className="w-full sm:w-auto " >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  {isResetting ? 'Resetting...' : 'Check for upgrade'}
-                </Button>
-                &nbsp;
-                <Button
-                  onClick={() => navigate('/about')}
-                  className="w-full sm:w-auto"
-                >
-                  <Notebook className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  About
-                </Button>
-                &nbsp;
-                <Button
-                  onClick={() => {
-                    window.location.href = "/news/index.html";
-                  }}
-                  className="w-full sm:w-auto"
-                >
-                  <NewsIcon className="h-4 w-4" />
-                  News Blog
-                </Button>
-                &nbsp;
-             </div>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Reset Application Cache?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will clear all browser caches and service workers, then reload the app from the network.  Your time tracking data in IndexedDB will be preserved.
-                <br /><br />
-                Use this if the app isn't updating properly or if you're experiencing display issues. If you use it when offline it will stop the offline app working.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleResetCache} disabled={isResetting}>
-                {isResetting ? 'Resetting...' : 'Clear and upgrade'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
+          <div className="flex flex-wrap gap-2">
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={isResetting}
+                className="w-full sm:w-auto"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                {isResetting ? 'Resetting...' : 'Check for upgrade'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="sm:max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Update ExocortexLog</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will clear cached files and reload the app.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setIsResetting(false)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetCache}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset cache & reload
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </div>
         </AlertDialog>
+
+        {/* Exocortex Blog Button */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => navigate('/about')}
+          >
+            <NewsIcon className="h-4 w-4 mr-2" />
+            About ExocortexLog
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => navigate('/')}
+          >
+            <Notebook className="h-4 w-4 mr-2" />
+            Back to Log
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
 };
 
-
 /**
- * Theme Switch Component
+ * Theme Toggle Section Component
  *
- * A toggle switch that allows users to switch between dark and light themes.
- * It uses the existing theme system and persists the preference in localStorage.
+ * Allows users to switch between light and dark themes.
  */
-const ThemeSwitch = () => {
+const ThemeToggleSection = () => {
   const { theme, setTheme } = useTheme();
 
-  const isDarkMode = theme === 'dark' || (theme === 'system' &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  const handleToggle = () => {
-    setTheme(isDarkMode ? 'light' : 'dark');
+  const handleThemeChange = (checked: boolean) => {
+    setTheme(checked ? 'dark' : 'light');
   };
 
   return (
-    <div className="flex items-center space-x-3">
-      <Sun className="h-4 w-4 text-muted-foreground" />
-      <Switch
-        checked={isDarkMode}
-        onCheckedChange={handleToggle}
-      />
-      <Moon className="h-4 w-4 text-muted-foreground" />
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          {theme === 'dark' ? (
+            <Moon className="h-5 w-5" />
+          ) : (
+            <Sun className="h-5 w-5" />
+          )}
+          Appearance
+        </CardTitle>
+        <CardDescription>
+          Switch between light and dark themes.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          Use dark theme
+        </span>
+        <Switch
+          checked={theme === 'dark'}
+          onCheckedChange={handleThemeChange}
+          aria-label="Toggle dark theme"
+        />
+      </CardContent>
+    </Card>
   );
 };
 
-const Conf = () => {
-  const [db, setDb] = useState<ExocortexDB | null>(null);
+/**
+ * Color Customization Section Component
+ *
+ * Allows users to tweak the global hue and per-category colours.
+ */
+const ColorCustomizationSection = () => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          🎨
+          Colour Customisation
+        </CardTitle>
+        <CardDescription>
+          Adjust the overall hue and override colours for specific categories.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <HueControl />
+        <ColorOverrideWidget />
+      </CardContent>
+    </Card>
+  );
+};
 
-
-  //Include the DB so header add-event can work.
-  useEffect(() => {
-    const initAll = async () => {
-      const db = new ExocortexDB();
-      await db.init();
-      setDb(db);
-    };
-    initAll().catch((error) => {
-      console.error('Failed to initialize database:', error);
-    });
-  }, []);
-
-  // Set SEO metadata
+/**
+ * Conf Page Component
+ *
+ * Wraps all configuration sections into a single page with layout.
+ */
+const ConfPage = () => {
   useSeoMeta({
-    title: 'Conf - ExocortexLog',
-    description: 'Configuration and help',
+    title: 'Settings - ExocortexLog',
+    description: 'Configure ExocortexLog display, data, and behaviour.',
   });
 
+  const [db, setDb] = useState<ExocortexDB | null>(null);
+
+  useEffect(() => {
+    const initDb = async () => {
+      const database = new ExocortexDB();
+      await database.init();
+      setDb(database);
+    };
+
+    void initDb();
+  }, []);
+
   return (
-    <PageLayout db={db} title="Conf" explain="Configuration preferences and help" currentView="conf">           <div className="items-center justify-center flex">
-          <div className="space-y-6">
-            {/* Theme Settings Section */}
-            <Card>
-              <CardContent className="pt-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
-                    <p className="text-sm text-muted-foreground">Theme and accent color</p>
-                  </div>
-                  <ThemeSwitch />
-                </div>
+    <PageLayout
+      db={db}
+      title="Settings"
+      explain="Configure ExocortexLog display, data, and behaviour."
+      currentView="conf"
+    >
+      <div className="max-w-4xl mx-auto space-y-6 py-6">
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground">
+          Tune how ExocortexLog looks and behaves, and manage your data.
+        </p>
 
-                <HueControl />
-              </CardContent>
-            </Card>
-
-            {/* Category Color Overrides Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Category Colors</CardTitle>
-                <CardDescription>
-                  Customize colors for different event categories
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ColorOverrideWidget />
-              </CardContent>
-            </Card>
-
-            {/* Database Management Section */}
-            <DBManagementSection db={db} />
-
-            {/* Cache Management Section */}
-            <CacheResetSection />
-
-          </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <ThemeToggleSection />
+          <ColorCustomizationSection />
         </div>
+
+        <div className="grid gap-6 md:grid-cols-1">
+          <DBManagementSection db={db} />
+          <CacheResetSection />
+        </div>
+      </div>
     </PageLayout>
   );
 };
 
-export default Conf;
+export default ConfPage;
