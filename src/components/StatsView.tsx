@@ -32,6 +32,8 @@ import {
 } from 'recharts';
 import { CalendarIcon, BarChart3, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { addDays, addMonths, endOfDay, format, isBefore, isValid, startOfDay } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 /**
  * Component Props Interface
@@ -49,7 +51,9 @@ interface StatsViewProps {
 interface MoodDataPoint {
   /** Full label used for axis: "MMM dd HH:mm" */
   label: string;
-  /** Date component: "MMM dd" */
+  /** Date component: "yyyy-MM-dd" for lookup */
+  dateKey: string;
+  /** Date label component: "MMM dd" */
   date: string;
   /** Time component: "HH:mm" */
   time: string;
@@ -65,6 +69,15 @@ interface CategoryDataPoint {
   count: number;
 }
 
+interface DayStats {
+  dateKey: string;
+  avgHappiness: number | null;
+  avgHealth: number | null;
+  avgWakefulnessAwake: number | null;
+  sleepHours: number;
+  notes: string[];
+}
+
 // Available window sizes (number of days)
 const WINDOW_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 14, 28, 'month'] as const;
 
@@ -73,6 +86,8 @@ type WindowOption = (typeof WINDOW_OPTIONS)[number];
 // Sampling resolution for mood graph in minutes.
 // Smaller values give smoother lines at the cost of more points.
 const SAMPLE_MINUTES = 60;
+
+const DATE_KEY_FORMAT = 'yyyy-MM-dd';
 
 function resolveWindowLabel(value: WindowOption): string {
   if (value === 'month') return 'Month';
@@ -199,9 +214,11 @@ function buildMoodSeries(events: ExocortexEvent[]): MoodDataPoint[] {
       const binDate = new Date(binStart);
       const dateLabel = format(binDate, 'MMM dd');
       const timeLabel = format(binDate, 'HH:mm');
+      const dateKey = format(binDate, DATE_KEY_FORMAT);
 
       samples.push({
         label: `${dateLabel} ${timeLabel}`,
+        dateKey,
         date: dateLabel,
         time: timeLabel,
         happiness,
@@ -214,6 +231,75 @@ function buildMoodSeries(events: ExocortexEvent[]): MoodDataPoint[] {
   }
 
   return samples;
+}
+
+function buildDayStats(events: ExocortexEvent[]): Map<string, DayStats> {
+  const byDate = new Map<string, ExocortexEvent[]>();
+
+  events.forEach(event => {
+    const dateKey = format(new Date(event.endTime), DATE_KEY_FORMAT);
+    const list = byDate.get(dateKey) ?? [];
+    list.push(event);
+    byDate.set(dateKey, list);
+  });
+
+  const result = new Map<string, DayStats>();
+
+  byDate.forEach((dayEvents, dateKey) => {
+    if (dayEvents.length === 0) return;
+
+    let happinessSum = 0;
+    let healthSum = 0;
+    let count = 0;
+
+    let awakeWakefulnessSum = 0;
+    let awakeCount = 0;
+
+    let sleepHours = 0;
+
+    const notes: string[] = [];
+
+    // Sort by endTime for duration approximations
+    const sorted = [...dayEvents].sort((a, b) => a.endTime - b.endTime);
+
+    sorted.forEach((event, index) => {
+      const durationMinutes = (() => {
+        if (index === 0) return SAMPLE_MINUTES;
+        const prevEnd = sorted[index - 1].endTime;
+        return Math.max(SAMPLE_MINUTES / 4, (event.endTime - prevEnd) / (1000 * 60));
+      })();
+
+      const weight = durationMinutes;
+
+      happinessSum += event.happiness * weight;
+      healthSum += event.health * weight;
+      count += weight;
+
+      if (event.category.toLowerCase() !== 'sleep') {
+        awakeWakefulnessSum += event.wakefulness * weight;
+        awakeCount += weight;
+      }
+
+      if (event.category.toLowerCase() === 'sleep') {
+        sleepHours += durationMinutes / 60;
+      }
+
+      if (event.notes && event.notes.trim().length > 0) {
+        notes.push(event.notes.trim());
+      }
+    });
+
+    result.set(dateKey, {
+      dateKey,
+      avgHappiness: count > 0 ? happinessSum / count : null,
+      avgHealth: count > 0 ? healthSum / count : null,
+      avgWakefulnessAwake: awakeCount > 0 ? awakeWakefulnessSum / awakeCount : null,
+      sleepHours,
+      notes,
+    });
+  });
+
+  return result;
 }
 
 /**
@@ -235,6 +321,9 @@ export function StatsView({ className }: StatsViewProps) {
   const [windowSize, setWindowSize] = useState<WindowOption>(7);
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [selectedDayStats, setSelectedDayStats] = useState<DayStats | null>(null);
 
   // Derived end date from startDate + windowSize
   const endDate = useMemo(() => {
@@ -344,6 +433,10 @@ export function StatsView({ className }: StatsViewProps) {
     return buildMoodSeries(events);
   }, [events]);
 
+  const dayStatsMap = useMemo(() => {
+    return buildDayStats(events);
+  }, [events]);
+
   const categoryData = useMemo(() => {
     const sortedEvents = [...events].sort((a, b) => a.endTime - b.endTime);
 
@@ -387,6 +480,20 @@ export function StatsView({ className }: StatsViewProps) {
     return data;
   }, [events]);
 
+  const handleDateClick = (dateKey: string) => {
+    const stats = dayStatsMap.get(dateKey) ?? null;
+    setSelectedDateKey(dateKey);
+    setSelectedDayStats(stats);
+  };
+
+  const handleShiftSelectedDay = (direction: 1 | -1) => {
+    if (!selectedDateKey) return;
+    const currentDate = new Date(selectedDateKey + 'T00:00:00');
+    currentDate.setDate(currentDate.getDate() + direction);
+    const newKey = format(currentDate, DATE_KEY_FORMAT);
+    handleDateClick(newKey);
+  };
+
   if (loading) {
     return (
       <div className={`flex items-center justify-center h-64 ${className ?? ''}`}>
@@ -394,6 +501,17 @@ export function StatsView({ className }: StatsViewProps) {
       </div>
     );
   }
+
+  const formattedSelectedDate = selectedDateKey
+    ? new Date(selectedDateKey + 'T00:00:00').toLocaleDateString(undefined, {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+      })
+    : '';
+
+  const formatPercent = (value: number | null) =>
+    value == null ? '—' : `${(value * 100).toFixed(0)}%`;
+
+  const formatHours = (value: number) => `${value.toFixed(1)} h`;
 
   return (
     <div className={`space-y-6 ${className ?? ''}`}>
@@ -560,7 +678,17 @@ export function StatsView({ className }: StatsViewProps) {
         <CardContent>
           {moodData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={moodData}>
+              <LineChart
+                data={moodData}
+                onClick={(state) => {
+                  const activeLabel = state?.activeLabel as string | undefined;
+                  if (!activeLabel) return;
+                  const point = moodData.find((m) => m.label === activeLabel);
+                  if (point) {
+                    handleDateClick(point.dateKey);
+                  }
+                }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="label"
@@ -708,6 +836,103 @@ export function StatsView({ className }: StatsViewProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Day details dialog for clicked mood point */}
+      <Dialog open={!!selectedDateKey} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedDateKey(null);
+          setSelectedDayStats(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Mood details for {formattedSelectedDate}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div>
+                <div className="text-muted-foreground">Average happiness</div>
+                <div className="font-semibold">{formatPercent(selectedDayStats?.avgHappiness ?? null)}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Average health</div>
+                <div className="font-semibold">{formatPercent(selectedDayStats?.avgHealth ?? null)}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Average wakefulness (awake)</div>
+                <div className="font-semibold">{formatPercent(selectedDayStats?.avgWakefulnessAwake ?? null)}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Sleep duration</div>
+                <div className="font-semibold">{selectedDayStats ? formatHours(selectedDayStats.sleepHours) : '—'}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-2">
+              <div className="text-sm text-muted-foreground">Browse nearby days</div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleShiftSelectedDay(-1)}
+                  disabled={!selectedDateKey}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleShiftSelectedDay(1)}
+                  disabled={!selectedDateKey}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-2">
+              <div className="text-sm font-medium mb-1">Notes</div>
+              {selectedDayStats && selectedDayStats.notes.length > 0 ? (
+                <ScrollArea className="max-h-48 rounded-md border border-border bg-background/60 p-3 text-sm space-y-2">
+                  {selectedDayStats.notes.map((note, idx) => (
+                    <div key={idx} className="p-2 rounded bg-muted/60 text-muted-foreground">
+                      {note}
+                    </div>
+                  ))}
+                </ScrollArea>
+              ) : (
+                <div className="text-sm text-muted-foreground">No notes recorded for this day.</div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-border mt-4">
+              {/* These buttons just navigate to the other pages; the header's Skip to Date dialog there can then be used if desired. */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!selectedDateKey) return;
+                  window.location.href = `/?date=${selectedDateKey}`;
+                }}
+              >
+                Open in Grid view
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!selectedDateKey) return;
+                  window.location.href = `/summary?date=${selectedDateKey}`;
+                }}
+              >
+                Open in Summary view
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
