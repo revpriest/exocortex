@@ -10,7 +10,7 @@ import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, Heart, Brain, Play, Newspaper as NewsIcon, Database as DatabaseIcon, Grid3X3, BarChart3, Settings, Database, ListCollapse, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Clock, Heart, Brain, Play, Newspaper as NewsIcon, Database as DatabaseIcon, Brain as BrainIcon, BarChart3, Settings, Database, ListCollapse, Image as ImageIcon } from 'lucide-react';
 import { usePageData } from '@/hooks/usePageData';
 import { ExocortexDB } from '@/lib/exocortex';
 
@@ -44,7 +44,7 @@ const About = () => {
           <div className="text-center space-y-4">
             <div className="flex justify-center">
               <div className="p-3 bg-primary/10 rounded-full">
-                <Brain className="h-12 w-12 text-primary" />
+                <img src="public/news/img/exocortexlog.png" style={{width: "120px"}}/>
               </div>
             </div>
             <h2 className="text-2xl font-bold text-foreground">
@@ -294,7 +294,7 @@ older data loads automatically.
 
             <div className="flex items-start gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <Grid3X3 className="h-4 w-4 text-primary" />
+                <BrainIcon className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <h3 className="font-semibold text-foreground">Visual Time Grid</h3>

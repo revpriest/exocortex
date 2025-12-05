@@ -1,6 +1,6 @@
 languageCode: en-GB
 publishDir: "../public/news/"
-title: ExocortexLog News
+title: ExocortexLog
 theme: hugo-cards
 baseURL: "https://exocortexlog.com/news/"
 taxonomies:
@@ -23,12 +23,6 @@ markup:
   goldmark:
     renderer:
       unsafe: true
-  style:
-    darkestColor: "#242930"
-    darkColor: "#0c0904"      #Background from header img
-    lightColor: "#afbac4"
-    lightestColor: "#ffffff"
-    primaryColor: "#ffff00"
 outputs:
   home:
     - HTML

@@ -1,46 +1,91 @@
 html,body {
     font-family: $base-font-family;
     font-size: $base-font-size;
+    background-color: #161616;
+    color: $text-color;
 }
 
-dt {
-  margin-left:0em;
+h1, h2, h3, h4 {
+  font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: $grey-color !important;
 }
-dd {
+
+h1 {
+   font-size: 1.8em !important;
+}
+h2 {
+   font-size: 1.4em !important;
+}
+h3 {
+   font-size: 1.2em !important;
+}
+h3 {
+   font-size: 1.1em !important;
+}
+
+dt, dt a{
+  margin-left:0em;
+  font-size: 1.0em;
+  color: $text-color !important;
+  clear: both;
+}
+dd, dd a{
   margin-left:4em;
-  font-size: 0.6em;
-  float:right;
+  font-size: 0.8em;
+  text-align:right;
+  clear: both;
+  color: $grey-color !important;
+  padding-bottom: 0.5em;
+}
+
+.recentlist{
+  border-top: 2px solid $text-color;
+  margin-bottom: 0.5em;
 }
 
 .brand, .brand:hover, .brand:active, .brand:link, .brand:visited {
   font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-decoration: none;
   padding: 0.2em;
-  border: 1px solid #8f8;
-  background: rgba(250,255,250,.2);
+  border: 1px solid rgba(250,255,250,.1);
+  background: rgba(250,255,250,.02);
   border-radius: .2em;
-  color: #0f0;
+  color: #5c5;
+  font-size: 2em;
+  box-shadow: 2px 2px 12px rgba(50,100,50,.2);
 }
 
 .brand:hover {
-  border: 1px solid #0f0;
-  border: 1px solid #8f8;
+  border: 1px solid rgba(250,255,250,.2);
+  box-shadow: 2px 2px 12px rgba(50,100,50,.8);
+  background: rgba(250,255,250,.2);
+}
+.brand:active {
+  border: 1px solid rgba(250,255,250,.5);
+  box-shadow: 2px 2px 12px rgba(50,100,50,1);
+  background: rgba(250,255,250,.2);
 }
 
 .navbut, .navbut:hover, .navbut:active, .navbut:link, .navbut:visited {
   font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-decoration: none;
-  padding: 0.2em;
-  border: 1px solid #8f8;
-  background: rgba(250,255,250,.2);
+  padding: 0.0em;
+  border: 1px solid rgba(250,255,250,.05);
+  background: rgba(250,255,250,.02);
   border-radius: .2em;
-  color: #0f0;
+  color: #5c5 !important;
 }
-
 .navbut:hover {
+  border: 1px solid rgba(250,255,250,.2) !important;
+  box-shadow: 2px 2px 12px rgba(50,100,50,.8) !important;
+  background: rgba(250,255,250,.2) !important;
 }
 .navbut:active {
+  border: 1px solid rgba(250,255,250,.5) !important;
+  box-shadow: 2px 2px 12px rgba(50,100,50,1) !important;
+  background: rgba(250,255,250,.2) !important;
 }
+
 
 .navbar-default {
     border-color: transparent;
@@ -52,7 +97,11 @@ dd {
 
 
 img {
-    max-width: 100%;
+  max-width: 100%;
+  border: 1px solid $grey-color;
+  box-shadow: 2px 2px 12px rgba(50,100,50,.4);
+  margin-bottom: 1em;
+  border-radius: 0.5em;
 }
 
 img.idx {
@@ -95,7 +144,6 @@ div.idx{
     @media screen and (max-width: $on-palm) {
         font-size: 1.5em;
     }
-    color: red;
 }
 .post-meta {
     color: $grey-color;
@@ -104,29 +152,18 @@ div.idx{
 .panel {
     margin-bottom: 2em;
    border: none;
-   padding: 0.2em 0.6em;
+   padding: 0.6em 0.6em;
    border-radius: 1em;
-   box-shadow: 2px 2px 12px rgba(50,100,50,.5);
+   background: rgba(255,255,255,0.02);
+   box-shadow: 2px 2px 12px rgba(50,100,50,.2);
    transition: all 0.3s ease;
-    &:hover, &:focus, &:active {
-           box-shadow: 
-                    0px 1px 0px #ccc,
-                    0px 2px 0px #c9c9c9,
-                    0px 3px 0px #bbb,
-                    0px 4px 0px #b9b9b9,
-                    0px 6px 0px rgba(0,0,0,.1),
-                    0px 1px 0px rgba(0,0,0,.3),
-                    0px 3px 0px rgba(0,0,0,.2),
-                    0px 5px 0px rgba(0,0,0,.25),
-                    0 7px  7px rgba(0,0,0,.1),
-                    0 8px  7px rgba(0,0,0,.1),
-                    0 9px  9px rgba(0,0,0,.1),
-                    0 10px  10px rgba(0,0,0,.15),
-                    0 15px  15px rgba(0,0,0,.16),
-
-
+    &:hover, &:focus {
+      box-shadow: 2px 2px 12px rgba(50,100,50,.8); background: rgba(255,255,255,0.06);
     }
-
+    &:active {
+      box-shadow: 2px 2px 12px rgba(50,100,50,1);
+      background: rgba(255,255,255,0.16);
+    }
 }
 
 
@@ -213,6 +250,7 @@ footer {
     line-height: 2;
     text-decoration: underline;
 }
+
 
 .post-header h1 {
     margin-top: -10px;

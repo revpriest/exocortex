@@ -11,7 +11,7 @@ import { EventDialog } from './EventDialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { Grid3X3, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
+import { Brain, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus } from 'lucide-react';
 import { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
 import { useHueInit } from '@/hooks/useHueInit';
 
@@ -328,7 +328,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <h1 onClick={() => navigate('/about')} className="text-2xl md:text-3xl font-bold text-foreground">
-              ExocortexLog
+                <img src="public/news/img/exocortexlog.png" style={{width: "64px", float:"left"}}/> Exocortex Log
             </h1>
 
             {/* View Toggle Buttons */}
@@ -339,7 +339,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 onClick={handleGridClick}
                 aria-label="Grid"
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Brain className="h-4 w-4" />
                 <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Grid</span>
               </Button>
               <Button

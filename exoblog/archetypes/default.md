@@ -8,5 +8,5 @@ category:
 - exocortexLog
 cover:
   alt: An image
-  image: /news/img/exocortexlog.jpg
+  image: /news/img/exocortexlog.png
 ---

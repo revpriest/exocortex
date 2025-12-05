@@ -260,7 +260,7 @@ th {
   }
   .table td,
   .table th {
-    background-color: #fff !important;
+    background-color: $grey-color !important;
   }
   .table-bordered th,
   .table-bordered td {
@@ -1090,7 +1090,6 @@ body {
   font-size: 20px;
   line-height: 1.6;
   color: #333333;
-  background-color: #ffffff;
 }
 input,
 button,
@@ -1135,7 +1134,7 @@ img {
 .img-thumbnail {
   padding: 4px;
   line-height: 1.42857143;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border: 1px solid #dddddd;
   border-radius: 4px;
   -webkit-transition: all 0.2s ease-in-out;
@@ -2297,7 +2296,7 @@ th {
   border-top: 2px solid #dddddd;
 }
 .table .table {
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .table-condensed > thead > tr > th,
 .table-condensed > tbody > tr > th,
@@ -2560,7 +2559,7 @@ output {
   font-size: 16px;
   line-height: 1.42857143;
   color: #333333;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   background-image: none;
   border: 1px solid #dddddd;
   border-radius: 4px;
@@ -3065,7 +3064,7 @@ fieldset[disabled] a.btn {
 }
 .btn-default {
   color: #333333;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border-color: #dddddd;
 }
 .btn-default:focus,
@@ -3113,7 +3112,7 @@ fieldset[disabled] .btn-default:focus,
 .btn-default.disabled.focus,
 .btn-default[disabled].focus,
 fieldset[disabled] .btn-default.focus {
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border-color: #dddddd;
 }
 .btn-default .badge {
@@ -3175,7 +3174,7 @@ fieldset[disabled] .btn-primary.focus {
 }
 .btn-primary .badge {
   color: #4582ec;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .btn-success {
   color: #ffffff;
@@ -3232,7 +3231,7 @@ fieldset[disabled] .btn-success.focus {
 }
 .btn-success .badge {
   color: #3fad46;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .btn-info {
   color: #ffffff;
@@ -3289,7 +3288,7 @@ fieldset[disabled] .btn-info.focus {
 }
 .btn-info .badge {
   color: #5bc0de;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .btn-warning {
   color: #ffffff;
@@ -3346,7 +3345,7 @@ fieldset[disabled] .btn-warning.focus {
 }
 .btn-warning .badge {
   color: #f0ad4e;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .btn-danger {
   color: #ffffff;
@@ -3403,7 +3402,7 @@ fieldset[disabled] .btn-danger.focus {
 }
 .btn-danger .badge {
   color: #d9534f;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .btn-link {
   color: #4582ec;
@@ -3537,7 +3536,6 @@ tbody.collapse.in {
   list-style: none;
   font-size: 16px;
   text-align: left;
-  background-color: #ffffff;
   border: 1px solid #cccccc;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
@@ -4042,7 +4040,6 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .nav-tabs > li.active > a:hover,
 .nav-tabs > li.active > a:focus {
   color: #555555;
-  background-color: #ffffff;
   border: 1px solid #dddddd;
   border-bottom-color: transparent;
   cursor: default;
@@ -4496,7 +4493,6 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
   }
 }
 .navbar-default {
-  background-color: #ffffff;
   border-color: #dddddd;
 }
 .navbar-default .navbar-brand {
@@ -4592,7 +4588,7 @@ fieldset[disabled] .navbar-default .btn-link:focus {
   color: #333333;
 }
 .navbar-inverse {
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border-color: #dddddd;
 }
 .navbar-inverse .navbar-brand {
@@ -4728,7 +4724,7 @@ fieldset[disabled] .navbar-inverse .btn-link:focus {
   line-height: 1.42857143;
   text-decoration: none;
   color: #333333;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border: 1px solid #dddddd;
   margin-left: -1px;
 }
@@ -4771,7 +4767,7 @@ fieldset[disabled] .navbar-inverse .btn-link:focus {
 .pagination > .disabled > a:hover,
 .pagination > .disabled > a:focus {
   color: #b3b3b3;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border-color: #dddddd;
   cursor: not-allowed;
 }
@@ -4819,15 +4815,18 @@ fieldset[disabled] .navbar-inverse .btn-link:focus {
 .pager li > a,
 .pager li > span {
   display: inline-block;
-  padding: 5px 14px;
-  background-color: #ffffff;
-  border: 1px solid #dddddd;
+  padding: 2px 12px;
+  background-color: #001a00 !important;
+  border: 1px solid #888;
   border-radius: 15px;
+  color: #888;
 }
 .pager li > a:hover,
 .pager li > a:focus {
   text-decoration: none;
-  background-color: #4582ec;
+  color: #ccc;
+  background-color: #002a00 !important;
+  border: 1px solid #ccc;
 }
 .pager .next > a,
 .pager .next > span {
@@ -4842,7 +4841,7 @@ fieldset[disabled] .navbar-inverse .btn-link:focus {
 .pager .disabled > a:focus,
 .pager .disabled > span {
   color: #b3b3b3;
-  background-color: #ffffff;
+  background-color: $grey-color;
   cursor: not-allowed;
 }
 .label {
@@ -4871,7 +4870,7 @@ a.label:focus {
   top: -1px;
 }
 .label-default {
-  background-color: #ffffff;
+  background-color: $grey-color;
 }
 .label-default[href]:hover,
 .label-default[href]:focus {
@@ -4947,7 +4946,7 @@ a.badge:focus {
 .list-group-item.active > .badge,
 .nav-pills > .active > a > .badge {
   color: #4582ec;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .list-group-item > .badge {
   float: right;
@@ -5006,7 +5005,7 @@ a.badge:focus {
   padding: 4px;
   margin-bottom: 22px;
   line-height: 1.42857143;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border: 1px solid #dddddd;
   border-radius: 4px;
   -webkit-transition: border 0.2s ease-in-out;
@@ -5253,7 +5252,7 @@ a.thumbnail.active {
   display: block;
   padding: 10px 15px;
   margin-bottom: -1px;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border: 1px solid #dddddd;
 }
 .list-group-item:first-child {
@@ -5452,7 +5451,6 @@ button.list-group-item-danger.active:focus {
 }
 .panel {
   margin-bottom: 22px;
-  background-color: #ffffff;
   border: 1px solid transparent;
   border-radius: 4px;
 
@@ -5484,7 +5482,7 @@ button.list-group-item-danger.active:focus {
 }
 .panel-footer {
   padding: 10px 15px;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border-top: 1px solid #dddddd;
   border-bottom-right-radius: 3px;
   border-bottom-left-radius: 3px;
@@ -5715,7 +5713,7 @@ button.list-group-item-danger.active:focus {
 }
 .panel-primary > .panel-heading .badge {
   color: #4582ec;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .panel-primary > .panel-footer + .panel-collapse > .panel-body {
   border-bottom-color: #4582ec;
@@ -5733,7 +5731,7 @@ button.list-group-item-danger.active:focus {
 }
 .panel-success > .panel-heading .badge {
   color: #3fad46;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .panel-success > .panel-footer + .panel-collapse > .panel-body {
   border-bottom-color: #3fad46;
@@ -5751,7 +5749,7 @@ button.list-group-item-danger.active:focus {
 }
 .panel-info > .panel-heading .badge {
   color: #5bc0de;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .panel-info > .panel-footer + .panel-collapse > .panel-body {
   border-bottom-color: #5bc0de;
@@ -5769,7 +5767,7 @@ button.list-group-item-danger.active:focus {
 }
 .panel-warning > .panel-heading .badge {
   color: #f0ad4e;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .panel-warning > .panel-footer + .panel-collapse > .panel-body {
   border-bottom-color: #f0ad4e;
@@ -5787,7 +5785,7 @@ button.list-group-item-danger.active:focus {
 }
 .panel-danger > .panel-heading .badge {
   color: #d9534f;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .panel-danger > .panel-footer + .panel-collapse > .panel-body {
   border-bottom-color: #d9534f;
@@ -5906,7 +5904,7 @@ button.close {
 }
 .modal-content {
   position: relative;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   border: 1px solid #999999;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 6px;
@@ -6126,7 +6124,7 @@ button.close {
   word-spacing: normal;
   word-wrap: normal;
   font-size: 16px;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
   -webkit-background-clip: padding-box;
           background-clip: padding-box;
   border: 1px solid #cccccc;
@@ -6413,7 +6411,7 @@ button.close {
   margin: 0;
   width: 12px;
   height: 12px;
-  background-color: #ffffff;
+  background-color: $grey-color !important;
 }
 .carousel-caption {
   position: absolute;
