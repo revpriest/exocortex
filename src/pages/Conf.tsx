@@ -389,6 +389,14 @@ const CacheResetSection = () => {
           <AlertDialogTrigger asChild>
              <div>
                 <Button
+                  variant="outline"
+                  disabled={isResetting}
+                  className="w-full sm:w-auto " >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                  {isResetting ? 'Resetting...' : 'Check for upgrade'}
+                </Button>
+                &nbsp;
+                <Button
                   onClick={() => navigate('/about')}
                   className="w-full sm:w-auto"
                 >
@@ -406,14 +414,6 @@ const CacheResetSection = () => {
                   News Blog
                 </Button>
                 &nbsp;
-                <Button
-                  variant="outline"
-                  disabled={isResetting}
-                  className="sm:w-auto bg-destructive border-destructive text-destructive-foreground"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
-                  {isResetting ? 'Resetting...' : 'Clear & Upgrade'}
-                </Button>
              </div>
           </AlertDialogTrigger>
           <AlertDialogContent>
