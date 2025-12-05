@@ -328,7 +328,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <h1 onClick={() => navigate('/about')} className="text-2xl md:text-3xl font-bold text-foreground">
-                <img src="/exocortexlog.png" style={{width: "64px", float:"left"}}/> Exocortex Log
+                <nobr><img src="/exocortexlog.png" style={{width: "64px", float:"left"}}/> Exocortex Log</nobr>
             </h1>
 
             {/* View Toggle Buttons */}
