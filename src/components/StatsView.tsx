@@ -624,9 +624,12 @@ export function StatsView({ className }: StatsViewProps) {
                   stroke="hsl(var(--muted-foreground))"
                   tick={{
                     fill: 'hsl(var(--muted-foreground))',
-                    textAnchor: 'middle',
-                    fontSize: 13,
+                    fontSize: 11,
                   }}
+                  angle={-90}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
                 />
                 <YAxis
                   type="number"
