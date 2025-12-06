@@ -869,7 +869,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
   return (
     <div className={`relative ${className}`}>
-      {/* Day overview dialog from stats */}
+      {/* Day overview dialog */}
       <DayOverviewDialog
         open={!!selectedDateKey}
         onOpenChange={(open) => {
@@ -877,7 +877,8 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
             setSelectedDateKey(null);
           }
         }}
-        stats={selectedDateKey ? { dateKey: selectedDateKey, avgHappiness: null, avgHealth: null, avgWakefulnessAwake: null, sleepHours: 0, notes: [] } : null}
+        dateKey={selectedDateKey}
+        db={db ?? null}
       />
       {/* Dialog for edit events */}
       <EventDialog

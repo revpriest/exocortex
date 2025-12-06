@@ -268,14 +268,6 @@ const Summary: React.FC = () => {
               dateString={thisDay}
               onClick={() => {
                 setSelectedDateKey(thisDay);
-                setSelectedDayStats({
-                  dateKey: thisDay,
-                  avgHappiness: null,
-                  avgHealth: null,
-                  avgWakefulnessAwake: null,
-                  sleepHours: 0,
-                  notes: [],
-                });
               }}
             />
           );
@@ -353,7 +345,8 @@ const Summary: React.FC = () => {
             setSelectedDayStats(null);
           }
         }}
-        stats={selectedDayStats}
+        dateKey={selectedDateKey}
+        db={db}
       />
     </PageLayout>
   );

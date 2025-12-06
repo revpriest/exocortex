@@ -536,12 +536,7 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
     }
   };
 
-  const dayStatsForKey = (dateKey: string | null): DayStatsSummary | null => {
-    if (!dateKey) return null;
-    const stats = dayStatsMap.get(dateKey) ?? null;
-    if (!stats) return { dateKey, avgHappiness: null, avgHealth: null, avgWakefulnessAwake: null, sleepHours: 0, notes: [] };
-    return { ...stats };
-  };
+
 
   if (loading) {
     return (
@@ -1046,7 +1041,8 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
             setSelectedDayStats(null);
           }
         }}
-        stats={dayStatsForKey(selectedDateKey)}
+        dateKey={selectedDateKey}
+        db={db}
       />
     </div>
   );
