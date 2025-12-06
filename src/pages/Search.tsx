@@ -132,18 +132,23 @@ const SearchPage: React.FC = () => {
       currentView="search"
     >
       <div className="max-w-3xl mx-auto mt-4 space-y-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <div className="flex gap-2">
           <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search notes or category..."
             className="flex-1"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+              }
+            }}
           />
-          <Button type="submit" disabled={!query.trim()}>
+          <Button type="button" disabled={!query.trim()} onClick={() => setSubmittedQuery(query.trim())}>
             Search
           </Button>
-        </form>
+        </div>
         {submittedQuery && (
           <div className="text-sm text-muted-foreground">
             Showing {filtered.length} result{submittedQuery && filtered.length !== 1 ? 's' : ''} for
