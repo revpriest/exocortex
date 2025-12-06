@@ -8,6 +8,7 @@ import { ExocortexDB, ExocortexEvent, DayEvents, formatTime, getEventColor } fro
 import { SmileyFace } from '@/components/SmileyFace';
 import { useAppContext } from '@/hooks/useAppContext';
 import { DayOverviewDialog } from '@/components/DayOverviewDialog';
+import { EventDialog } from '@/components/EventDialog';
 
 function highlightMatch(text: string | undefined, term: string): React.ReactNode {
   if (!text) return null;
@@ -161,6 +162,48 @@ const SearchPage: React.FC = () => {
     });
   }, [events, submittedQuery]);
 
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) setEditingEvent(null);
+  };
+
+  const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
+    if (!db) return;
+    await db.updateEvent(id, eventData);
+    setEditingEvent(null);
+
+    // Refresh local events cache so search results reflect changes
+    const to = new Date();
+    to.setHours(23, 59, 59, 999);
+    const from = new Date(to);
+    from.setFullYear(from.getFullYear() - 3);
+    from.setHours(0, 0, 0, 0);
+    const days: DayEvents[] = await db.getEventsByDateRangeOnly(
+      from.toISOString().split('T')[0],
+      to.toISOString().split('T')[0],
+    );
+    const allEvents = days.flatMap((d) => d.events).sort((a, b) => b.endTime - a.endTime);
+    setEvents(allEvents);
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (!db) return;
+    await db.deleteEvent(id);
+    setEditingEvent(null);
+
+    // Refresh local events cache
+    const to = new Date();
+    to.setHours(23, 59, 59, 999);
+    const from = new Date(to);
+    from.setFullYear(from.getFullYear() - 3);
+    from.setHours(0, 0, 0, 0);
+    const days: DayEvents[] = await db.getEventsByDateRangeOnly(
+      from.toISOString().split('T')[0],
+      to.toISOString().split('T')[0],
+    );
+    const allEvents = days.flatMap((d) => d.events).sort((a, b) => b.endTime - a.endTime);
+    setEvents(allEvents);
+  };
+
   return (
     <PageLayout
       db={db}
@@ -228,6 +271,14 @@ const SearchPage: React.FC = () => {
           d.setDate(d.getDate() + 1);
           setSelectedDateKey(d.toISOString().split('T')[0]);
         }}
+      />
+      <EventDialog
+        open={!!editingEvent}
+        onOpenChange={handleDialogOpenChange}
+        onUpdate={handleUpdateEvent}
+        onSubmit={handleUpdateEvent}
+        onDelete={handleDeleteEvent}
+        editEvent={editingEvent}
       />
     </PageLayout>
   );
