@@ -364,27 +364,26 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       if (!skipDate || !db) return;
 
       try {
+        console.log('[ExocortexGrid] checkSkipDate called with', skipDate.toISOString().split('T')[0]);
 
         // Determine a small initial window after the top date so we don't
         // render the entire history. Similar behavior to Summary: a fixed
         // number of days around the jump point.
         const INITIAL_WINDOW_DAYS = 50; // can tweak; small for perf
-        const DATE_LOOKBACK       = 0;
 
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const todayStr = today.toISOString().split('T')[0];
 
-        // We want the skipped-to date to be the new "top" of the grid,
-        // and then load days after it as the user scrolls.
-        const topDate = new Date(skipDate); // clone
-        topDate.setHours(0, 0, 0, 0);
-        topDate.setDate(topDate.getDate() - DATE_LOOKBACK)
+        // Clamp topDate so it can never be in the future
+        const rawTopDate = new Date(skipDate);
+        rawTopDate.setHours(0, 0, 0, 0);
+        const topDate = rawTopDate > today ? new Date(today) : rawTopDate;
 
-        // We want to look *backwards* from the chosen date, so build a
-        // window that goes N-1 days into the past.
-        const to = new Date(topDate); // newest day in this window
+        // Build a window that goes INITIAL_WINDOW_DAYS-1 days into the past
+        const to = new Date(topDate);
         const from = new Date(topDate);
-        from.setDate(from.getDate() - (INITIAL_WINDOW_DAYS - 1)); // older
+        from.setDate(from.getDate() - (INITIAL_WINDOW_DAYS - 1));
 
         const fromStr = from.toISOString().split('T')[0];
         const toStr = to.toISOString().split('T')[0] <= todayStr ? to.toISOString().split('T')[0] : todayStr;
@@ -408,26 +407,14 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
           cursor.setDate(cursor.getDate() + 1);
         }
 
-        // For skip-to-date view we want the chosen date at the top
-        // and then earlier days underneath going backwards in time.
-        // Since `from` is already `topDate` and we increment `cursor`
-        // forwards, allDays is naturally in ascending order
-        // Now we want days ordered as [topDate, topDate-1, topDate-2, ...]
-        // i.e. newest at index 0, then going backwards in time.
-        allDays.sort((a, b) => {
-          const aDate = new Date(a.date).getTime();
-          const bDate = new Date(b.date).getTime();
-          return bDate - aDate; // newest first
-        });
+        // Order newest-first: [topDate, topDate-1, ...]
+        allDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        // Filter to only dates up to and including the chosen topDate,
-        // then we already have the desired order: [topDate, older...].
-        const filtered = allDays.filter(d => new Date(d.date) <= topDate);
-        setDays(filtered);
+        setDays(allDays);
 
         // Reset scroll back to top so the selected day is visible
         if (gridRef.current) {
-          gridRef.current.scrollTop = ROW_HEIGHT*DATE_LOOKBACK;
+          gridRef.current.scrollTop = 0;
         }
       } catch (error) {
         console.error('Failed to skip to date:', error);
