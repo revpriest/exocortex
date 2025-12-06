@@ -153,18 +153,9 @@ export function DayOverviewDialog({
   const handleOpenStats = () => {
     if (!dateKey) return;
 
-    const day = new Date(dateKey + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const diffDays = Math.floor((today.getTime() - day.getTime()) / (1000 * 60 * 60 * 24));
-    const clamped = Math.max(0, Math.min(diffDays, 27));
-
-    const start = new Date(day);
-    start.setDate(start.getDate() - clamped + 1);
-
-    const startParam = format(start, 'yyyy-MM-dd');
-    const daysParam = (clamped + 1).toString();
+    // Always open stats as a single-day view starting on this date
+    const startParam = format(new Date(dateKey + 'T00:00:00'), 'yyyy-MM-dd');
+    const daysParam = '1';
 
     navigate({ pathname: '/stats', search: `?start=${startParam}&days=${daysParam}` });
   };
