@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -109,6 +109,7 @@ export function DayOverviewDialog({
   onNextDay,
 }: DayOverviewDialogProps) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [stats, setStats] = React.useState<DayStatsSummary | null>(null);
 
@@ -133,6 +134,11 @@ export function DayOverviewDialog({
         year: 'numeric',
       })
     : '';
+
+  const pathname = location.pathname;
+  const isOnGrid = pathname === '/';
+  const isOnSummary = pathname === '/summary';
+  const isOnStats = pathname === '/stats';
 
   const handleOpenGrid = () => {
     if (!dateKey) return;
@@ -231,15 +237,21 @@ export function DayOverviewDialog({
           </div>
 
           <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-border mt-4">
-            <Button variant="outline" size="sm" onClick={handleOpenGrid}>
-              Open in Grid view
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleOpenSummary}>
-              Open in Summary view
-            </Button>
-            <Button variant="default" size="sm" onClick={handleOpenStats}>
-              Open in Stats view
-            </Button>
+            {!isOnGrid && (
+              <Button variant="outline" size="sm" onClick={handleOpenGrid}>
+                Open in Grid view
+              </Button>
+            )}
+            {!isOnSummary && (
+              <Button variant="outline" size="sm" onClick={handleOpenSummary}>
+                Open in Summary view
+              </Button>
+            )}
+            {!isOnStats && (
+              <Button variant="outline" size="sm" onClick={handleOpenStats}>
+                Open in Stats view
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
