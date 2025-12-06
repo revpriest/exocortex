@@ -22,6 +22,7 @@ import { ExocortexEvent, DayEvents, ExocortexDB, getEventColor, getHourSlots } f
 import { useAppContext } from '@/hooks/useAppContext';
 import { SmileyFace } from './SmileyFace';
 import { EventDialog } from '@/components/EventDialog';
+import { DayOverviewDialog } from '@/components/DayOverviewDialog';
 
 
 /**
@@ -104,6 +105,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   //Some state for the edit event dialog
   const [_isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
   // Reference to the main grid container (for scrolling and measurements)
   const gridRef = useRef<HTMLDivElement>(null);
@@ -867,6 +869,16 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
   return (
     <div className={`relative ${className}`}>
+      {/* Day overview dialog from stats */}
+      <DayOverviewDialog
+        open={!!selectedDateKey}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDateKey(null);
+          }
+        }}
+        stats={selectedDateKey ? { dateKey: selectedDateKey, avgHappiness: null, avgHealth: null, avgWakefulnessAwake: null, sleepHours: 0, notes: [] } : null}
+      />
       {/* Dialog for edit events */}
       <EventDialog
         open={!!editingEvent}
@@ -920,14 +932,18 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
               }}
             >
               {/* Date label - mobile optimized */}
-              <div className="absolute left-2 -top-1 text-xs md:text-sm text-muted-foreground z-20 select-none">
+              <button
+                type="button"
+                className="absolute left-2 -top-1 text-xs md:text-sm text-muted-foreground z-20 select-none hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-transparent"
+                onClick={() => setSelectedDateKey(day.date)}
+              >
                 {new Date(day.date).toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric'
                 })}
-              </div>
+              </button>
 
               {/* Grid lines */}
               <div className="absolute inset-0 flex" style={{ minWidth: `${HOURS_IN_DAY * HOUR_WIDTH}px` }}>

@@ -5,6 +5,7 @@
  * two selected dates. 
  */
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
 import { ExocortexDB } from '@/lib/exocortex';
@@ -12,6 +13,7 @@ import { StatsView } from '@/components/StatsView';
 
 const Stats = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
+  const [searchParams] = useSearchParams();
 
   //Include the DB so header add-event can work.
   useEffect(() => {
@@ -31,9 +33,15 @@ const Stats = () => {
     description: 'Track progress between dates on your personal time-tracking app',
   });
 
+  const startParam = searchParams.get('start');
+  const daysParam = searchParams.get('days');
+
   return (
     <PageLayout db={db} title="Stats" explain="Stats" currentView="stats">
-      <StatsView />
+      <StatsView
+        initialStart={startParam ? new Date(`${startParam}T00:00:00`) : undefined}
+        initialWindow={daysParam ? (daysParam === 'month' ? 'month' : Number(daysParam)) : undefined}
+      />
     </PageLayout>
   );
 };

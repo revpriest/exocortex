@@ -15,6 +15,7 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { ChevronRight } from 'lucide-react';
 import { EventDialog } from '@/components/EventDialog';
 import { ColorOverride } from '@/contexts/AppContext';
+import { DayOverviewDialog, DayStatsSummary } from '@/components/DayOverviewDialog';
 
 // --- helpers: makeSummaryRows, compactCats, DaySeparatorRow, SummaryGroupHeader, SummaryEventRow ...
 
@@ -48,7 +49,7 @@ function compactCats(events: ExocortexEvent[]) {
   return label;
 }
 
-function DaySeparatorRow({ dateString }: { dateString: string }) {
+function DaySeparatorRow({ dateString, onClick }: { dateString: string; onClick?: () => void }) {
   const dt = new Date(dateString);
   const nice = dt.toLocaleDateString(undefined, {
     weekday: 'long',
@@ -59,9 +60,13 @@ function DaySeparatorRow({ dateString }: { dateString: string }) {
   return (
     <div className="flex items-center mt-6 mb-2">
       <div className="flex-grow border-t border-border mr-3" />
-      <span className="px-3 py-0.5 text-xs font-semibold bg-muted text-muted-foreground rounded shadow-sm">
+      <button
+        type="button"
+        className="px-3 py-0.5 text-xs font-semibold bg-muted text-muted-foreground rounded shadow-sm hover:bg-muted/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        onClick={onClick}
+      >
         {nice}
-      </span>
+      </button>
       <div className="flex-grow border-t border-border ml-3" />
     </div>
   );
@@ -176,6 +181,8 @@ const Summary: React.FC = () => {
   const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
   const { config } = useAppContext();
   const [searchParams] = useSearchParams();
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [selectedDayStats, setSelectedDayStats] = useState<DayStatsSummary | null>(null);
 
   useSeoMeta({
     title: 'Summary - ExocortexLog',
@@ -255,7 +262,23 @@ const Summary: React.FC = () => {
       if (thisEvent) {
         const thisDay = new Date(thisEvent.endTime).toISOString().split('T')[0];
         if (thisDay !== lastDate) {
-          result.push(<DaySeparatorRow key={`daysep-${thisDay}`} dateString={thisDay} />);
+          result.push(
+            <DaySeparatorRow
+              key={`daysep-${thisDay}`}
+              dateString={thisDay}
+              onClick={() => {
+                setSelectedDateKey(thisDay);
+                setSelectedDayStats({
+                  dateKey: thisDay,
+                  avgHappiness: null,
+                  avgHealth: null,
+                  avgWakefulnessAwake: null,
+                  sleepHours: 0,
+                  notes: [],
+                });
+              }}
+            />
+          );
           lastDate = thisDay;
         }
       }
@@ -322,6 +345,16 @@ const Summary: React.FC = () => {
         )}
         {renderRowsWithDaySeparators()}
       </div>
+      <DayOverviewDialog
+        open={!!selectedDateKey}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDateKey(null);
+            setSelectedDayStats(null);
+          }
+        }}
+        stats={selectedDayStats}
+      />
     </PageLayout>
   );
 };

@@ -15,6 +15,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExocortexEvent, ExocortexDB, getEventColor } from '@/lib/exocortex';
 import { Calendar } from '@/components/ui/calendar';
+import { DayOverviewDialog, DayStatsSummary } from '@/components/DayOverviewDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -33,7 +34,6 @@ import {
 } from 'recharts';
 import { CalendarIcon, BarChart3, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { addDays, addMonths, endOfDay, format, isBefore, isValid, startOfDay } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 /**
@@ -41,6 +41,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
  */
 interface StatsViewProps {
   className?: string;
+  initialStart?: Date;
+  initialWindow?: WindowOption;
 }
 
 /**
@@ -70,7 +72,7 @@ interface CategoryDataPoint {
   count: number;
 }
 
-interface DayStats {
+export interface DayStats {
   dateKey: string;
   avgHappiness: number | null;
   avgHealth: number | null;
@@ -326,7 +328,7 @@ function buildDayStats(events: ExocortexEvent[]): Map<string, DayStats> {
  * This component handles all statistics functionality including data fetching,
  * date filtering, and rendering of both the line chart and histogram.
  */
-export function StatsView({ className }: StatsViewProps) {
+export function StatsView({ className, initialStart, initialWindow }: StatsViewProps) {
   /**
    * State Management
    *
@@ -335,13 +337,14 @@ export function StatsView({ className }: StatsViewProps) {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [windowSize, setWindowSize] = useState<WindowOption>(7);
+  const [startDate, setStartDate] = useState<Date | undefined>(initialStart);
+  const [windowSize, setWindowSize] = useState<WindowOption>(initialWindow ?? 7);
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [selectedDayStats, setSelectedDayStats] = useState<DayStats | null>(null);
+
 
   const navigate = useNavigate();
 
@@ -365,12 +368,13 @@ export function StatsView({ className }: StatsViewProps) {
         setDb(database);
 
         const today = startOfDay(new Date());
-        const oneWeekAgo = addDays(today, -6); // inclusive range: 7 days
+        const defaultStart = initialStart ? startOfDay(initialStart) : addDays(today, -6);
+        const defaultWindow = initialWindow ?? 7;
 
-        setStartDate(oneWeekAgo);
-        setWindowSize(7);
+        setStartDate(defaultStart);
+        setWindowSize(defaultWindow);
 
-        await loadEventsForRange(database, oneWeekAgo, calculateEndDate(oneWeekAgo, 7));
+        await loadEventsForRange(database, defaultStart, calculateEndDate(defaultStart, defaultWindow));
       } catch (err) {
         console.error('Failed to initialize database:', err);
         setError('Failed to load statistics data');
@@ -532,6 +536,13 @@ export function StatsView({ className }: StatsViewProps) {
     }
   };
 
+  const dayStatsForKey = (dateKey: string | null): DayStatsSummary | null => {
+    if (!dateKey) return null;
+    const stats = dayStatsMap.get(dateKey) ?? null;
+    if (!stats) return { dateKey, avgHappiness: null, avgHealth: null, avgWakefulnessAwake: null, sleepHours: 0, notes: [] };
+    return { ...stats };
+  };
+
   if (loading) {
     return (
       <div className={`flex items-center justify-center h-64 ${className ?? ''}`}>
@@ -539,17 +550,6 @@ export function StatsView({ className }: StatsViewProps) {
       </div>
     );
   }
-
-  const formattedSelectedDate = selectedDateKey
-    ? new Date(selectedDateKey + 'T00:00:00').toLocaleDateString(undefined, {
-        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-      })
-    : '';
-
-  const formatPercent = (value: number | null) =>
-    value == null ? '—' : `${(value * 100).toFixed(0)}%`;
-
-  const formatHours = (value: number) => `${value.toFixed(1)} h`;
 
   return (
     <div className={`space-y-6 ${className ?? ''}`}>
@@ -1038,101 +1038,16 @@ export function StatsView({ className }: StatsViewProps) {
           </CardContent>
         </Card>
 
-      {/* Day details dialog for clicked mood point */}
-      <Dialog open={!!selectedDateKey} onOpenChange={(open) => {
-        if (!open) {
-          setSelectedDateKey(null);
-          setSelectedDayStats(null);
-        }
-      }}>
-        <DialogContent className="sm:max-w-lg bg-card border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle>Mood details for {formattedSelectedDate}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div>
-                <div className="text-muted-foreground">Average happiness</div>
-                <div className="font-semibold">{formatPercent(selectedDayStats?.avgHappiness ?? null)}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Average health</div>
-                <div className="font-semibold">{formatPercent(selectedDayStats?.avgHealth ?? null)}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Average wakefulness (awake)</div>
-                <div className="font-semibold">{formatPercent(selectedDayStats?.avgWakefulnessAwake ?? null)}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Sleep duration</div>
-                <div className="font-semibold">{selectedDayStats ? formatHours(selectedDayStats.sleepHours) : '—'}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-2">
-              <div className="text-sm text-muted-foreground">Browse nearby days</div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleShiftSelectedDay(-1)}
-                  disabled={!selectedDateKey}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleShiftSelectedDay(1)}
-                  disabled={!selectedDateKey}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-2">
-              <div className="text-sm font-medium mb-1">Notes</div>
-              {selectedDayStats && selectedDayStats.notes.length > 0 ? (
-                <ScrollArea className="max-h-48 rounded-md border border-border bg-background/60 p-3 text-sm space-y-2">
-                  {selectedDayStats.notes.map((note, idx) => (
-                    <div key={idx} className="p-2 rounded bg-muted/60 text-muted-foreground">
-                      {note}
-                    </div>
-                  ))}
-                </ScrollArea>
-              ) : (
-                <div className="text-sm text-muted-foreground">No notes recorded for this day.</div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-border mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!selectedDateKey) return;
-                  navigate({ pathname: '/', search: `?date=${selectedDateKey}` });
-                }}
-              >
-                Open in Grid view
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!selectedDateKey) return;
-                  navigate({ pathname: '/summary', search: `?date=${selectedDateKey}` });
-                }}
-              >
-                Open in Summary view
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DayOverviewDialog
+        open={!!selectedDateKey}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDateKey(null);
+            setSelectedDayStats(null);
+          }
+        }}
+        stats={dayStatsForKey(selectedDateKey)}
+      />
     </div>
   );
 }
