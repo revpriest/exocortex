@@ -506,7 +506,6 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
   const handleDateClick = (dateKey: string) => {
     const stats = dayStatsMap.get(dateKey) ?? null;
     setSelectedDateKey(dateKey);
-    setSelectedDayStats(stats);
   };
 
   const handleShiftSelectedDay = (direction: 1 | -1) => {
