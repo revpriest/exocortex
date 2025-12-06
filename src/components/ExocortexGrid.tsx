@@ -124,6 +124,14 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       console.log('[ExocortexGrid] Initialising with db', !!db);
       if (!db) return;
 
+      // If skipDate is already set, defer to skip-to-date logic instead of
+      // anchoring the window on today. This avoids fighting the skip.
+      if (skipDate) {
+        console.log('[ExocortexGrid] Initial load: skipDate is set, deferring to skip logic');
+        setLoading(false);
+        return;
+      }
+
       // Init our days cache
       // Calculate how many days we need to fill the screen
       // Assuming each row is 80px tall and screen height is available
@@ -175,7 +183,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, [db]);
+  }, [db, skipDate]);
 
 
 
@@ -289,86 +297,92 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   // assume the user wants to stay on that window and skip refresh.
   useEffect(() => {
     console.log('[ExocortexGrid] Refresh trigger changed to', refreshTrigger);
-    if (refreshTrigger && db && !skipDate) {
-      const refreshData = async () => {
-        setLoading(true);
 
-        try {
-          const today = new Date().toISOString().split('T')[0];
-          console.log('[ExocortexGrid] Refresh: checking today events for', today);
-          const todayEvents = await db.getEventsByDate(today);
+    if (!db) return;
+    if (skipDate) {
+      console.log('[ExocortexGrid] Skipping refresh because skipDate is active');
+      return;
+    }
+    if (!refreshTrigger) return;
 
-          if (todayEvents.length === 0) {
-            // Database was empty, load initial data (same logic as first mount)
-            const screenHeight = window.innerHeight - 100;
-            const rowsNeeded = Math.ceil(screenHeight / 80) + 2;
-            const daysToLoad = Math.max(7, rowsNeeded);
+    const refreshData = async () => {
+      setLoading(true);
 
-            const todayDate = new Date();
-            const todayStr = todayDate.toISOString().split('T')[0];
-            const startDate = new Date(todayDate);
-            startDate.setDate(startDate.getDate() - daysToLoad + 1);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        console.log('[ExocortexGrid] Refresh: checking today events for', today);
+        const todayEvents = await db.getEventsByDate(today);
 
-            const daysWithEvents = await db.getEventsByDateRangeOnly(
-              startDate.toISOString().split('T')[0],
-              todayStr
-            );
-            console.log('[ExocortexGrid] Refresh: reloading window', {
-              start: startDate.toISOString().split('T')[0],
-              end: todayStr,
-              count: daysWithEvents.length,
+        if (todayEvents.length === 0) {
+          // Database was empty, load initial data (same logic as first mount)
+          const screenHeight = window.innerHeight - 100;
+          const rowsNeeded = Math.ceil(screenHeight / 80) + 2;
+          const daysToLoad = Math.max(7, rowsNeeded);
+
+          const todayDate = new Date();
+          const todayStr = todayDate.toISOString().split('T')[0];
+          const startDate = new Date(todayDate);
+          startDate.setDate(startDate.getDate() - daysToLoad + 1);
+
+          const daysWithEvents = await db.getEventsByDateRangeOnly(
+            startDate.toISOString().split('T')[0],
+            todayStr
+          );
+          console.log('[ExocortexGrid] Refresh: reloading window', {
+            start: startDate.toISOString().split('T')[0],
+            end: todayStr,
+            count: daysWithEvents.length,
+          });
+
+          const dayMap = new Map<string, DayEvents>();
+          daysWithEvents.forEach(d => dayMap.set(d.date, d));
+
+          const allDays: DayEvents[] = [];
+          const cursor = new Date(todayDate);
+          while (cursor >= startDate) {
+            const dateStr = cursor.toISOString().split('T')[0];
+            const existing = dayMap.get(dateStr);
+            if (existing) {
+              allDays.push(existing);
+            } else {
+              allDays.push({ date: dateStr, events: [] });
+            }
+            cursor.setDate(cursor.getDate() - 1);
+          }
+
+          setDays(allDays);
+        } else {
+          // Database has data, just refresh current view
+          const currentDayDates = days.map(d => d.date);
+          const refreshFrom = new Date();
+          refreshFrom.setDate(refreshFrom.getDate() - 30);
+
+          const daysWithEvents = await db.getEventsByDateRangeOnly(
+            refreshFrom.toISOString().split('T')[0],
+            today
+          );
+
+          const updatedDays = daysWithEvents
+            .filter(day => currentDayDates.includes(day.date))
+            .sort((a, b) => {
+              // Keep newest dates first
+
+              const aDate = new Date(a.date);
+              const bDate = new Date(b.date);
+              return bDate.getTime() - aDate.getTime();
             });
 
-            const dayMap = new Map<string, DayEvents>();
-            daysWithEvents.forEach(d => dayMap.set(d.date, d));
-
-            const allDays: DayEvents[] = [];
-            const cursor = new Date(todayDate);
-            while (cursor >= startDate) {
-              const dateStr = cursor.toISOString().split('T')[0];
-              const existing = dayMap.get(dateStr);
-              if (existing) {
-                allDays.push(existing);
-              } else {
-                allDays.push({ date: dateStr, events: [] });
-              }
-              cursor.setDate(cursor.getDate() - 1);
-            }
-
-            setDays(allDays);
-          } else {
-            // Database has data, just refresh current view
-            const currentDayDates = days.map(d => d.date);
-            const refreshFrom = new Date();
-            refreshFrom.setDate(refreshFrom.getDate() - 30);
-
-            const daysWithEvents = await db.getEventsByDateRangeOnly(
-              refreshFrom.toISOString().split('T')[0],
-              today
-            );
-
-            const updatedDays = daysWithEvents
-              .filter(day => currentDayDates.includes(day.date))
-              .sort((a, b) => {
-                // Keep newest dates first
-
-                const aDate = new Date(a.date);
-                const bDate = new Date(b.date);
-                return bDate.getTime() - aDate.getTime();
-              });
-
-            setDays(updatedDays);
-          }
-        } catch (error) {
-          console.error('[ExocortexGrid] Failed to refresh grid:', error);
-          setError('Failed to refresh data. Please try again.');
-        } finally {
-          setLoading(false);
+          setDays(updatedDays);
         }
-      };
+      } catch (error) {
+        console.error('[ExocortexGrid] Failed to refresh grid:', error);
+        setError('Failed to refresh data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      refreshData();
-    }
+    refreshData();
   }, [refreshTrigger, db, days, skipDate]);
 
 
