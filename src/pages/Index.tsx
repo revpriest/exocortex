@@ -38,7 +38,6 @@ const Index = () => {
 
   // React Router hooks for URL-based navigation
   const [searchParams, setSearchParams] = useSearchParams();
-  const [hasConsumedDateParam, setHasConsumedDateParam] = useState(false);
 
   useEffect(() => {
     const initAll = async () => {
@@ -54,28 +53,21 @@ const Index = () => {
     });
   }, []); // Empty dependency array means this runs only once on mount
 
-  // Initialise skipDate from ?date=YYYY-MM-DD exactly once per mount
+  // Initialise skipDate from ?date=YYYY-MM-DD when first loading
   useEffect(() => {
-    if (hasConsumedDateParam) return;
-
     const dateParam = searchParams.get('date');
-    if (!dateParam) {
-      setHasConsumedDateParam(true);
-      return;
-    }
+    if (!dateParam) return;
 
     const parsed = new Date(`${dateParam}T00:00:00`);
     if (!Number.isNaN(parsed.getTime())) {
       setSkipDate(parsed);
-    }
 
-    // Clear the date param so subsequent navigations don't re-apply it,
-    // and mark it as consumed so we don't re-run this logic.
-    const params = new URLSearchParams(searchParams);
-    params.delete('date');
-    setSearchParams(params, { replace: true });
-    setHasConsumedDateParam(true);
-  }, [searchParams, setSearchParams, hasConsumedDateParam]);
+      // Clear the date param so subsequent navigations don't re-apply it
+      const params = new URLSearchParams(searchParams);
+      params.delete('date');
+      setSearchParams(params, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   /**
    * Get current view from URL query parameter
