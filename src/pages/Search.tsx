@@ -222,6 +222,9 @@ const SearchPage: React.FC = () => {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
+                if (query.trim()) {
+                  setSubmittedQuery(query.trim());
+                }
               }
             }}
           />
