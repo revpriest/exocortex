@@ -12,10 +12,9 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ExocortexEvent, ExocortexDB, getEventColor } from '@/lib/exocortex';
 import { Calendar } from '@/components/ui/calendar';
-import { DayOverviewDialog, DayStatsSummary } from '@/components/DayOverviewDialog';
+import { DayOverviewDialog } from '@/components/DayOverviewDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -34,7 +33,6 @@ import {
 } from 'recharts';
 import { CalendarIcon, BarChart3, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { addDays, addMonths, endOfDay, format, isBefore, isValid, startOfDay } from 'date-fns';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 /**
  * Component Props Interface
@@ -241,86 +239,6 @@ function buildMoodSeries(events: ExocortexEvent[], rangeStartDate?: Date, rangeE
   return samples;
 }
 
-function buildDayStats(events: ExocortexEvent[]): Map<string, DayStats> {
-  const byDate = new Map<string, ExocortexEvent[]>();
-
-  events.forEach(event => {
-    const dateKey = format(new Date(event.endTime), DATE_KEY_FORMAT);
-    const list = byDate.get(dateKey) ?? [];
-    list.push(event);
-    byDate.set(dateKey, list);
-  });
-
-  const result = new Map<string, DayStats>();
-
-  byDate.forEach((dayEvents, dateKey) => {
-    if (dayEvents.length === 0) return;
-
-    let happinessSum = 0;
-    let healthSum = 0;
-    let count = 0;
-
-    let awakeWakefulnessSum = 0;
-    let awakeCount = 0;
-
-    let sleepHours = 0;
-
-    const notes: string[] = [];
-
-    // To approximate durations we need to look at neighbouring events
-    const sorted = [...dayEvents].sort((a, b) => a.endTime - b.endTime);
-
-    sorted.forEach((event, index) => {
-      // Default to 1h. For non-first events, extend back to previous
-      // event in this day; for the very first event of the day, extend
-      // back to midnight so we pick up the full sleep chunk whose
-      // endTime falls in the early morning.
-      const durationMinutes = (() => {
-        if (index === 0) {
-          const end = event.endTime;
-          const endDate = new Date(end);
-          const dayStart = new Date(endDate);
-          dayStart.setHours(0, 0, 0, 0);
-          const diff = (endDate.getTime() - dayStart.getTime()) / (1000 * 60);
-          // At least one hour so that tiny early events still show up
-          return Math.max(SAMPLE_MINUTES, diff);
-        }
-        const prevEnd = sorted[index - 1].endTime;
-        return Math.max(SAMPLE_MINUTES / 4, (event.endTime - prevEnd) / (1000 * 60));
-      })();
-
-      const weight = durationMinutes;
-
-      happinessSum += event.happiness * weight;
-      healthSum += event.health * weight;
-      count += weight;
-
-      if (event.category.toLowerCase() !== 'sleep') {
-        awakeWakefulnessSum += event.wakefulness * weight;
-        awakeCount += weight;
-      }
-
-      if (event.category.toLowerCase() === 'sleep') {
-        sleepHours += durationMinutes / 60;
-      }
-
-      if (event.notes && event.notes.trim().length > 0) {
-        notes.push(event.notes.trim());
-      }
-    });
-
-    result.set(dateKey, {
-      dateKey,
-      avgHappiness: count > 0 ? happinessSum / count : null,
-      avgHealth: count > 0 ? healthSum / count : null,
-      avgWakefulnessAwake: awakeCount > 0 ? awakeWakefulnessSum / awakeCount : null,
-      sleepHours,
-      notes,
-    });
-  });
-
-  return result;
-}
 
 /**
  * Main StatsView Component
@@ -344,8 +262,6 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
 
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
-
-  const navigate = useNavigate();
 
   // Derived end date from startDate + windowSize
   const endDate = useMemo(() => {
@@ -383,7 +299,7 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
     };
 
     void initDb();
-  }, []);
+  }, [initialStart, initialWindow]);
 
   /**
    * Load Events for Date Range
@@ -456,10 +372,6 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
     return buildMoodSeries(events, startDate, endDate);
   }, [events, startDate, endDate]);
 
-  const dayStatsMap = useMemo(() => {
-    return buildDayStats(events);
-  }, [events]);
-
   const categoryData = useMemo(() => {
     const sortedEvents = [...events].sort((a, b) => a.endTime - b.endTime);
 
@@ -504,7 +416,6 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
   }, [events]);
 
   const handleDateClick = (dateKey: string) => {
-    const stats = dayStatsMap.get(dateKey) ?? null;
     setSelectedDateKey(dateKey);
   };
 

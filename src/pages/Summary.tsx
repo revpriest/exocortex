@@ -15,7 +15,7 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { ChevronRight } from 'lucide-react';
 import { EventDialog } from '@/components/EventDialog';
 import { ColorOverride } from '@/contexts/AppContext';
-import { DayOverviewDialog, DayStatsSummary } from '@/components/DayOverviewDialog';
+import { DayOverviewDialog } from '@/components/DayOverviewDialog';
 
 // --- helpers: makeSummaryRows, compactCats, DaySeparatorRow, SummaryGroupHeader, SummaryEventRow ...
 
