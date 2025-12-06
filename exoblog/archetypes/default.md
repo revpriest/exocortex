@@ -8,6 +8,6 @@ category:
 - exocortexLog
 cover:
   alt: An image
-  image: /news/img/exocortexlog.png
+  image: img/exocortexlog.png
 Description: "News about exocortex log"
 ---
