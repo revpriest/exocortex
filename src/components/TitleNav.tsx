@@ -244,8 +244,9 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
   // Scroll to today functionality
   const handleScrollToToday = useCallback(() => {
-    if(setSkipDate){
+    if (setSkipDate) {
       const targetDate = new Date();
+      console.log('[TitleNav] Scroll-to-today clicked, targetDate', targetDate.toISOString());
       setSkipDate(targetDate);
     }
   }, [setSkipDate]);
@@ -256,8 +257,8 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
       return;
     }
     const targetDate = selectedSkipDate;
-    console.log("Calling setSkipDate function at Grid",targetDate,setSkipDate);
-    if(setSkipDate){
+    console.log('[TitleNav] Jump-to-date from calendar', targetDate?.toISOString(), 'has setSkipDate', !!setSkipDate);
+    if (setSkipDate) {
       setSkipDate(targetDate);
     }
   };

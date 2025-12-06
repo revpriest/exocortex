@@ -78,7 +78,7 @@ interface ExocortexGridProps {
 export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db, skipDate}: ExocortexGridProps) {
   const { config } = useAppContext();
   const [_error, setError] = useState<string | null>(null);
-  const [_currentDate, setCurrentDate] = useState(new Date()); 
+  const [_currentDate, setCurrentDate] = useState(new Date());
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
   // Array containing events grouped by day
@@ -100,7 +100,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
   const [hasDragged, setHasDragged] = useState(false);
   const dragThreshold = 5; // 5 pixels minimum movement to consider it a drag
-  
+
 
   //Some state for the edit event dialog
   const [_isDialogOpen, setIsDialogOpen] = useState(false);
@@ -118,10 +118,10 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
 
 
-  //Initialize at start 
+  //Initialize at start
   useEffect(() => {
     const initAll = async () => {
-      console.log("Grid Init with Db ",db);
+      console.log('[ExocortexGrid] Initialising with db', !!db);
       if (!db) return;
 
       // Init our days cache
@@ -135,12 +135,14 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       const todayStr = today.toISOString().split('T')[0];
       const startDate = new Date(today);
       startDate.setDate(startDate.getDate() - daysToLoad + 1); // Go back enough days to fill screen
+      console.log('[ExocortexGrid] Initial load date window', { startDate: startDate.toISOString().split('T')[0], todayStr });
 
       // Get only days that actually have events in this range
       const daysWithEvents = await db.getEventsByDateRangeOnly(
         startDate.toISOString().split('T')[0],
         todayStr
       );
+      console.log('[ExocortexGrid] Initial load daysWithEvents', daysWithEvents.map(d => d.date));
 
       // Build a continuous list of calendar days between startDate and today
       const dayMap = new Map<string, DayEvents>();
@@ -160,6 +162,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       }
 
       // allDays is built newest-first (today downwards)
+      console.log('[ExocortexGrid] Initial allDays sequence', allDays.map(d => d.date));
       setDays(allDays);
 
       // Hide loading indicator once data is loaded
@@ -172,7 +175,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, [db]); 
+  }, [db]);
 
 
 
@@ -278,18 +281,19 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, [loading, db, days]); 
+  }, [loading, db, days]);
 
 
   // Refresh grid when refreshTrigger changes
   useEffect(() => {
-    console.log("Triggered Refresh Of Grid");
+    console.log('[ExocortexGrid] Refresh trigger changed to', refreshTrigger);
     if (refreshTrigger && db) {
       const refreshData = async () => {
         setLoading(true);
 
         try {
           const today = new Date().toISOString().split('T')[0];
+          console.log('[ExocortexGrid] Refresh: checking today events for', today);
           const todayEvents = await db.getEventsByDate(today);
 
           if (todayEvents.length === 0) {
@@ -307,6 +311,11 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
               startDate.toISOString().split('T')[0],
               todayStr
             );
+            console.log('[ExocortexGrid] Refresh: reloading window', {
+              start: startDate.toISOString().split('T')[0],
+              end: todayStr,
+              count: daysWithEvents.length,
+            });
 
             const dayMap = new Map<string, DayEvents>();
             daysWithEvents.forEach(d => dayMap.set(d.date, d));
@@ -339,6 +348,8 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
             const updatedDays = daysWithEvents
               .filter(day => currentDayDates.includes(day.date))
               .sort((a, b) => {
+                // Keep newest dates first
+
                 const aDate = new Date(a.date);
                 const bDate = new Date(b.date);
                 return bDate.getTime() - aDate.getTime();
@@ -347,7 +358,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
             setDays(updatedDays);
           }
         } catch (error) {
-          console.error('Failed to refresh grid:', error);
+          console.error('[ExocortexGrid] Failed to refresh grid:', error);
           setError('Failed to refresh data. Please try again.');
         } finally {
           setLoading(false);
@@ -364,6 +375,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       if (!skipDate || !db) return;
 
       try {
+        console.log('[ExocortexGrid] checkSkipDate triggered with', skipDate.toISOString());
 
         // Determine a small initial window after the top date so we don't
         // render the entire history. Similar behavior to Summary: a fixed
@@ -379,6 +391,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         const topDate = new Date(skipDate); // clone
         topDate.setHours(0, 0, 0, 0);
         topDate.setDate(topDate.getDate() - DATE_LOOKBACK)
+        console.log('[ExocortexGrid] Calculated topDate for skip', topDate.toISOString().split('T')[0]);
 
         // We want to look *backwards* from the chosen date, so build a
         // window that goes N-1 days into the past.
@@ -388,8 +401,10 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
         const fromStr = from.toISOString().split('T')[0];
         const toStr = to.toISOString().split('T')[0] <= todayStr ? to.toISOString().split('T')[0] : todayStr;
+        console.log('[ExocortexGrid] Skip date window', { fromStr, toStr, todayStr });
 
         const rangeDays = await db.getEventsByDateRangeOnly(fromStr, toStr);
+        console.log('[ExocortexGrid] rangeDays for skip', rangeDays.map(d => d.date));
 
         // Build a complete day list for [from..to]
         const dayMap = new Map<string, DayEvents>();
@@ -419,18 +434,24 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
           const bDate = new Date(b.date).getTime();
           return bDate - aDate; // newest first
         });
+        console.log('[ExocortexGrid] allDays after sort (newest first)', allDays.map(d => d.date));
 
         // Filter to only dates up to and including the chosen topDate,
         // then we already have the desired order: [topDate, older...].
         const filtered = allDays.filter(d => new Date(d.date) <= topDate);
+        console.log('[ExocortexGrid] filtered days for skipDate', {
+          topDate: topDate.toISOString().split('T')[0],
+          dates: filtered.map(d => d.date),
+        });
         setDays(filtered);
 
         // Reset scroll back to top so the selected day is visible
         if (gridRef.current) {
           gridRef.current.scrollTop = ROW_HEIGHT*DATE_LOOKBACK;
+          console.log('[ExocortexGrid] ScrollTop set after skip:', gridRef.current.scrollTop);
         }
       } catch (error) {
-        console.error('Failed to skip to date:', error);
+        console.error('[ExocortexGrid] Failed to skip to date:', error);
       }
     };
 

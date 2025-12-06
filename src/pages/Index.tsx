@@ -41,8 +41,10 @@ const Index = () => {
 
   useEffect(() => {
     const initAll = async () => {
+      console.log('[Index] Initialising DB for grid page');
       const db = new ExocortexDB();
       await db.init();
+      console.log('[Index] DB initialised');
       setDb(db);
     };
 
@@ -59,13 +61,17 @@ const Index = () => {
     if (!dateParam) return;
 
     const parsed = new Date(`${dateParam}T00:00:00`);
+    console.log('[Index] Found ?date param', dateParam, 'parsed to', parsed.toISOString());
     if (!Number.isNaN(parsed.getTime())) {
       setSkipDate(parsed);
 
       // Clear the date param so subsequent navigations don't re-apply it
       const params = new URLSearchParams(searchParams);
       params.delete('date');
+      console.log('[Index] Clearing ?date param after applying skip');
       setSearchParams(params, { replace: true });
+    } else {
+      console.warn('[Index] Invalid ?date param, ignoring:', dateParam);
     }
   }, [searchParams, setSearchParams]);
 

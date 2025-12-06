@@ -194,8 +194,11 @@ const Summary: React.FC = () => {
     if (!dateParam) return;
 
     const parsed = new Date(`${dateParam}T00:00:00`);
+    console.log('[Summary] Found ?date param', dateParam, 'parsed to', parsed.toISOString());
     if (!Number.isNaN(parsed.getTime())) {
       setSkipDate(parsed);
+    } else {
+      console.warn('[Summary] Invalid ?date param, ignoring:', dateParam);
     }
   }, [searchParams]);
 

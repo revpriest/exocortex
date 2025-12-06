@@ -142,6 +142,7 @@ export function DayOverviewDialog({
 
   const handleOpenGrid = () => {
     if (!dateKey) return;
+    console.log('[DayOverviewDialog] Open in Grid clicked for', dateKey);
     navigate({ pathname: '/', search: `?date=${dateKey}` });
   };
 
