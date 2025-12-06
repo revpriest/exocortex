@@ -132,12 +132,8 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
           mode="single"
           selected={selectedSkipDate}
           onSelect={(date) => {
-            if (!date) return;
-            // Normalise to midnight
-            const normalized = new Date(date);
-            normalized.setHours(0, 0, 0, 0);
-            setSelectedSkipDate(normalized);
-            setCurrentMonth(normalized);
+            setSelectedSkipDate(date);
+            if (date) setCurrentMonth(date);
           }}
           month={currentMonth}
           onMonthChange={setCurrentMonth}
@@ -250,22 +246,22 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
   const handleScrollToToday = useCallback(() => {
     if (setSkipDate) {
       const targetDate = new Date();
-      targetDate.setHours(0, 0, 0, 0);
       console.log('[TitleNav] Scroll-to-today clicked, targetDate', targetDate.toISOString());
       setSkipDate(targetDate);
     }
   }, [setSkipDate]);
 
   // scroll to given to date functionality
-  const handleSkipToDate = useCallback(async () => {
-    if (!selectedSkipDate || !setSkipDate) {
+  const handleSkipToDate = async () => {
+    if (!db || !selectedSkipDate) {
       return;
     }
-    const targetDate = new Date(selectedSkipDate);
-    targetDate.setHours(0, 0, 0, 0);
-    console.log('[TitleNav] Jump-to-date from calendar', targetDate.toISOString(), 'has setSkipDate', !!setSkipDate);
-    setSkipDate(targetDate);
-  }, [selectedSkipDate, setSkipDate]);
+    const targetDate = selectedSkipDate;
+    console.log('[TitleNav] Jump-to-date from calendar', targetDate?.toISOString(), 'has setSkipDate', !!setSkipDate);
+    if (setSkipDate) {
+      setSkipDate(targetDate);
+    }
+  };
 
   /**
    * Show the title and nav
@@ -405,15 +401,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 size="sm"
                 className="bg-blue-600/20 border-blue-600 text-blue-400 hover:bg-blue-600/30"
                 title="Jump to a specific date"
-                onClick={() => {
-                  // Initialise selection when opening to avoid undefined
-                  if (!selectedSkipDate) {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    setSelectedSkipDate(today);
-                  }
-                  setShowDateSkipDialog(true);
-                }}
+                onClick={() => setShowDateSkipDialog(true)}
               >
                 <CalendarIcon className="h-4 w-4 mr-1 md:mr-2" />
                 <span className="hidden md:inline">Skip to Date</span>
@@ -432,5 +420,6 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
             </Button>
           </div>
         </div>
+
   );
 }
