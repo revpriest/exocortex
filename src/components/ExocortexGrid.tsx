@@ -284,10 +284,12 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   }, [loading, db, days]);
 
 
-  // Refresh grid when refreshTrigger changes
+  // Refresh grid when refreshTrigger changes. Do not clobber a view
+  // that was just created by skip-to-date; if skipDate is set, we
+  // assume the user wants to stay on that window and skip refresh.
   useEffect(() => {
     console.log('[ExocortexGrid] Refresh trigger changed to', refreshTrigger);
-    if (refreshTrigger && db) {
+    if (refreshTrigger && db && !skipDate) {
       const refreshData = async () => {
         setLoading(true);
 
@@ -367,12 +369,19 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
 
       refreshData();
     }
-  }, [refreshTrigger, db, days]);
+  }, [refreshTrigger, db, days, skipDate]);
 
 
+  // Skip-to-date navigation: if skipDate changes, rebuild days so that
+  // the selected date is at the top of the grid. We run this after
+  // the initial load, so we guard against running while `loading`.
   useEffect(() => {
     const checkSkipDate = async () => {
       if (!skipDate || !db) return;
+      if (loading) {
+        console.log('[ExocortexGrid] checkSkipDate called while loading; waiting for initial load to finish');
+        return;
+      }
 
       try {
         console.log('[ExocortexGrid] checkSkipDate triggered with', skipDate.toISOString());
@@ -456,7 +465,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
     };
 
     checkSkipDate();
-  }, [skipDate, db]);
+  }, [skipDate, db, loading]);
 
 
   /**

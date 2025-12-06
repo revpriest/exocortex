@@ -35,6 +35,9 @@ const Index = () => {
 
   // Force to generate empty days and skip to that day
   const [skipDate, setSkipDate] = useState<Date | null>(null);
+  // Track whether we already applied an initial skip-from-query to
+  // avoid re-applying or conflicting with grid internal state.
+  const [hasAppliedInitialSkip, setHasAppliedInitialSkip] = useState(false);
 
   // React Router hooks for URL-based navigation
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,6 +49,12 @@ const Index = () => {
       await db.init();
       console.log('[Index] DB initialised');
       setDb(db);
+
+      // If we already saw a ?date= param before DB was ready, ensure
+      // ExocortexGrid sees the skipDate value after it mounts.
+      if (hasAppliedInitialSkip && skipDate) {
+        console.log('[Index] Applying previously captured skipDate to grid after DB init', skipDate.toISOString());
+      }
     };
 
     // Execute initialization and handle any errors
@@ -53,7 +62,7 @@ const Index = () => {
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, []); // Empty dependency array means this runs only once on mount
+  }, [hasAppliedInitialSkip, skipDate]); // re-run if we captured a skip before DB init
 
   // Initialise skipDate from ?date=YYYY-MM-DD when first loading
   useEffect(() => {
@@ -64,6 +73,7 @@ const Index = () => {
     console.log('[Index] Found ?date param', dateParam, 'parsed to', parsed.toISOString());
     if (!Number.isNaN(parsed.getTime())) {
       setSkipDate(parsed);
+      setHasAppliedInitialSkip(true);
 
       // Clear the date param so subsequent navigations don't re-apply it
       const params = new URLSearchParams(searchParams);
