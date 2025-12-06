@@ -36,15 +36,29 @@ const Stats = () => {
   const startParam = searchParams.get('start');
   const daysParam = searchParams.get('days');
 
+  const initialStart = startParam ? new Date(`${startParam}T00:00:00`) : undefined;
+
+  const allowedWindows = [1, 2, 3, 4, 5, 6, 7, 14, 28] as const;
+  type NumericWindowOption = (typeof allowedWindows)[number];
+
+  let initialWindow: NumericWindowOption | 'month' | undefined;
+  if (daysParam === 'month') {
+    initialWindow = 'month';
+  } else if (daysParam) {
+    const num = Number(daysParam);
+    if (allowedWindows.includes(num as NumericWindowOption)) {
+      initialWindow = num as NumericWindowOption;
+    }
+  }
+
   return (
     <PageLayout db={db} title="Stats" explain="Stats" currentView="stats">
       <StatsView
-        initialStart={startParam ? new Date(`${startParam}T00:00:00`) : undefined}
-        initialWindow={daysParam ? (daysParam === 'month' ? 'month' : Number(daysParam)) : undefined}
+        initialStart={initialStart}
+        initialWindow={initialWindow}
       />
     </PageLayout>
   );
 };
 
 export default Stats;
-
