@@ -7,7 +7,8 @@ category:
 - about
 cover:
   alt: An image
-  image: /news/img/exocortexlog.png
+  image: img/exocortexlog.png
+description: How to talk to exocortex log
 ---
 
 Report bugs and pull requests at [the github project](https://github.com/revpriest/exocortex).

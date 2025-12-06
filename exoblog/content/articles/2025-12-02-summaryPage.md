@@ -8,7 +8,8 @@ category:
 - exocortexLog
 cover:
   alt: An image
-  image: /news/img/2025/addingsummary.png
+  image: img/2025/addingsummary.png
+description: Introducing the summary page
 ---
 
 With the code structure and architecture fixed,

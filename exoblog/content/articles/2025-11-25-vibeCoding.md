@@ -9,6 +9,7 @@ category:
 cover:
   alt: Screenshot of Shakespeare
   image: img/2025/shakespeare.png
+description: A review of Shakespeare.diy for vibe coding
 ---
 
 After watching <a href="https://primal.net/derekross">@derekross@grownostr.org</a>

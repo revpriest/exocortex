@@ -9,6 +9,7 @@ category:
 cover:
   alt: Screenshot of me manually editing code, fixing issues
   image: img/2025/editingcode.png
+description: Fixing the problems introduced by vibe coding
 ---
 
 As the project code-base grows, the robot

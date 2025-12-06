@@ -6,17 +6,19 @@
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:description" content="{{ if .Description }}{{ .Description | plainify }}{{ else }}{{if .IsPage}}{{ .Summary | plainify  }}{{ end }}{{ end }}" />
 <meta name="twitter:title" content="{{ .Title }}{{ if .IsHome }} - {{ .Site.Params.Tagline }}{{ else }} - {{ .Site.Title }}{{ end }}" />
-<meta name="twitter:site" content="{{ .Site.Params.twitter }}" />
-<meta name="twitter:creator" content="{{ .Site.Params.twitter }}" />
 
 <!-- OG data -->
 <meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}" />
 <meta content="{{ .Title }}{{ if .IsHome }} - {{ .Site.Params.Tagline }}{{ else }} - {{ .Site.Title }}{{ end }}" property="og:title">
 <meta content="{{ if .Description }}{{ .Description | plainify }}{{ else }}{{if .IsPage}}{{ .Summary | plainify  }}{{ end }}{{ end }}" property="og:description">
 <meta property="og:url" content="{{ .Permalink }}" />
+<meta property="og:image" content="{{ .Site.BaseURL }}{{ if .Params.cover.image }}{{ .Params.cover.image }}{{ else }}{{ .Site.Params.defaultImage }}{{ end }}" />
+
 <meta property="og:site_name" content="{{ .Site.Title }}" />
 {{ range .Params.categories }}<meta property="article:section" content="{{ . }}" />{{ end }}
 {{ if isset .Params "date" }}<meta property="article:published_time" content="{{ time .Date }}" />{{ end }}
+
+
 
 <!-- JSON-LD -->
 {{ if .IsHome }}

@@ -9,7 +9,7 @@ taxonomies:
   author: author
 params:
   description: "News about exocortex log"
-  defaultImage: "exocortexlog.jpg"
+  defaultImage: "img/exocortexlog.png"
   author: "Pre"
   comments: false
   fediverse_creator: "@pre@boing.world"

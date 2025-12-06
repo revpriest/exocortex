@@ -9,4 +9,5 @@ category:
 cover:
   alt: An image
   image: /news/img/exocortexlog.png
+Description: "News about exocortex log"
 ---
