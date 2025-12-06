@@ -454,7 +454,7 @@ const CacheResetSection = () => {
                     </a>
                      &nbsp; and a lot of manual clean up.
                   </p>
-                  <p>Currlently running version {APP_VERSION}.</p>
+                  <p>Currently running version {APP_VERSION}.</p>
         {/* Reset Button */}
         <AlertDialog>
           <div className="flex flex-wrap gap-2">
@@ -506,6 +506,15 @@ const CacheResetSection = () => {
           >
             <NewsIcon className="h-4 w-4" />
             News Blog
+          </Button>
+          <Button
+            onClick={() => {
+              window.location.href = "https://github.com/revpriest/exocortex";
+            }}
+            className="flex items-center gap-2"
+          >
+            <NewsIcon className="h-4 w-4" />
+            Source Code
           </Button>
         </div>
       </CardContent>
