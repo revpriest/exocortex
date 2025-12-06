@@ -343,7 +343,6 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
   const [error, setError] = useState<string | null>(null);
 
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
-  const [selectedDayStats, setSelectedDayStats] = useState<DayStats | null>(null);
 
 
   const navigate = useNavigate();
@@ -510,30 +509,12 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
     setSelectedDayStats(stats);
   };
 
-  const handleShiftSelectedDay = async (direction: 1 | -1) => {
-    if (!db || !selectedDateKey) return;
-
+  const handleShiftSelectedDay = (direction: 1 | -1) => {
+    if (!selectedDateKey) return;
     const currentDate = new Date(selectedDateKey + 'T00:00:00');
     currentDate.setDate(currentDate.getDate() + direction);
     const newKey = format(currentDate, DATE_KEY_FORMAT);
-
-    try {
-      const dayEvents = await db.getEventsByDate(newKey);
-      if (!dayEvents || dayEvents.length === 0) {
-        setSelectedDateKey(newKey);
-        setSelectedDayStats(null);
-        return;
-      }
-
-      const [statsMap] = [buildDayStats(dayEvents)];
-      const stats = statsMap.get(newKey) ?? null;
-      setSelectedDateKey(newKey);
-      setSelectedDayStats(stats);
-    } catch (err) {
-      console.error('Failed to load events for selected day:', err);
-      setSelectedDateKey(newKey);
-      setSelectedDayStats(null);
-    }
+    setSelectedDateKey(newKey);
   };
 
 
@@ -1038,11 +1019,12 @@ export function StatsView({ className, initialStart, initialWindow }: StatsViewP
         onOpenChange={(open) => {
           if (!open) {
             setSelectedDateKey(null);
-            setSelectedDayStats(null);
           }
         }}
         dateKey={selectedDateKey}
         db={db}
+        onPrevDay={() => handleShiftSelectedDay(-1)}
+        onNextDay={() => handleShiftSelectedDay(1)}
       />
     </div>
   );

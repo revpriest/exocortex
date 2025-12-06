@@ -182,7 +182,6 @@ const Summary: React.FC = () => {
   const { config } = useAppContext();
   const [searchParams] = useSearchParams();
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
-  const [selectedDayStats, setSelectedDayStats] = useState<DayStatsSummary | null>(null);
 
   useSeoMeta({
     title: 'Summary - ExocortexLog',
@@ -342,11 +341,22 @@ const Summary: React.FC = () => {
         onOpenChange={(open) => {
           if (!open) {
             setSelectedDateKey(null);
-            setSelectedDayStats(null);
           }
         }}
         dateKey={selectedDateKey}
         db={db}
+        onPrevDay={() => {
+          if (!selectedDateKey) return;
+          const d = new Date(selectedDateKey + 'T00:00:00');
+          d.setDate(d.getDate() - 1);
+          setSelectedDateKey(d.toISOString().split('T')[0]);
+        }}
+        onNextDay={() => {
+          if (!selectedDateKey) return;
+          const d = new Date(selectedDateKey + 'T00:00:00');
+          d.setDate(d.getDate() + 1);
+          setSelectedDateKey(d.toISOString().split('T')[0]);
+        }}
       />
     </PageLayout>
   );

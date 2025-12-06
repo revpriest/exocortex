@@ -879,6 +879,18 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
         }}
         dateKey={selectedDateKey}
         db={db ?? null}
+        onPrevDay={() => {
+          if (!selectedDateKey) return;
+          const d = new Date(selectedDateKey + 'T00:00:00');
+          d.setDate(d.getDate() - 1);
+          setSelectedDateKey(d.toISOString().split('T')[0]);
+        }}
+        onNextDay={() => {
+          if (!selectedDateKey) return;
+          const d = new Date(selectedDateKey + 'T00:00:00');
+          d.setDate(d.getDate() + 1);
+          setSelectedDateKey(d.toISOString().split('T')[0]);
+        }}
       />
       {/* Dialog for edit events */}
       <EventDialog

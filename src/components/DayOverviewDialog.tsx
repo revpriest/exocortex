@@ -22,6 +22,9 @@ export interface DayOverviewDialogProps {
   dateKey: string | null;
   /** Database instance for loading stats directly. */
   db: ExocortexDB | null;
+  /** Parent-provided navigation for previous/next day. */
+  onPrevDay?: () => void;
+  onNextDay?: () => void;
 }
 
 const formatPercent = (value: number | null): string =>
@@ -97,26 +100,30 @@ function computeDayStats(events: ExocortexEvent[], dateKey: string): DayStatsSum
   };
 }
 
-export function DayOverviewDialog({ open, onOpenChange, dateKey, db }: DayOverviewDialogProps) {
+export function DayOverviewDialog({
+  open,
+  onOpenChange,
+  dateKey,
+  db,
+  onPrevDay,
+  onNextDay,
+}: DayOverviewDialogProps) {
   const navigate = useNavigate();
 
   const [stats, setStats] = React.useState<DayStatsSummary | null>(null);
 
-  const loadStatsFor = React.useCallback(
-    async (key: string | null, database: ExocortexDB | null) => {
+  React.useEffect(() => {
+    const loadStatsFor = async (key: string | null, database: ExocortexDB | null) => {
       if (!key || !database) {
         setStats(null);
         return;
       }
       const events = await database.getEventsByDate(key);
       setStats(computeDayStats(events, key));
-    },
-    [],
-  );
+    };
 
-  React.useEffect(() => {
     void loadStatsFor(dateKey, db);
-  }, [dateKey, db, loadStatsFor]);
+  }, [dateKey, db]);
 
   const formattedSelectedDate = dateKey
     ? new Date(dateKey + 'T00:00:00').toLocaleDateString(undefined, {
@@ -156,22 +163,6 @@ export function DayOverviewDialog({ open, onOpenChange, dateKey, db }: DayOvervi
     navigate({ pathname: '/stats', search: `?start=${startParam}&days=${daysParam}` });
   };
 
-  const handlePrevDay = () => {
-    if (!dateKey || !db) return;
-    const d = new Date(dateKey + 'T00:00:00');
-    d.setDate(d.getDate() - 1);
-    const prevKey = d.toISOString().split('T')[0];
-    void loadStatsFor(prevKey, db);
-  };
-
-  const handleNextDay = () => {
-    if (!dateKey || !db) return;
-    const d = new Date(dateKey + 'T00:00:00');
-    d.setDate(d.getDate() + 1);
-    const nextKey = d.toISOString().split('T')[0];
-    void loadStatsFor(nextKey, db);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg bg-card border-border text-foreground">
@@ -188,8 +179,8 @@ export function DayOverviewDialog({ open, onOpenChange, dateKey, db }: DayOvervi
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={handlePrevDay}
-                disabled={!dateKey || !db}
+                onClick={onPrevDay}
+                disabled={!dateKey || !db || !onPrevDay}
               >
                 ◀
               </Button>
@@ -197,8 +188,8 @@ export function DayOverviewDialog({ open, onOpenChange, dateKey, db }: DayOvervi
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={handleNextDay}
-                disabled={!dateKey || !db}
+                onClick={onNextDay}
+                disabled={!dateKey || !db || !onNextDay}
               >
                 ▶
               </Button>
