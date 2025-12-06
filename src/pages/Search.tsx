@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ExocortexDB, ExocortexEvent, DayEvents, formatTime, getEventColor } from '@/lib/exocortex';
 import { SmileyFace } from '@/components/SmileyFace';
 import { useAppContext } from '@/hooks/useAppContext';
+import { DayOverviewDialog } from '@/components/DayOverviewDialog';
 
 function highlightMatch(text: string | undefined, term: string): React.ReactNode {
   if (!text) return null;
@@ -30,9 +31,11 @@ function highlightMatch(text: string | undefined, term: string): React.ReactNode
 interface SearchResultRowProps {
   event: ExocortexEvent;
   query: string;
+  onShowDay: (dateKey: string) => void;
+  onEdit: (event: ExocortexEvent) => void;
 }
 
-const SearchResultRow: React.FC<SearchResultRowProps> = ({ event, query }) => {
+const SearchResultRow: React.FC<SearchResultRowProps> = ({ event, query, onShowDay, onEdit }) => {
   const { config } = useAppContext();
   const color = getEventColor(event, config.colorOverrides);
   const start = new Date(event.endTime - 36 * 60 * 1000); // approx 36 mins before as in Summary
@@ -45,10 +48,32 @@ const SearchResultRow: React.FC<SearchResultRowProps> = ({ event, query }) => {
     year: 'numeric',
   });
 
+  const dateKey = new Date(event.endTime).toISOString().split('T')[0];
+
+  const handleRowClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
+    // Ignore clicks that originate from the Edit button
+    const target = e.target as HTMLElement;
+    if (target.closest('button[data-role="edit-event"]')) {
+      return;
+    }
+    onShowDay(dateKey);
+  };
+
   return (
-    <Card className="flex items-center px-0 py-1 mb-2 cursor-pointer hover:bg-blue-900/40 transition-colors">
-      <div className="h-11 w-2 rounded-l-lg" style={{ backgroundColor: color, minWidth: 8 }} />
-      <div className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-3 overflow-hidden">
+    <Card className="flex items-center px-0 py-1 mb-2 transition-colors hover:bg-blue-900/40">
+      <button
+        type="button"
+        onClick={() => onShowDay(dateKey)}
+        className="h-11 w-2 rounded-l-lg"
+        style={{ backgroundColor: color, minWidth: 8 }}
+        aria-label={`Show day overview for ${dateLabel}`}
+      />
+      <div
+        className="flex-1 flex flex-row items-center pl-4 pr-2 py-2 gap-3 overflow-hidden cursor-pointer"
+        onClick={handleRowClick}
+        role="button"
+        tabIndex={0}
+      >
         <SmileyFace
           happiness={event.happiness}
           wakefulness={event.wakefulness}
@@ -57,11 +82,26 @@ const SearchResultRow: React.FC<SearchResultRowProps> = ({ event, query }) => {
           className="shrink-0"
         />
         <div className="grow overflow-hidden">
-          <div className="text-xs text-muted-foreground flex flex-wrap gap-2 items-center">
-            <span>{dateLabel}</span>
-            <span>
-              {formatTime(start.getTime())}–{formatTime(end.getTime())}
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs text-muted-foreground flex flex-wrap gap-2 items-center">
+              <span>{dateLabel}</span>
+              <span>
+                {formatTime(start.getTime())}–{formatTime(end.getTime())}
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-role="edit-event"
+              className="text-xs px-2 py-1 h-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(event);
+              }}
+            >
+              Edit
+            </Button>
           </div>
           <div className="text-sm font-semibold mt-0.5 truncate">
             {highlightMatch(event.category, query) || event.category}
@@ -82,6 +122,8 @@ const SearchPage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ExocortexEvent | null>(null);
 
   useSeoMeta({
     title: 'Search - ExocortexLog',
@@ -118,11 +160,6 @@ const SearchPage: React.FC = () => {
       return inNotes || inCat;
     });
   }, [events, submittedQuery]);
-
-  const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
-    e.preventDefault();
-    setSubmittedQuery(query.trim());
-  };
 
   return (
     <PageLayout
@@ -162,10 +199,36 @@ const SearchPage: React.FC = () => {
             <div className="text-muted-foreground text-center p-8">No events match your search.</div>
           )}
           {filtered.map((ev) => (
-            <SearchResultRow key={ev.id} event={ev} query={submittedQuery} />
+            <SearchResultRow
+              key={ev.id}
+              event={ev}
+              query={submittedQuery}
+              onShowDay={(dateKey) => setSelectedDateKey(dateKey)}
+              onEdit={(event) => setEditingEvent(event)}
+            />
           ))}
         </div>
       </div>
+      <DayOverviewDialog
+        open={!!selectedDateKey}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDateKey(null);
+        }}
+        dateKey={selectedDateKey}
+        db={db}
+        onPrevDay={() => {
+          if (!selectedDateKey) return;
+          const d = new Date(selectedDateKey + 'T00:00:00');
+          d.setDate(d.getDate() - 1);
+          setSelectedDateKey(d.toISOString().split('T')[0]);
+        }}
+        onNextDay={() => {
+          if (!selectedDateKey) return;
+          const d = new Date(selectedDateKey + 'T00:00:00');
+          d.setDate(d.getDate() + 1);
+          setSelectedDateKey(d.toISOString().split('T')[0]);
+        }}
+      />
     </PageLayout>
   );
 };
