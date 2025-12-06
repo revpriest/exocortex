@@ -18,6 +18,7 @@ import Index from "./pages/Index";
 import About from "./pages/About";
 import Stats from "./pages/Stats";
 import Summary from "./pages/Summary";
+import Search from "./pages/Search";
 import Conf from "./pages/Conf";
 import NotFound from "./pages/NotFound";
 
@@ -70,6 +71,12 @@ export function AppRouter() {
           Shows summray of recent events
         */}
         <Route path="/summary" element={<Summary />} />
+
+        {/*
+          Search route: Matches the "/search" URL
+          Allows searching events by notes or category
+        */}
+        <Route path="/search" element={<Search />} />
 
         {/*
           Conf route: Matches the "/conf" URL
