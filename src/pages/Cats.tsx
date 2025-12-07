@@ -61,6 +61,10 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
+function isSleepCategory(name: string | null | undefined): boolean {
+  return name?.trim().toLowerCase() === 'sleep';
+}
+
 const Cats = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
@@ -566,6 +570,14 @@ const Cats = () => {
                 </span>{' '}
                 will be changed so their category becomes the single value you pick below.
               </AlertDialogDescription>
+              {selectedCategories.some((c) => isSleepCategory(c)) && mergeTarget &&
+                !isSleepCategory(mergeTarget) && (
+                  <p className="mt-2 text-[11px] text-amber-300/90">
+                    Warning: "Sleep" is a special category used for sleep/non-sleep
+                    calculations. Merging it into a different name will break those
+                    statistics. You can still do this if you really want to.
+                  </p>
+                )}
             </AlertDialogHeader>
 
             <div className="space-y-3 mt-2">
@@ -663,6 +675,13 @@ const Cats = () => {
                 entry currently using the selected category will be updated to use the new name
                 you type below.
               </AlertDialogDescription>
+              {isSleepCategory(selectedCategories[0]) && !isSleepCategory(renameValue) && (
+                <p className="mt-2 text-[11px] text-amber-300/90">
+                  Warning: "Sleep" is a special category used for sleep/non-sleep calculations.
+                  Renaming it will break those statistics. You can still do this if you really
+                  want to.
+                </p>
+              )}
             </AlertDialogHeader>
 
             <div className="space-y-3 mt-2">
