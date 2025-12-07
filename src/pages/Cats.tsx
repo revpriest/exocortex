@@ -479,6 +479,22 @@ const Cats = () => {
                 Tools for tidying up your categories
               </span>
             </CardTitle>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-[11px] text-muted-foreground">
+              <p className="max-w-xl">
+                We strongly recommend exporting a backup of your data before editing categories,
+                in case you change your mind later.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => {
+                  window.location.href = '/stats#export';
+                }}
+              >
+                Open export tools
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
