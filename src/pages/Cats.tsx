@@ -70,8 +70,10 @@ const Cats = () => {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
+  const [mergePreviewCount, setMergePreviewCount] = useState<number | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [renamePreviewCount, setRenamePreviewCount] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -427,6 +429,7 @@ const Cats = () => {
                   size="sm"
                   onClick={() => {
                     setMergeTarget(selectedCategories[0] ?? null);
+                    setMergePreviewCount(null);
                     setMergeOpen(true);
                   }}
                 >
@@ -456,6 +459,7 @@ const Cats = () => {
                   disabled={selectedCategories.length !== 1}
                   onClick={() => {
                     setRenameValue(selectedCategories[0] ?? '');
+                    setRenamePreviewCount(null);
                     setRenameOpen(true);
                   }}
                 >
@@ -527,6 +531,13 @@ const Cats = () => {
                   Every event currently filed under any of the selected categories will be
                   rewritten to use the chosen destination category.
                 </p>
+                {mergePreviewCount != null && (
+                  <p className="text-[11px] text-muted-foreground">
+                    This will update approximately{' '}
+                    <span className="font-semibold text-foreground">{mergePreviewCount}</span>{' '}
+                    events.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -546,6 +557,15 @@ const Cats = () => {
 
                   try {
                     setIsMerging(true);
+
+                    // Compute a preview count before performing the merge.
+                    const targets = new Set(selectedCategories.map((c) => c.trim()));
+                    const allBefore = await db.getAllEvents();
+                    const countBefore = allBefore.filter((ev) =>
+                      targets.has(ev.category.trim()),
+                    ).length;
+                    setMergePreviewCount(countBefore);
+
                     await db.mergeCategories(selectedCategories, mergeTarget);
 
                     // Refresh local state so charts & chips update immediately
@@ -609,6 +629,13 @@ const Cats = () => {
                   This will change the category name on every event that currently uses
                   "{selectedCategories[0] ?? '—'}".
                 </p>
+                {renamePreviewCount != null && (
+                  <p className="text-[11px] text-muted-foreground">
+                    This will update approximately{' '}
+                    <span className="font-semibold text-foreground">{renamePreviewCount}</span>{' '}
+                    events.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -632,6 +659,14 @@ const Cats = () => {
 
                   try {
                     setIsRenaming(true);
+
+                    // Compute preview count before performing the rename.
+                    const allBefore = await db.getAllEvents();
+                    const countBefore = allBefore.filter(
+                      (ev) => ev.category.trim() === original.trim(),
+                    ).length;
+                    setRenamePreviewCount(countBefore);
+
                     await db.renameCategory(original, nextName);
 
                     // Refresh events and categories
