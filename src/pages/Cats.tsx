@@ -480,32 +480,37 @@ const Cats = () => {
                 Tools for tidying up your categories
               </span>
             </CardTitle>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-[11px] text-muted-foreground">
-              <p className="max-w-xl">
-                We strongly recommend exporting a backup of your data before editing categories,
-                in case you change your mind later.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!db}
-                onClick={async () => {
-                  if (!db) return;
-                  try {
-                    await DataExporter.exportDatabase(db);
-                  } catch (error) {
-                    console.error('Quick export failed from Cats page:', error);
-                  }
-                }}
-                className="whitespace-nowrap"
-              >
-                Export backup now
-              </Button>
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Export database first</div>
+                  <p className="mt-1 max-w-xl">
+                    We strongly recommend exporting a backup of your data before editing
+                    categories, in case you change your mind later.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!db}
+                  onClick={async () => {
+                    if (!db) return;
+                    try {
+                      await DataExporter.exportDatabase(db);
+                    } catch (error) {
+                      console.error('Quick export failed from Cats page:', error);
+                    }
+                  }}
+                  className="whitespace-nowrap"
+                >
+                  Export backup now
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="pt-3 border-t border-border/60">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-xs font-medium text-foreground">Merge categories</div>
