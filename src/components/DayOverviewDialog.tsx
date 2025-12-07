@@ -139,6 +139,7 @@ export function DayOverviewDialog({
   const isOnGrid = pathname === '/';
   const isOnSummary = pathname === '/summary';
   const isOnStats = pathname === '/stats';
+  const isOnCats = pathname === '/cats';
 
   const handleOpenGrid = () => {
     if (!dateKey) return;
@@ -159,6 +160,11 @@ export function DayOverviewDialog({
     const daysParam = '1';
 
     navigate({ pathname: '/stats', search: `?start=${startParam}&days=${daysParam}` });
+  };
+
+  const handleOpenCats = () => {
+    if (!dateKey) return;
+    navigate({ pathname: '/cats', search: `?date=${dateKey}` });
   };
 
   return (
@@ -242,6 +248,11 @@ export function DayOverviewDialog({
             {!isOnStats && (
               <Button variant="outline" size="sm" onClick={handleOpenStats}>
                 Open in Stats view
+              </Button>
+            )}
+            {!isOnCats && (
+              <Button variant="outline" size="sm" onClick={handleOpenCats}>
+                Open in Cats view
               </Button>
             )}
           </div>

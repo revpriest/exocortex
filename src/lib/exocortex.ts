@@ -70,6 +70,25 @@ export interface EventSummary {
 }
 
 /**
+ * Category bucket interfaces used for time-aggregation analytics.
+ */
+export type IntervalOption = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface TimeBucket {
+  start: Date;
+  end: Date;
+  label: string;
+}
+
+export interface CategoryBucketPoint {
+  bucketLabel: string;
+  bucketStart: Date;
+  bucketEnd: Date;
+  // Dynamic category keys will be added at runtime with hour values.
+  [category: string]: string | number | Date;
+}
+
+/**
  * IndexedDB Configuration Constants
  *
  * These constants define our IndexedDB database setup:

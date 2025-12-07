@@ -5,7 +5,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { PageLayout } from '@/components/PageLayout';
-import { ExocortexDB, ExocortexEvent } from '@/lib/exocortex';
+import { ExocortexDB, ExocortexEvent, IntervalOption } from '@/lib/exocortex';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -22,19 +22,13 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { CalendarIcon, ChevronLeft, ChevronRight, Layers, Sparkles } from 'lucide-react';
-import { addDays, addMonths, endOfDay, format, isValid, startOfDay } from 'date-fns';
+import { CalendarIcon, ChevronLeft, ChevronRight, Cat, Sparkles } from 'lucide-react';
+import { format, isValid, startOfDay } from 'date-fns';
+import { computeBuckets, computeCategorySeries } from '@/lib/exocortexBuckets';
+import type { CategoryBucketPoint } from '@/lib/exocortex';
+import { DayOverviewDialog } from '@/components/DayOverviewDialog';
 
-const INTERVAL_OPTIONS = ['daily', 'weekly', 'monthly', 'yearly'] as const;
-
-export type IntervalOption = (typeof INTERVAL_OPTIONS)[number];
-
-interface CategoryPoint {
-  bucketLabel: string;
-  bucketStart: Date;
-  bucketEnd: Date;
-  [category: string]: string | number | Date;
-}
+const INTERVAL_OPTIONS: IntervalOption[] = ['daily', 'weekly', 'monthly', 'yearly'];
 
 function getCategoryColor(
   category: string,
@@ -56,102 +50,6 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
-function computeBuckets(
-  start: Date,
-  interval: IntervalOption,
-  bucketCount = 60,
-): { buckets: { start: Date; end: Date; label: string }[] } {
-  const buckets: { start: Date; end: Date; label: string }[] = [];
-  let cursor = startOfDay(start);
-
-  const advance = (date: Date): Date => {
-    switch (interval) {
-      case 'daily':
-        return addDays(date, 1);
-      case 'weekly':
-        return addDays(date, 7);
-      case 'monthly':
-        return addMonths(date, 1);
-      case 'yearly':
-        return new Date(date.getFullYear() + 1, date.getMonth(), date.getDate());
-    }
-  };
-
-  for (let i = 0; i < bucketCount; i++) {
-    const startAt = cursor;
-    const endAt = endOfDay(advance(cursor));
-    let label: string;
-    switch (interval) {
-      case 'daily':
-        label = format(startAt, 'MMM d');
-        break;
-      case 'weekly':
-        label = format(startAt, 'yyyy-MM-dd');
-        break;
-      case 'monthly':
-        label = format(startAt, 'MMM yyyy');
-        break;
-      case 'yearly':
-        label = format(startAt, 'yyyy');
-        break;
-    }
-    buckets.push({ start: startAt, end: endAt, label });
-    cursor = advance(cursor);
-  }
-
-  return { buckets };
-}
-
-function computeCategorySeries(
-  buckets: { start: Date; end: Date; label: string }[],
-  events: ExocortexEvent[],
-  categories: string[],
-): CategoryPoint[] {
-  if (events.length === 0 || categories.length === 0) return [];
-
-  const sorted = [...events].sort((a, b) => a.endTime - b.endTime);
-
-  // Infer durations between events; first event gets duration from window start or previous day midnight is handled at DB query level
-  const points: CategoryPoint[] = buckets.map((b) => ({
-    bucketLabel: b.label,
-    bucketStart: b.start,
-    bucketEnd: b.end,
-  }));
-
-  for (const bucket of buckets) {
-    for (const cat of categories) {
-      const point = points.find((p) => p.bucketLabel === bucket.label)!;
-      if (point[cat] == null) point[cat] = 0;
-    }
-  }
-
-  const bucketCount = buckets.length;
-
-  for (let i = 0; i < sorted.length; i++) {
-    const current = sorted[i];
-    const prevEnd = i === 0 ? current.endTime - 60 * 60 * 1000 : sorted[i - 1].endTime;
-
-    let segStart = prevEnd;
-    let segEnd = current.endTime;
-    if (segEnd <= segStart) continue;
-
-    // Clip each event segment into buckets
-    for (let b = 0; b < bucketCount; b++) {
-      const bucket = buckets[b];
-      const overlapStart = Math.max(segStart, bucket.start.getTime());
-      const overlapEnd = Math.min(segEnd, bucket.end.getTime());
-      if (overlapEnd <= overlapStart) continue;
-
-      const hours = (overlapEnd - overlapStart) / (1000 * 60 * 60);
-      const point = points[b];
-      const catKey = current.category;
-      point[catKey] = ((point[catKey] as number | undefined) ?? 0) + hours;
-    }
-  }
-
-  return points;
-}
-
 const Cats = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
@@ -160,6 +58,8 @@ const Cats = () => {
   const [interval, setInterval] = useState<IntervalOption>('daily');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [hoverBucket, setHoverBucket] = useState<CategoryBucketPoint | null>(null);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
   const { config } = useAppContext();
 
@@ -186,7 +86,8 @@ const Cats = () => {
         .sort((a, b) => b[1] - a[1])
         .map(([name]) => name);
       setAvailableCategories(sortedCats);
-      setSelectedCategories(sortedCats.slice(0, 3));
+      // Default to nothing selected (user chooses)
+      setSelectedCategories([]);
 
       if (allEvents.length > 0) {
         const first = allEvents[0].endTime;
@@ -200,9 +101,12 @@ const Cats = () => {
   }, []);
 
   const { buckets, series } = useMemo(() => {
-    if (!startDate) return { buckets: [], series: [] as CategoryPoint[] };
-    const { buckets } = computeBuckets(startDate, interval, 120);
-    const filteredEvents = events.filter((e) => e.endTime >= buckets[0]?.start.getTime() && e.endTime <= buckets[buckets.length - 1]?.end.getTime());
+    if (!startDate) return { buckets: [], series: [] as CategoryBucketPoint[] };
+    const buckets = computeBuckets(startDate, interval, 120);
+    if (buckets.length === 0) return { buckets, series: [] as CategoryBucketPoint[] };
+    const firstStart = buckets[0].start.getTime();
+    const lastEnd = buckets[buckets.length - 1].end.getTime();
+    const filteredEvents = events.filter((e) => e.endTime >= firstStart && e.endTime <= lastEnd);
     const series = computeCategorySeries(buckets, filteredEvents, selectedCategories);
     return { buckets, series };
   }, [events, interval, startDate, selectedCategories]);
@@ -215,22 +119,22 @@ const Cats = () => {
 
   const handleShift = (direction: 1 | -1) => {
     if (!startDate) return;
-    let next: Date;
-    switch (interval) {
-      case 'daily':
-        next = addDays(startDate, direction * 7);
-        break;
-      case 'weekly':
-        next = addDays(startDate, direction * 7 * 4);
-        break;
-      case 'monthly':
-        next = addMonths(startDate, direction * 6);
-        break;
-      case 'yearly':
-        next = new Date(startDate.getFullYear() + direction, startDate.getMonth(), startDate.getDate());
-        break;
-    }
+    const days = interval === 'daily' ? 7 : interval === 'weekly' ? 7 * 4 : interval === 'monthly' ? 30 * 6 : 365;
+    const next = new Date(startDate.getTime() + direction * days * 24 * 60 * 60 * 1000);
     setStartDate(startOfDay(next));
+  };
+
+  const handleBucketClick = (bucket: CategoryBucketPoint) => {
+    const dateKey = bucket.bucketStart.toISOString().split('T')[0];
+    setSelectedDateKey(dateKey);
+  };
+
+  const handleShiftSelectedDay = (direction: 1 | -1) => {
+    if (!selectedDateKey) return;
+    const currentDate = new Date(selectedDateKey + 'T00:00:00');
+    currentDate.setDate(currentDate.getDate() + direction);
+    const newKey = currentDate.toISOString().split('T')[0];
+    setSelectedDateKey(newKey);
   };
 
   return (
@@ -244,7 +148,7 @@ const Cats = () => {
         <Card className="bg-gradient-to-r from-purple-900/60 via-sky-900/50 to-emerald-900/60 border-border shadow-lg shadow-purple-900/40">
           <CardHeader className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <Layers className="h-6 w-6 text-purple-200" />
+              <Cat className="h-6 w-6 text-purple-200" />
               <div>
                 <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
                   Category Highlights
@@ -365,7 +269,28 @@ const Cats = () => {
             {series.length > 0 && selectedCategories.length > 0 ? (
               <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={series} margin={{ top: 10, right: 16, bottom: 24, left: 0 }}>
+                  <LineChart
+                    data={series}
+                    margin={{ top: 10, right: 16, bottom: 24, left: 0 }}
+                    onClick={(state) => {
+                      const activeLabel = state?.activeLabel as string | undefined;
+                      if (!activeLabel) return;
+                      const point = series.find((p) => p.bucketLabel === activeLabel);
+                      if (point) {
+                        handleBucketClick(point);
+                      }
+                    }}
+                    onMouseMove={(state) => {
+                      const activeLabel = state?.activeLabel as string | undefined;
+                      if (!activeLabel) {
+                        setHoverBucket(null);
+                        return;
+                      }
+                      const point = series.find((p) => p.bucketLabel === activeLabel) || null;
+                      setHoverBucket(point);
+                    }}
+                    onMouseLeave={() => setHoverBucket(null)}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis
                       dataKey="bucketLabel"
@@ -419,8 +344,42 @@ const Cats = () => {
                 Choose one or more categories above to see how your time weaves between them.
               </div>
             )}
+
+            {/* Hover summary */}
+            {hoverBucket && selectedCategories.length > 0 && (
+              <div className="mt-3 text-xs text-muted-foreground flex flex-wrap gap-3">
+                <span className="font-semibold text-foreground">
+                  {hoverBucket.bucketLabel} total:
+                </span>
+                {selectedCategories.map((cat) => {
+                  const value = (hoverBucket[cat] as number | undefined) ?? 0;
+                  return (
+                    <span key={cat} className="flex items-center gap-1">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ backgroundColor: getCategoryColor(cat, config.colorOverrides) }}
+                      />
+                      {cat}: {value.toFixed(2)} h
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        <DayOverviewDialog
+          open={!!selectedDateKey}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedDateKey(null);
+            }
+          }}
+          dateKey={selectedDateKey}
+          db={db}
+          onPrevDay={() => handleShiftSelectedDay(-1)}
+          onNextDay={() => handleShiftSelectedDay(1)}
+        />
       </div>
     </PageLayout>
   );
