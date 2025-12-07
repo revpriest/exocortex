@@ -558,6 +558,49 @@ export class ExocortexDB {
     });
   }
 
+  /**
+   * Rename a single category across the entire database.
+   *
+   * Every event whose category matches `fromCategory` (after trimming) will be
+   * updated so that its category becomes `toCategory`.
+   */
+  async renameCategory(fromCategory: string, toCategory: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const from = fromCategory.trim();
+    const to = toCategory.trim();
+    if (!from || !to || from === to) return;
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('category');
+
+      const request = index.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result as IDBCursorWithValue | null;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+
+        const event = cursor.value as ExocortexEvent;
+        if (event.category.trim() === from) {
+          const updated: ExocortexEvent = {
+            ...event,
+            category: to,
+          };
+          cursor.update(updated);
+        }
+
+        cursor.continue();
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async generateCategoryNotes(category: string): Promise<string> {
     const notesByCategory: Record<string, string[]> = {
       Work: [

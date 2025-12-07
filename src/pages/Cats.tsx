@@ -70,6 +70,9 @@ const Cats = () => {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [showCalendar, setShowCalendar] = useState(false);
   const [hoverBucket, setHoverBucket] = useState<CategoryBucketPoint | null>(null);
@@ -261,51 +264,25 @@ const Cats = () => {
                 </select>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-6 ml-auto">
-                {/* Management section */}
-                <div className="space-y-1">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Management
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Always open the dialog so the user can see what merge does;
-                      // we'll validate the selection inside the dialog itself.
-                      setMergeTarget(selectedCategories[0] ?? null);
-                      setMergeOpen(true);
-                    }}
-                    className="text-xs font-medium"
-                  >
-                    Merge categories…
-                  </Button>
-                  <p className="mt-1 text-[10px] leading-snug text-muted-foreground max-w-xs">
-                    Choose 2 or more categories above, then merge them into a single one.
-                  </p>
-                </div>
-
-                <div className="flex gap-2 sm:ml-auto justify-end">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleShift(-1)}
-                    disabled={!startDate}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleShift(1)}
-                    disabled={!startDate}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+              <div className="flex gap-2 ml-auto justify-end">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleShift(-1)}
+                  disabled={!startDate}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleShift(1)}
+                  disabled={!startDate}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -423,6 +400,77 @@ const Cats = () => {
           </CardContent>
         </Card>
 
+        {/* Management / category tools card */}
+        <Card className="bg-card/80 border-border shadow-md">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              Management
+              <span className="text-[11px] font-normal text-muted-foreground">
+                Tools for tidying up your categories
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Merge categories</div>
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
+                    Combine two or more existing categories into a single one. Every event tagged
+                    with any of the selected categories will be updated to use the destination
+                    category you choose.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMergeTarget(selectedCategories[0] ?? null);
+                    setMergeOpen(true);
+                  }}
+                >
+                  Open merge dialog
+                </Button>
+              </div>
+              {selectedCategories.length < 2 && (
+                <p className="mt-2 text-[11px] text-amber-300/80">
+                  Select at least two categories above to perform a merge.
+                </p>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Rename category</div>
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
+                    Give a single category a new name. Every event currently using that category
+                    will be updated to use the new name.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={selectedCategories.length !== 1}
+                  onClick={() => {
+                    setRenameValue(selectedCategories[0] ?? '');
+                    setRenameOpen(true);
+                  }}
+                >
+                  Rename selected category
+                </Button>
+              </div>
+              {selectedCategories.length !== 1 && (
+                <p className="mt-2 text-[11px] text-amber-300/80">
+                  Select exactly one category above to enable renaming.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <DayOverviewDialog
           open={!!selectedDateKey}
           onOpenChange={(open) => {
@@ -522,6 +570,92 @@ const Cats = () => {
                 }}
               >
                 {isMerging ? 'Merging…' : 'Merge these categories'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Rename category dialog */}
+        <AlertDialog open={renameOpen} onOpenChange={setRenameOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Rename category</AlertDialogTitle>
+              <AlertDialogDescription>
+                Renaming a category is{' '}
+                <span className="font-semibold text-foreground">permanent</span>. Every diary
+                entry currently using the selected category will be updated to use the new name
+                you type below.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="space-y-3 mt-2">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="rename-category"
+                  className="text-xs uppercase tracking-wide text-muted-foreground"
+                >
+                  New name
+                </Label>
+                <input
+                  id="rename-category"
+                  type="text"
+                  className="w-full bg-secondary/70 border border-border rounded-md px-3 py-1.5 text-sm text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 disabled:opacity-50"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  disabled={isRenaming}
+                  placeholder={selectedCategories[0] ?? ''}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  This will change the category name on every event that currently uses
+                  "{selectedCategories[0] ?? '—'}".
+                </p>
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isRenaming}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={
+                  !db ||
+                  isRenaming ||
+                  selectedCategories.length !== 1 ||
+                  !renameValue.trim() ||
+                  renameValue.trim() === (selectedCategories[0]?.trim() ?? '')
+                }
+                onClick={async (event) => {
+                  event.preventDefault();
+                  if (!db || selectedCategories.length !== 1) return;
+
+                  const original = selectedCategories[0];
+                  const nextName = renameValue.trim();
+                  if (!nextName || nextName === original.trim()) return;
+
+                  try {
+                    setIsRenaming(true);
+                    await db.renameCategory(original, nextName);
+
+                    // Refresh events and categories
+                    const all = await db.getAllEvents();
+                    setEvents(all);
+
+                    const catCounts = new Map<string, number>();
+                    for (const ev of all) {
+                      const key = ev.category.trim();
+                      catCounts.set(key, (catCounts.get(key) ?? 0) + 1);
+                    }
+                    const sorted = Array.from(catCounts.entries())
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([name]) => name);
+                    setAvailableCategories(sorted);
+
+                    setSelectedCategories([nextName]);
+                    setRenameOpen(false);
+                  } finally {
+                    setIsRenaming(false);
+                  }
+                }}
+              >
+                {isRenaming ? 'Renaming…' : 'Rename this category'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
