@@ -691,6 +691,21 @@ export function formatTime(timestamp: number): string {
   });
 }
 
+/**
+ * Normalize an event timestamp into a human-readable local date string.
+ *
+ * This is used anywhere we want to display the calendar date for an event
+ * in a consistent way, regardless of how the time is shown elsewhere.
+ */
+export function formatEventDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export function getHourSlots(): string[] {
   const hours: string[] = [];
   for (let i = 0; i < 24; i++) {

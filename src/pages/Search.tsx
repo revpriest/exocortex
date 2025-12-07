@@ -4,7 +4,7 @@ import { PageLayout } from '@/components/PageLayout';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ExocortexDB, ExocortexEvent, DayEvents, formatTime, getEventColor } from '@/lib/exocortex';
+import { ExocortexDB, ExocortexEvent, DayEvents, formatTime, getEventColor, formatEventDate } from '@/lib/exocortex';
 import { SmileyFace } from '@/components/SmileyFace';
 import { useAppContext } from '@/hooks/useAppContext';
 import { DayOverviewDialog } from '@/components/DayOverviewDialog';
@@ -42,12 +42,7 @@ const SearchResultRow: React.FC<SearchResultRowProps> = ({ event, query, onShowD
   const start = new Date(event.endTime - 36 * 60 * 1000); // approx 36 mins before as in Summary
   const end = new Date(event.endTime);
 
-  const dateLabel = start.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const dateLabel = formatEventDate(event.endTime);
 
   const dateKey = new Date(event.endTime).toISOString().split('T')[0];
 
