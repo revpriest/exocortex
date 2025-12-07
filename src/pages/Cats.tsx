@@ -488,7 +488,7 @@ const Cats = () => {
               <Button
                 type="button"
                 variant="outline"
-                size="xs"
+                size="sm"
                 disabled={!db}
                 onClick={async () => {
                   if (!db) return;
@@ -498,6 +498,7 @@ const Cats = () => {
                     console.error('Quick export failed from Cats page:', error);
                   }
                 }}
+                className="whitespace-nowrap"
               >
                 Export backup now
               </Button>
