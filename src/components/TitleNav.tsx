@@ -361,7 +361,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Grid"
               >
                 <Brain className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Grid</span>
+                <span className="hidden md:inline ml-2">Grid</span>
               </Button>
               <Button
                 variant={currentView === 'summary' ? 'default' : 'outline'}
@@ -370,7 +370,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Summary"
               >
                 <Squirrel className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Summary</span>
+                <span className="hidden md:inline ml-2">Summary</span>
               </Button>
               <Button
                 variant={currentView === 'search' ? 'default' : 'outline'}
@@ -379,7 +379,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Search"
               >
                 <SearchIcon className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Search</span>
+                <span className="hidden md:inline ml-2">Search</span>
               </Button>
               <Button
                 variant={currentView === 'stats' ? 'default' : 'outline'}
@@ -388,7 +388,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Stats"
               >
                 <BarChart3 className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Stats</span>
+                <span className="hidden md:inline ml-2">Stats</span>
               </Button>
               <Button
                 variant={currentView === 'cats' ? 'default' : 'outline'}
@@ -397,7 +397,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Categories"
               >
                 <Cat className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Cats</span>
+                <span className="hidden md:inline ml-2">Cats</span>
               </Button>
               <Button
                 variant={currentView === 'conf' ? 'default' : 'outline'}
@@ -406,7 +406,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Conf"
               >
                 <Settings className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Conf</span>
+                <span className="hidden md:inline ml-2">Conf</span>
               </Button>
             </div>
           </div>
