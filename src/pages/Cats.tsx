@@ -271,14 +271,15 @@ const Cats = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={selectedCategories.length < 2 || !db}
                     onClick={() => {
+                      // Always open the dialog so the user can see what merge does;
+                      // we'll validate the selection inside the dialog itself.
                       setMergeTarget(selectedCategories[0] ?? null);
                       setMergeOpen(true);
                     }}
                     className="text-xs font-medium"
                   >
-                    Merge selected categories
+                    Merge categories…
                   </Button>
                   <p className="mt-1 text-[10px] leading-snug text-muted-foreground max-w-xs">
                     Choose 2 or more categories above, then merge them into a single one.
@@ -482,10 +483,16 @@ const Cats = () => {
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isMerging}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                disabled={!db || !mergeTarget || selectedCategories.length < 2 || isMerging}
+                disabled={!db || !mergeTarget || isMerging}
                 onClick={async (event) => {
                   event.preventDefault();
-                  if (!db || !mergeTarget || selectedCategories.length < 2) return;
+                  if (!db || !mergeTarget) return;
+
+                  // Require at least two categories to be selected to make the
+                  // operation meaningful.
+                  if (selectedCategories.length < 2) {
+                    return;
+                  }
 
                   try {
                     setIsMerging(true);
