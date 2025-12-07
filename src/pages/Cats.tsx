@@ -24,7 +24,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { CalendarIcon, ChevronLeft, ChevronRight, Cat, Sparkles } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, Cat } from 'lucide-react';
 import { format, isValid, startOfDay } from 'date-fns';
 import { computeBuckets, computeCategorySeries } from '@/lib/exocortexBuckets';
 import type { CategoryBucketPoint } from '@/lib/exocortex';
@@ -255,7 +255,6 @@ const Cats = () => {
               <div>
                 <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
                   Category Highlights
-                  <Sparkles className="h-4 w-4 text-yellow-300" />
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
                   Pick one or more categories to follow across time.
@@ -486,7 +485,7 @@ const Cats = () => {
                   <div className="text-xs font-medium text-foreground">Export database first</div>
                   <p className="mt-1 max-w-xl">
                     We strongly recommend exporting a backup of your data before editing
-                    categories, in case you change your mind later.
+                    categories, mistakes happen. These actions are serious with no undo. Backups matter.
                   </p>
                 </div>
                 <Button
