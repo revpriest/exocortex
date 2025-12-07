@@ -7,6 +7,7 @@ import { useSeoMeta } from '@unhead/react';
 import { useSearchParams } from 'react-router-dom';
 import { PageLayout } from '@/components/PageLayout';
 import { ExocortexDB, ExocortexEvent, IntervalOption } from '@/lib/exocortex';
+import { DataExporter } from '@/lib/dataExport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -488,11 +489,17 @@ const Cats = () => {
                 type="button"
                 variant="outline"
                 size="xs"
-                onClick={() => {
-                  window.location.href = '/stats#export';
+                disabled={!db}
+                onClick={async () => {
+                  if (!db) return;
+                  try {
+                    await DataExporter.exportDatabase(db);
+                  } catch (error) {
+                    console.error('Quick export failed from Cats page:', error);
+                  }
                 }}
               >
-                Open export tools
+                Export backup now
               </Button>
             </div>
           </CardHeader>
