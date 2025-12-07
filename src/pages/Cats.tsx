@@ -287,24 +287,25 @@ const Cats = () => {
                 </div>
 
                 <div className="flex gap-2 sm:ml-auto justify-end">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleShift(-1)}
-                  disabled={!startDate}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleShift(1)}
-                  disabled={!startDate}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleShift(-1)}
+                    disabled={!startDate}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleShift(1)}
+                    disabled={!startDate}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -442,19 +443,20 @@ const Cats = () => {
               <AlertDialogTitle>Merge categories</AlertDialogTitle>
               <AlertDialogDescription>
                 Merging categories is <span className="font-semibold text-foreground">permanent</span>.
-                All diary entries whose category is currently
-                {' '}
+                All diary entries whose category is currently{' '}
                 <span className="font-semibold">
                   {selectedCategories.join(', ') || '—'}
-                </span>
-                {' '}
+                </span>{' '}
                 will be changed so their category becomes the single value you pick below.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             <div className="space-y-3 mt-2">
               <div className="space-y-1">
-                <Label htmlFor="merge-target" className="text-xs uppercase tracking-wide text-muted-foreground">
+                <Label
+                  htmlFor="merge-target"
+                  className="text-xs uppercase tracking-wide text-muted-foreground"
+                >
                   Replace with
                 </Label>
                 <select
@@ -499,18 +501,18 @@ const Cats = () => {
                     await db.mergeCategories(selectedCategories, mergeTarget);
 
                     // Refresh local state so charts & chips update immediately
-                    const allEvents = await db.getAllEvents();
-                    setEvents(allEvents);
+                    const all = await db.getAllEvents();
+                    setEvents(all);
 
-                    const catMap = new Map<string, number>();
-                    for (const ev of allEvents) {
+                    const catCounts = new Map<string, number>();
+                    for (const ev of all) {
                       const key = ev.category.trim();
-                      catMap.set(key, (catMap.get(key) ?? 0) + 1);
+                      catCounts.set(key, (catCounts.get(key) ?? 0) + 1);
                     }
-                    const sortedCats = Array.from(catMap.entries())
+                    const sorted = Array.from(catCounts.entries())
                       .sort((a, b) => b[1] - a[1])
                       .map(([name]) => name);
-                    setAvailableCategories(sortedCats);
+                    setAvailableCategories(sorted);
 
                     setSelectedCategories([mergeTarget]);
                     setMergeOpen(false);
