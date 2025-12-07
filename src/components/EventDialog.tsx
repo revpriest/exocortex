@@ -27,7 +27,7 @@ import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Import types and utilities
-import { ExocortexEvent, getEventColor } from '@/lib/exocortex';
+import { ExocortexEvent, getEventColor, getEventStartTime } from '@/lib/exocortex';
 import { useAppContext } from '@/hooks/useAppContext';
 import { Clock, ChevronLeft, ChevronRight, Trash2, AlertCircle, ChevronDown, X, Save, Plus } from 'lucide-react';
 import { ExocortexDB } from '@/lib/exocortex';
@@ -155,6 +155,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   const [recentCategories, setRecentCategories] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
+  const [startLoadedForEventId, setStartLoadedForEventId] = useState<string | null>(null);
 
   // Reset form when dialog opens or editEvent changes
   useEffect(() => {
@@ -166,7 +167,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
         setWakefulnessState([editEvent.wakefulness]);
         setHealthState([editEvent.health]);
         setEndTime(new Date(editEvent.endTime));
-        calculateStartTime(new Date(editEvent.endTime));
+        setStartLoadedForEventId(null);
       } else {
         setCategory('');
         setNotes('');
@@ -223,34 +224,17 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     };
   }, [showDropdown]);
 
-  // Calculate start time from previous event
+  // Calculate start time from previous event using shared DB helper
   const calculateStartTime = async (currentEndTime: Date) => {
+    if (!open) return;
+
     try {
       const db = new ExocortexDB();
       await db.init();
 
-      // Get all events from the same day and previous day to find the previous event
-      const currentDay = currentEndTime.toISOString().split('T')[0];
-      const previousDay = new Date(currentEndTime);
-      previousDay.setDate(previousDay.getDate() - 1);
-      const previousDayStr = previousDay.toISOString().split('T')[0];
-
-      const [currentDayEvents, previousDayEvents] = await Promise.all([
-        db.getEventsByDate(currentDay),
-        db.getEventsByDate(previousDayStr)
-      ]);
-
-      // Combine events from both days and sort by end time
-      const allEvents = [...previousDayEvents, ...currentDayEvents].sort((a, b) => a.endTime - b.endTime);
-
-      // Find the previous event (the one that ends just before this event)
-      const currentTime = currentEndTime.getTime();
-      const previousEvent = allEvents
-        .filter(event => event.endTime < currentTime)
-        .sort((a, b) => b.endTime - a.endTime)[0]; // Get the latest event before current time
-
-      if (previousEvent) {
-        setStartTime(new Date(previousEvent.endTime));
+      const startTimestamp = await getEventStartTime(db, currentEndTime.getTime());
+      if (startTimestamp !== null) {
+        setStartTime(new Date(startTimestamp));
       } else {
         setStartTime(null);
       }
@@ -260,12 +244,22 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     }
   };
 
-  // Recalculate start time when end time changes
+  // Recalculate start time when relevant identifiers change
   useEffect(() => {
-    if (open) {
-      calculateStartTime(endTime);
+    if (!open) return;
+
+    // When editing an existing event, we want the start time for that event once
+    if (editEvent) {
+      if (startLoadedForEventId !== editEvent.id) {
+        setStartLoadedForEventId(editEvent.id);
+        void calculateStartTime(new Date(editEvent.endTime));
+      }
+      return;
     }
-  }, [endTime, open]);
+
+    // For new events, recompute whenever the end time changes
+    void calculateStartTime(endTime);
+  }, [open, editEvent, endTime, startLoadedForEventId]);
 
   // Load recent unique categories from database
   const loadRecentCategories = async () => {

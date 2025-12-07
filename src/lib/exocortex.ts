@@ -706,6 +706,40 @@ export function formatEventDate(timestamp: number): string {
   });
 }
 
+/**
+ * Compute the logical start time of an event by finding the previous event in the DB.
+ *
+ * This helper is used anywhere we want to show an accurate start time (search rows,
+ * summary rows, edit dialog) without duplicating the "find previous event" logic.
+ *
+ * Returns a Unix timestamp in ms, or null if there is no prior event.
+ */
+export async function getEventStartTime(db: ExocortexDB, endTime: number): Promise<number | null> {
+  // Get all events from the same day and previous day to find the previous event
+  const currentEnd = new Date(endTime);
+  const currentDay = currentEnd.toISOString().split('T')[0];
+  const previousDay = new Date(currentEnd);
+  previousDay.setDate(previousDay.getDate() - 1);
+  const previousDayStr = previousDay.toISOString().split('T')[0];
+
+  const [currentDayEvents, previousDayEvents] = await Promise.all([
+    db.getEventsByDate(currentDay),
+    db.getEventsByDate(previousDayStr),
+  ]);
+
+  // Combine events from both days and sort by end time
+  const allEvents = [...previousDayEvents, ...currentDayEvents].sort(
+    (a, b) => a.endTime - b.endTime,
+  );
+
+  // Find the previous event (the one that ends just before this endTime)
+  const previousEvent = allEvents
+    .filter((event) => event.endTime < endTime)
+    .sort((a, b) => b.endTime - a.endTime)[0];
+
+  return previousEvent ? previousEvent.endTime : null;
+}
+
 export function getHourSlots(): string[] {
   const hours: string[] = [];
   for (let i = 0; i < 24; i++) {

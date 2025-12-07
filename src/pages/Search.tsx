@@ -4,7 +4,7 @@ import { PageLayout } from '@/components/PageLayout';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ExocortexDB, ExocortexEvent, DayEvents, formatTime, getEventColor, formatEventDate } from '@/lib/exocortex';
+import { ExocortexDB, ExocortexEvent, DayEvents, formatTime, getEventColor, formatEventDate, getEventStartTime } from '@/lib/exocortex';
 import { SmileyFace } from '@/components/SmileyFace';
 import { useAppContext } from '@/hooks/useAppContext';
 import { DayOverviewDialog } from '@/components/DayOverviewDialog';
@@ -29,17 +29,18 @@ function highlightMatch(text: string | undefined, term: string): React.ReactNode
   );
 }
 
+// We allow an internal, derived start time purely for display purposes.
 interface SearchResultRowProps {
-  event: ExocortexEvent;
+  event: ExocortexEvent & { _derivedStartTime?: number };
   query: string;
   onShowDay: (dateKey: string) => void;
-  onEdit: (event: ExocortexEvent) => void;
+  onEdit: (event: ExocortexEvent & { _derivedStartTime?: number }) => void;
 }
 
 const SearchResultRow: React.FC<SearchResultRowProps> = ({ event, query, onShowDay, onEdit }) => {
   const { config } = useAppContext();
   const color = getEventColor(event, config.colorOverrides);
-  const start = new Date(event.endTime - 36 * 60 * 1000); // approx 36 mins before as in Summary
+  // NOTE: start time is derived from the database using getEventStartTime in the parent component.
   const end = new Date(event.endTime);
 
   const dateLabel = formatEventDate(event.endTime);
@@ -82,7 +83,7 @@ const SearchResultRow: React.FC<SearchResultRowProps> = ({ event, query, onShowD
             <div className="text-xs text-muted-foreground flex flex-wrap gap-2 items-center">
               <span>{dateLabel}</span>
               <span>
-                {formatTime(start.getTime())}–{formatTime(end.getTime())}
+                {formatTime(event._derivedStartTime ?? event.endTime)}–{formatTime(end.getTime())}
               </span>
             </div>
             <Button
