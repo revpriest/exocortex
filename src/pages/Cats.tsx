@@ -491,6 +491,7 @@ const Cats = () => {
                   type="button"
                   variant="outline"
                   size="sm"
+                  disabled={selectedCategories.length < 2}
                   onClick={() => {
                     setMergeTarget(selectedCategories[0] ?? null);
                     setMergePreviewCount(null);
@@ -597,7 +598,7 @@ const Cats = () => {
                 </p>
                 {mergePreviewCount != null && (
                   <p className="text-[11px] text-muted-foreground">
-                    This will update approximately{' '}
+                    This will update{' '}
                     <span className="font-semibold text-foreground">{mergePreviewCount}</span>{' '}
                     events.
                   </p>
@@ -687,7 +688,7 @@ const Cats = () => {
                 </p>
                 {renamePreviewCount != null && (
                   <p className="text-[11px] text-muted-foreground">
-                    This will update approximately{' '}
+                    This will update{' '}
                     <span className="font-semibold text-foreground">{renamePreviewCount}</span>{' '}
                     events.
                   </p>
