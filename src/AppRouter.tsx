@@ -21,6 +21,7 @@ import Summary from "./pages/Summary";
 import Search from "./pages/Search";
 import Conf from "./pages/Conf";
 import NotFound from "./pages/NotFound";
+import Cats from "./pages/Cats";
 
 /**
  * AppRouter Component
@@ -65,6 +66,12 @@ export function AppRouter() {
           Shows information about your database 
         */}
         <Route path="/stats" element={<Stats />} />
+
+        {/*
+          Cats route: Matches the "/cats" URL
+          Category time trends
+        */}
+        <Route path="/cats" element={<Cats />} />
 
         {/*
           Summary route: Matches the "/summary" URL

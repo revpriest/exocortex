@@ -11,7 +11,7 @@ import { EventDialog } from './EventDialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { Brain, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus, Search as SearchIcon } from 'lucide-react';
+import { Brain, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus, Search as SearchIcon, LayoutList } from 'lucide-react';
 import { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
 import { useHueInit } from '@/hooks/useHueInit';
 
@@ -75,6 +75,10 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
   const handleStatsClick = () => {
     navigate('/stats');
+  };
+
+  const handleCatsClick = () => {
+    navigate('/cats');
   };
 
   const handleSummaryClick = () => {
@@ -385,6 +389,15 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
               >
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Stats</span>
+              </Button>
+              <Button
+                variant={currentView === 'cats' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleCatsClick}
+                aria-label="Categories"
+              >
+                <LayoutList className="h-4 w-4" />
+                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Cats</span>
               </Button>
               <Button
                 variant={currentView === 'conf' ? 'default' : 'outline'}
