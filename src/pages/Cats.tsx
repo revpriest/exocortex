@@ -4,6 +4,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
+import { useSearchParams } from 'react-router-dom';
 import { PageLayout } from '@/components/PageLayout';
 import { ExocortexDB, ExocortexEvent, IntervalOption } from '@/lib/exocortex';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,6 +63,7 @@ const Cats = () => {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
   const { config } = useAppContext();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useSeoMeta({
     title: 'Categories - ExocortexLog',
@@ -89,6 +91,20 @@ const Cats = () => {
       // Default to nothing selected (user chooses)
       setSelectedCategories([]);
 
+      // Determine initial anchor date
+      const dateParam = searchParams.get('date');
+      if (dateParam) {
+        const parsed = new Date(`${dateParam}T00:00:00`);
+        if (!Number.isNaN(parsed.getTime())) {
+          setStartDate(startOfDay(parsed));
+          // Clear the param so re-renders don't keep re-applying it
+          const params = new URLSearchParams(searchParams);
+          params.delete('date');
+          setSearchParams(params, { replace: true });
+          return;
+        }
+      }
+
       if (allEvents.length > 0) {
         const first = allEvents[0].endTime;
         setStartDate(startOfDay(new Date(first)));
@@ -98,7 +114,7 @@ const Cats = () => {
     };
 
     void init();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { buckets, series } = useMemo(() => {
     if (!startDate) return { buckets: [], series: [] as CategoryBucketPoint[] };
