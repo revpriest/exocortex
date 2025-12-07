@@ -134,6 +134,70 @@ const Cats = () => {
     void init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Live preview count for merge: whenever the dialog is open and categories
+  // change, estimate how many events will be touched.
+  useEffect(() => {
+    if (!db || !mergeOpen || selectedCategories.length === 0) {
+      setMergePreviewCount(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        const all = await db.getAllEvents();
+        const targets = new Set(selectedCategories.map((c) => c.trim()));
+        const count = all.filter((ev) => targets.has(ev.category.trim())).length;
+        if (!controller.signal.aborted) {
+          setMergePreviewCount(count);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setMergePreviewCount(null);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [db, mergeOpen, selectedCategories]);
+
+  // Live preview count for rename: whenever the dialog is open and a single
+  // category is selected, estimate how many events will be renamed.
+  useEffect(() => {
+    if (!db || !renameOpen || selectedCategories.length !== 1) {
+      setRenamePreviewCount(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        const all = await db.getAllEvents();
+        const target = selectedCategories[0]?.trim() ?? '';
+        const count = all.filter((ev) => ev.category.trim() === target).length;
+        if (!controller.signal.aborted) {
+          setRenamePreviewCount(count);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setRenamePreviewCount(null);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [db, renameOpen, selectedCategories]);
+
   const { buckets, series } = useMemo(() => {
     if (!startDate) return { buckets: [], series: [] as CategoryBucketPoint[] };
     const buckets = computeBuckets(startDate, interval, 120);
@@ -558,14 +622,6 @@ const Cats = () => {
                   try {
                     setIsMerging(true);
 
-                    // Compute a preview count before performing the merge.
-                    const targets = new Set(selectedCategories.map((c) => c.trim()));
-                    const allBefore = await db.getAllEvents();
-                    const countBefore = allBefore.filter((ev) =>
-                      targets.has(ev.category.trim()),
-                    ).length;
-                    setMergePreviewCount(countBefore);
-
                     await db.mergeCategories(selectedCategories, mergeTarget);
 
                     // Refresh local state so charts & chips update immediately
@@ -659,13 +715,6 @@ const Cats = () => {
 
                   try {
                     setIsRenaming(true);
-
-                    // Compute preview count before performing the rename.
-                    const allBefore = await db.getAllEvents();
-                    const countBefore = allBefore.filter(
-                      (ev) => ev.category.trim() === original.trim(),
-                    ).length;
-                    setRenamePreviewCount(countBefore);
 
                     await db.renameCategory(original, nextName);
 
