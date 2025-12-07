@@ -506,6 +506,58 @@ export class ExocortexDB {
     });
   }
 
+  /**
+   * Merge categories across the entire database.
+   *
+   * Every event whose category matches any of the values in `fromCategories`
+   * will be rewritten so that its category becomes `toCategory`.
+   *
+   * This is an irreversible operation at the storage level, so callers
+   * should present a clear confirmation UI before invoking it.
+   */
+  async mergeCategories(fromCategories: string[], toCategory: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const normalizedTargets = new Set(fromCategories.map((c) => c.trim()));
+    const normalizedTo = toCategory.trim();
+
+    if (normalizedTargets.size === 0 || !normalizedTo) {
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('category');
+
+      // We scan all events for the involved categories in a single cursor
+      const request = index.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result as IDBCursorWithValue | null;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+
+        const event = cursor.value as ExocortexEvent;
+        const currentCategory = event.category.trim();
+
+        if (normalizedTargets.has(currentCategory)) {
+          const updated: ExocortexEvent = {
+            ...event,
+            category: normalizedTo,
+          };
+          cursor.update(updated);
+        }
+
+        cursor.continue();
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async generateCategoryNotes(category: string): Promise<string> {
     const notesByCategory: Record<string, string[]> = {
       Work: [

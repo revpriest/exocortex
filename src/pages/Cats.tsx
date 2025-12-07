@@ -28,6 +28,16 @@ import { format, isValid, startOfDay } from 'date-fns';
 import { computeBuckets, computeCategorySeries } from '@/lib/exocortexBuckets';
 import type { CategoryBucketPoint } from '@/lib/exocortex';
 import { DayOverviewDialog } from '@/components/DayOverviewDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const INTERVAL_OPTIONS: IntervalOption[] = ['daily', 'weekly', 'monthly', 'yearly'];
 
@@ -57,6 +67,9 @@ const Cats = () => {
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [interval, setInterval] = useState<IntervalOption>('daily');
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeTarget, setMergeTarget] = useState<string | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [showCalendar, setShowCalendar] = useState(false);
   const [hoverBucket, setHoverBucket] = useState<CategoryBucketPoint | null>(null);
@@ -248,7 +261,31 @@ const Cats = () => {
                 </select>
               </div>
 
-              <div className="flex gap-2 ml-auto">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-6 ml-auto">
+                {/* Management section */}
+                <div className="space-y-1">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Management
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={selectedCategories.length < 2 || !db}
+                    onClick={() => {
+                      setMergeTarget(selectedCategories[0] ?? null);
+                      setMergeOpen(true);
+                    }}
+                    className="text-xs font-medium"
+                  >
+                    Merge selected categories
+                  </Button>
+                  <p className="mt-1 text-[10px] leading-snug text-muted-foreground max-w-xs">
+                    Choose 2 or more categories above, then merge them into a single one.
+                  </p>
+                </div>
+
+                <div className="flex gap-2 sm:ml-auto justify-end">
                 <Button
                   variant="outline"
                   size="icon"
@@ -396,6 +433,90 @@ const Cats = () => {
           onPrevDay={() => handleShiftSelectedDay(-1)}
           onNextDay={() => handleShiftSelectedDay(1)}
         />
+
+        {/* Merge categories dialog */}
+        <AlertDialog open={mergeOpen} onOpenChange={setMergeOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Merge categories</AlertDialogTitle>
+              <AlertDialogDescription>
+                Merging categories is <span className="font-semibold text-foreground">permanent</span>.
+                All diary entries whose category is currently
+                {' '}
+                <span className="font-semibold">
+                  {selectedCategories.join(', ') || '—'}
+                </span>
+                {' '}
+                will be changed so their category becomes the single value you pick below.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="space-y-3 mt-2">
+              <div className="space-y-1">
+                <Label htmlFor="merge-target" className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Replace with
+                </Label>
+                <select
+                  id="merge-target"
+                  className="w-full bg-secondary/70 border border-border rounded-md px-3 py-1.5 text-sm text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 disabled:opacity-50"
+                  value={mergeTarget ?? ''}
+                  onChange={(e) => setMergeTarget(e.target.value || null)}
+                  disabled={isMerging}
+                >
+                  <option value="" disabled>
+                    Choose destination category
+                  </option>
+                  {selectedCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Every event currently filed under any of the selected categories will be
+                  rewritten to use the chosen destination category.
+                </p>
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isMerging}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!db || !mergeTarget || selectedCategories.length < 2 || isMerging}
+                onClick={async (event) => {
+                  event.preventDefault();
+                  if (!db || !mergeTarget || selectedCategories.length < 2) return;
+
+                  try {
+                    setIsMerging(true);
+                    await db.mergeCategories(selectedCategories, mergeTarget);
+
+                    // Refresh local state so charts & chips update immediately
+                    const allEvents = await db.getAllEvents();
+                    setEvents(allEvents);
+
+                    const catMap = new Map<string, number>();
+                    for (const ev of allEvents) {
+                      const key = ev.category.trim();
+                      catMap.set(key, (catMap.get(key) ?? 0) + 1);
+                    }
+                    const sortedCats = Array.from(catMap.entries())
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([name]) => name);
+                    setAvailableCategories(sortedCats);
+
+                    setSelectedCategories([mergeTarget]);
+                    setMergeOpen(false);
+                  } finally {
+                    setIsMerging(false);
+                  }
+                }}
+              >
+                {isMerging ? 'Merging…' : 'Merge these categories'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </PageLayout>
   );
