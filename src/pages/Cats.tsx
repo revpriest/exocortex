@@ -89,6 +89,8 @@ const Cats = () => {
   const [hoverBucket, setHoverBucket] = useState<CategoryBucketPoint | null>(null);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>('lines');
+  const [series, setSeries] = useState<CategoryBucketPoint[]>([]);
+  const [buckets, setBuckets] = useState<ReturnType<typeof computeBuckets>>([]);
 
   const { config } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -208,19 +210,36 @@ const Cats = () => {
     };
   }, [db, renameOpen, selectedCategories]);
 
-  const { buckets, series } = useMemo(() => {
-    if (!startDate) return { buckets: [], series: [] as CategoryBucketPoint[] };
-    const buckets = computeBuckets(startDate, interval, 120);
-    if (buckets.length === 0) return { buckets, series: [] as CategoryBucketPoint[] };
-    const firstStart = buckets[0].start.getTime();
-    const lastEnd = buckets[buckets.length - 1].end.getTime();
-    const filteredEvents = events.filter((e) => e.endTime >= firstStart && e.endTime <= lastEnd);
-    const includeOther = chartMode === 'stacked';
-    const series = computeCategorySeries(buckets, filteredEvents, selectedCategories, {
-      includeOther,
-    });
-    return { buckets, series };
-  }, [events, interval, startDate, selectedCategories, chartMode]);
+  useEffect(() => {
+    const run = async () => {
+      if (!db || !startDate) {
+        setBuckets([]);
+        setSeries([]);
+        return;
+      }
+
+      const newBuckets = computeBuckets(startDate, interval, 120);
+      if (newBuckets.length === 0) {
+        setBuckets([]);
+        setSeries([]);
+        return;
+      }
+
+      const firstStart = newBuckets[0].start.getTime();
+      const lastEnd = newBuckets[newBuckets.length - 1].end.getTime();
+      const filteredEvents = events.filter((e) => e.endTime >= firstStart && e.endTime <= lastEnd);
+      const includeOther = chartMode === 'stacked';
+
+      const newSeries = await computeCategorySeries(db, newBuckets, filteredEvents, selectedCategories, {
+        includeOther,
+      });
+
+      setBuckets(newBuckets);
+      setSeries(newSeries);
+    };
+
+    void run();
+  }, [db, events, interval, startDate, selectedCategories, chartMode]);
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>

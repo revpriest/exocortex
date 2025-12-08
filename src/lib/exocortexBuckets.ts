@@ -1,4 +1,4 @@
-import type { ExocortexEvent, IntervalOption, TimeBucket, CategoryBucketPoint } from './exocortex';
+import type { ExocortexEvent, IntervalOption, TimeBucket, CategoryBucketPoint, ExocortexDB } from './exocortex';
 import { addDays, addMonths, endOfDay, format, startOfDay } from 'date-fns';
 
 export function computeBuckets(
@@ -47,18 +47,15 @@ export function computeBuckets(
   return buckets;
 }
 
-export function computeCategorySeries(
+export async function computeCategorySeries(
+  db: ExocortexDB,
   buckets: TimeBucket[],
   events: ExocortexEvent[],
   categories: string[],
   options?: { includeOther?: boolean },
-): CategoryBucketPoint[] {
+): Promise<CategoryBucketPoint[]> {
   if (events.length === 0 || categories.length === 0) return [];
 
-  // Events are already modeled as contiguous segments: each event represents
-  // the time between the previous event's endTime and its own endTime. This
-  // is the same model used elsewhere in the app (search, summary etc), so we
-  // simply respect that ordering here.
   const sorted = [...events].sort((a, b) => a.endTime - b.endTime);
 
   const points: CategoryBucketPoint[] = buckets.map((b) => ({
@@ -67,7 +64,6 @@ export function computeCategorySeries(
     bucketEnd: b.end,
   }));
 
-  // baseline 0 for each selected category in each bucket
   for (const bucket of buckets) {
     const point = points.find((p) => p.bucketLabel === bucket.label)!;
     for (const cat of categories) {
@@ -77,11 +73,17 @@ export function computeCategorySeries(
 
   const bucketCount = buckets.length;
 
+  // We walk events in order and, for each, determine an accurate start time
+  // using the shared DB-level helper. This ensures we correctly bridge across
+  // day boundaries and maintain the invariant that every minute belongs to
+  // some category.
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
-    const previous = i > 0 ? sorted[i - 1] : null;
 
-    const segStart = previous ? previous.endTime : current.endTime;
+    const prevEnd = await db.getEventStartTime(current.endTime);
+    if (prevEnd == null) continue;
+
+    const segStart = prevEnd;
     const segEnd = current.endTime;
     if (segEnd <= segStart) continue;
 
