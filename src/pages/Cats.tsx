@@ -2,7 +2,7 @@
  * Cats.tsx - Category Time Trends Page
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useSearchParams } from 'react-router-dom';
 import { PageLayout } from '@/components/PageLayout';
@@ -23,6 +23,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from 'recharts';
 import { CalendarIcon, ChevronLeft, ChevronRight, Cat } from 'lucide-react';
 import { format, isValid, startOfDay } from 'date-fns';
@@ -90,7 +92,6 @@ const Cats = () => {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>('lines');
   const [series, setSeries] = useState<CategoryBucketPoint[]>([]);
-  const [buckets, setBuckets] = useState<ReturnType<typeof computeBuckets>>([]);
 
   const { config } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -213,28 +214,25 @@ const Cats = () => {
   useEffect(() => {
     const run = async () => {
       if (!db || !startDate) {
-        setBuckets([]);
         setSeries([]);
         return;
       }
 
-      const newBuckets = computeBuckets(startDate, interval, 120);
-      if (newBuckets.length === 0) {
-        setBuckets([]);
+      const buckets = computeBuckets(startDate, interval, 120);
+      if (buckets.length === 0) {
         setSeries([]);
         return;
       }
 
-      const firstStart = newBuckets[0].start.getTime();
-      const lastEnd = newBuckets[newBuckets.length - 1].end.getTime();
+      const firstStart = buckets[0].start.getTime();
+      const lastEnd = buckets[buckets.length - 1].end.getTime();
       const filteredEvents = events.filter((e) => e.endTime >= firstStart && e.endTime <= lastEnd);
       const includeOther = chartMode === 'stacked';
 
-      const newSeries = await computeCategorySeries(db, newBuckets, filteredEvents, selectedCategories, {
+      const newSeries = await computeCategorySeries(db, buckets, filteredEvents, selectedCategories, {
         includeOther,
       });
 
-      setBuckets(newBuckets);
       setSeries(newSeries);
     };
 
@@ -255,7 +253,7 @@ const Cats = () => {
   };
 
   const handleBucketClick = (bucket: CategoryBucketPoint) => {
-    const dateKey = bucket.bucketStart.toISOString().split('T')[0];
+    const dateKey = (bucket.bucketStart as Date).toISOString().split('T')[0];
     setSelectedDateKey(dateKey);
   };
 
@@ -430,91 +428,162 @@ const Cats = () => {
             {series.length > 0 && selectedCategories.length > 0 ? (
               <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={series}
-                    margin={{ top: 10, right: 16, bottom: 24, left: 0 }}
-                    onClick={(state) => {
-                      const activeLabel = state?.activeLabel as string | undefined;
-                      if (!activeLabel) return;
-                      const point = series.find((p) => p.bucketLabel === activeLabel);
-                      if (point) {
-                        handleBucketClick(point);
-                      }
-                    }}
-                    onMouseMove={(state) => {
-                      const activeLabel = state?.activeLabel as string | undefined;
-                      if (!activeLabel) {
-                        setHoverBucket(null);
-                        return;
-                      }
-                      const point = series.find((p) => p.bucketLabel === activeLabel) || null;
-                      setHoverBucket(point);
-                    }}
-                    onMouseLeave={() => setHoverBucket(null)}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="bucketLabel"
-                      stroke="hsl(var(--muted-foreground))"
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis
-                      stroke="hsl(var(--muted-foreground))"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      label={{
-                        value: 'Hours',
-                        angle: -90,
-                        position: 'insideLeft',
-                        fill: 'hsl(var(--muted-foreground))',
-                        offset: 10,
+                  {chartMode === 'lines' ? (
+                    <LineChart
+                      data={series}
+                      margin={{ top: 10, right: 16, bottom: 24, left: 0 }}
+                      onClick={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) return;
+                        const point = series.find((p) => p.bucketLabel === activeLabel);
+                        if (point) {
+                          handleBucketClick(point);
+                        }
                       }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '0.5rem',
+                      onMouseMove={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) {
+                          setHoverBucket(null);
+                          return;
+                        }
+                        const point = series.find((p) => p.bucketLabel === activeLabel) || null;
+                        setHoverBucket(point);
                       }}
-                      labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value: number, name: string) => [
-                        `${value.toFixed(2)} h`,
-                        name === OTHER_KEY ? 'Other' : name,
-                      ]}
-                    />
-                    <Legend
-                      wrapperStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value) => (value === OTHER_KEY ? 'Other' : (value as string))}
-                    />
-                    {selectedCategories.map((cat) => (
-                      <Line
-                        key={cat}
-                        type="monotone"
-                        dataKey={cat}
-                        name={cat}
-                        stroke={getCategoryColor(cat, config.colorOverrides)}
-                        strokeWidth={2}
-                        dot={false}
-                        connectNulls
-                        stackId={chartMode === 'stacked' ? 'time' : undefined}
+                      onMouseLeave={() => setHoverBucket(null)}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="bucketLabel"
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
                       />
-                    ))}
-                    {showStackedLegendOther && (
-                      <Line
-                        type="monotone"
-                        dataKey={OTHER_KEY}
-                        name={OTHER_KEY}
-                        stroke="hsl(var(--border))"
-                        strokeDasharray="4 4"
-                        strokeWidth={1.5}
-                        dot={false}
-                        connectNulls
-                        stackId="time"
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        label={{
+                          value: 'Hours',
+                          angle: -90,
+                          position: 'insideLeft',
+                          fill: 'hsl(var(--muted-foreground))',
+                          offset: 10,
+                        }}
                       />
-                    )}
-                  </LineChart>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '0.5rem',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(2)} h`,
+                          name === OTHER_KEY ? 'Other' : name,
+                        ]}
+                      />
+                      <Legend
+                        wrapperStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value) => (value === OTHER_KEY ? 'Other' : (value as string))}
+                      />
+                      {selectedCategories.map((cat) => (
+                        <Line
+                          key={cat}
+                          type="monotone"
+                          dataKey={cat}
+                          name={cat}
+                          stroke={getCategoryColor(cat, config.colorOverrides)}
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls
+                        />
+                      ))}
+                    </LineChart>
+                  ) : (
+                    <AreaChart
+                      data={series}
+                      margin={{ top: 10, right: 16, bottom: 24, left: 0 }}
+                      onClick={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) return;
+                        const point = series.find((p) => p.bucketLabel === activeLabel);
+                        if (point) {
+                          handleBucketClick(point);
+                        }
+                      }}
+                      onMouseMove={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) {
+                          setHoverBucket(null);
+                          return;
+                        }
+                        const point = series.find((p) => p.bucketLabel === activeLabel) || null;
+                        setHoverBucket(point);
+                      }}
+                      onMouseLeave={() => setHoverBucket(null)}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="bucketLabel"
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        label={{
+                          value: 'Hours',
+                          angle: -90,
+                          position: 'insideLeft',
+                          fill: 'hsl(var(--muted-foreground))',
+                          offset: 10,
+                        }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '0.5rem',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(2)} h`,
+                          name === OTHER_KEY ? 'Other' : name,
+                        ]}
+                      />
+                      <Legend
+                        wrapperStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value) => (value === OTHER_KEY ? 'Other' : (value as string))}
+                      />
+                      {selectedCategories.map((cat) => (
+                        <Area
+                          key={cat}
+                          type="monotone"
+                          dataKey={cat}
+                          name={cat}
+                          stackId="time"
+                          stroke={getCategoryColor(cat, config.colorOverrides)}
+                          fill={getCategoryColor(cat, config.colorOverrides)}
+                          fillOpacity={0.5}
+                        />
+                      ))}
+                      {showStackedLegendOther && (
+                        <Area
+                          type="monotone"
+                          dataKey={OTHER_KEY}
+                          name={OTHER_KEY}
+                          stackId="time"
+                          stroke="hsl(var(--border))"
+                          fill="hsl(var(--border))"
+                          fillOpacity={0.3}
+                        />
+                      )}
+                    </AreaChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             ) : (
