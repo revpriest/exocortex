@@ -631,10 +631,10 @@ const Cats = () => {
               </span>
             </CardTitle>
             <div className="mt-2 text-[11px] text-muted-foreground">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-xs font-medium text-foreground">Export database first</div>
-                  <p className="mt-1 max-w-xl">
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
                     We strongly recommend exporting a backup of your data before editing
                     categories, mistakes happen. These actions are serious with no undo. Backups matter.
                   </p>
