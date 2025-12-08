@@ -1,5 +1,6 @@
 import type { ExocortexEvent, IntervalOption, TimeBucket, CategoryBucketPoint, ExocortexDB } from './exocortex';
 import { addDays, addMonths, endOfDay, format, startOfDay } from 'date-fns';
+import { getEventStartTime } from './exocortex';
 
 export function computeBuckets(
   start: Date,
@@ -73,14 +74,8 @@ export async function computeCategorySeries(
 
   const bucketCount = buckets.length;
 
-  // We walk events in order and, for each, determine an accurate start time
-  // using the shared DB-level helper. This ensures we correctly bridge across
-  // day boundaries and maintain the invariant that every minute belongs to
-  // some category.
-  for (let i = 0; i < sorted.length; i++) {
-    const current = sorted[i];
-
-    const prevEnd = await db.getEventStartTime(current.endTime);
+  for (const current of sorted) {
+    const prevEnd = await getEventStartTime(db, current.endTime);
     if (prevEnd == null) continue;
 
     const segStart = prevEnd;
