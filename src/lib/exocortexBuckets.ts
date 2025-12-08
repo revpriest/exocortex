@@ -25,7 +25,32 @@ export function computeBuckets(
 
   for (let i = 0; i < bucketCount; i++) {
     const startAt = cursor;
-    const endAt = endOfDay(advance(cursor));
+    let endAt: Date;
+    switch (interval) {
+      case 'daily': {
+        endAt = endOfDay(startAt);
+        break;
+      }
+      case 'weekly': {
+        const weekEnd = addDays(startAt, 6); // 7 days total: D..D+6
+        endAt = endOfDay(weekEnd);
+        break;
+      }
+      case 'monthly': {
+        // Treat bucket as calendar month starting at `cursor`
+        const monthEnd = addMonths(startAt, 1);
+        monthEnd.setDate(monthEnd.getDate() - 1);
+        endAt = endOfDay(monthEnd);
+        break;
+      }
+      case 'yearly': {
+        const yearEnd = new Date(startAt.getFullYear() + 1, startAt.getMonth(), startAt.getDate());
+        yearEnd.setDate(yearEnd.getDate() - 1);
+        endAt = endOfDay(yearEnd);
+        break;
+      }
+    }
+
     let label: string;
     switch (interval) {
       case 'daily':
@@ -41,7 +66,7 @@ export function computeBuckets(
         label = format(startAt, 'yyyy');
         break;
     }
-    buckets.push({ start: startAt, end: endAt, label });
+    buckets.push({ start: startAt, end: endAt!, label });
     cursor = advance(cursor);
   }
 
