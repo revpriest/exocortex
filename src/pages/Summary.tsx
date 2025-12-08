@@ -90,7 +90,6 @@ function SummaryGroupHeader({
   onToggle: () => void;
   colorOverrides: ColorOverride[] | undefined;
 }) {
-  if (!events || events.length === 0) return null;
   const first = events[0];
   const last = events[events.length - 1];
   const color = getEventColor(first, colorOverrides);
@@ -115,6 +114,7 @@ function SummaryGroupHeader({
       cancelled = true;
     };
   }, [db, first.endTime]);
+  if (!events || events.length === 0) return null;
 
   return (
     <Card className="flex items-center px-0 py-1 mb-2">
