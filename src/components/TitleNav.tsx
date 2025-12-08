@@ -373,13 +373,13 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 <span className="hidden md:inline ml-2">Summary</span>
               </Button>
               <Button
-                variant={currentView === 'search' ? 'default' : 'outline'}
+                variant={currentView === 'cats' ? 'default' : 'outline'}
                 size="sm"
-                onClick={handleSearchClick}
-                aria-label="Search"
+                onClick={handleCatsClick}
+                aria-label="Categories"
               >
-                <SearchIcon className="h-4 w-4" />
-                <span className="hidden md:inline ml-2">Search</span>
+                <Cat className="h-4 w-4" />
+                <span className="hidden md:inline ml-2">Cats</span>
               </Button>
               <Button
                 variant={currentView === 'stats' ? 'default' : 'outline'}
@@ -391,13 +391,13 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 <span className="hidden md:inline ml-2">Stats</span>
               </Button>
               <Button
-                variant={currentView === 'cats' ? 'default' : 'outline'}
+                variant={currentView === 'search' ? 'default' : 'outline'}
                 size="sm"
-                onClick={handleCatsClick}
-                aria-label="Categories"
+                onClick={handleSearchClick}
+                aria-label="Search"
               >
-                <Cat className="h-4 w-4" />
-                <span className="hidden md:inline ml-2">Cats</span>
+                <SearchIcon className="h-4 w-4" />
+                <span className="hidden md:inline ml-2">Search</span>
               </Button>
               <Button
                 variant={currentView === 'conf' ? 'default' : 'outline'}
