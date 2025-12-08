@@ -335,7 +335,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
             </DialogContent>
           </Dialog>
 
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <button
               type="button"
               onClick={() => navigate('/about')}
@@ -353,7 +353,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
             </button>
 
             {/* View Toggle Buttons */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 sm:ml-auto justify-end">
               <Button
                 variant={currentView === 'grid' ? 'default' : 'outline'}
                 size="sm"
