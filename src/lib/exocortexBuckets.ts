@@ -55,6 +55,10 @@ export function computeCategorySeries(
 ): CategoryBucketPoint[] {
   if (events.length === 0 || categories.length === 0) return [];
 
+  // Events are already modeled as contiguous segments: each event represents
+  // the time between the previous event's endTime and its own endTime. This
+  // is the same model used elsewhere in the app (search, summary etc), so we
+  // simply respect that ordering here.
   const sorted = [...events].sort((a, b) => a.endTime - b.endTime);
 
   const points: CategoryBucketPoint[] = buckets.map((b) => ({
@@ -75,10 +79,10 @@ export function computeCategorySeries(
 
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
-    const prevEnd = i === 0 ? current.endTime - 60 * 60 * 1000 : sorted[i - 1].endTime;
+    const previous = i > 0 ? sorted[i - 1] : null;
 
-    let segStart = prevEnd;
-    let segEnd = current.endTime;
+    const segStart = previous ? previous.endTime : current.endTime;
+    const segEnd = current.endTime;
     if (segEnd <= segStart) continue;
 
     for (let b = 0; b < bucketCount; b++) {
