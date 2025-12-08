@@ -42,6 +42,8 @@ import {
 
 const INTERVAL_OPTIONS: IntervalOption[] = ['daily', 'weekly', 'monthly', 'yearly'];
 
+type ChartMode = 'lines' | 'stacked';
+
 function getCategoryColor(
   category: string,
   overrides: ColorOverride[] | undefined,
@@ -66,6 +68,8 @@ function isSleepCategory(name: string | null | undefined): boolean {
   return name?.trim().toLowerCase() === 'sleep';
 }
 
+const OTHER_KEY = '__other__';
+
 const Cats = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
@@ -84,6 +88,7 @@ const Cats = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [hoverBucket, setHoverBucket] = useState<CategoryBucketPoint | null>(null);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [chartMode, setChartMode] = useState<ChartMode>('lines');
 
   const { config } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -210,9 +215,12 @@ const Cats = () => {
     const firstStart = buckets[0].start.getTime();
     const lastEnd = buckets[buckets.length - 1].end.getTime();
     const filteredEvents = events.filter((e) => e.endTime >= firstStart && e.endTime <= lastEnd);
-    const series = computeCategorySeries(buckets, filteredEvents, selectedCategories);
+    const includeOther = chartMode === 'stacked';
+    const series = computeCategorySeries(buckets, filteredEvents, selectedCategories, {
+      includeOther,
+    });
     return { buckets, series };
-  }, [events, interval, startDate, selectedCategories]);
+  }, [events, interval, startDate, selectedCategories, chartMode]);
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>
@@ -239,6 +247,8 @@ const Cats = () => {
     const newKey = currentDate.toISOString().split('T')[0];
     setSelectedDateKey(newKey);
   };
+
+  const showStackedLegendOther = chartMode === 'stacked' && selectedCategories.length > 0;
 
   return (
     <PageLayout
@@ -334,6 +344,36 @@ const Cats = () => {
                 </select>
               </div>
 
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mode</Label>
+                <div className="inline-flex rounded-md border border-border bg-secondary/70 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setChartMode('lines')}
+                    className={`px-3 py-1 rounded-sm transition-colors ${
+                      chartMode === 'lines'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-secondary-foreground hover:bg-secondary/60'
+                    }`}
+                    aria-pressed={chartMode === 'lines'}
+                  >
+                    Separate lines
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartMode('stacked')}
+                    className={`px-3 py-1 rounded-sm transition-colors ${
+                      chartMode === 'stacked'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-secondary-foreground hover:bg-secondary/60'
+                    }`}
+                    aria-pressed={chartMode === 'stacked'}
+                  >
+                    Stacked totals
+                  </button>
+                </div>
+              </div>
+
               <div className="flex gap-2 ml-auto justify-end">
                 <Button
                   variant="outline"
@@ -422,10 +462,13 @@ const Cats = () => {
                       labelStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value: number, name: string) => [
                         `${value.toFixed(2)} h`,
-                        name,
+                        name === OTHER_KEY ? 'Other' : name,
                       ]}
                     />
-                    <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
+                    <Legend
+                      wrapperStyle={{ color: 'hsl(var(--foreground))' }}
+                      formatter={(value) => (value === OTHER_KEY ? 'Other' : (value as string))}
+                    />
                     {selectedCategories.map((cat) => (
                       <Line
                         key={cat}
@@ -436,8 +479,22 @@ const Cats = () => {
                         strokeWidth={2}
                         dot={false}
                         connectNulls
+                        stackId={chartMode === 'stacked' ? 'time' : undefined}
                       />
                     ))}
+                    {showStackedLegendOther && (
+                      <Line
+                        type="monotone"
+                        dataKey={OTHER_KEY}
+                        name={OTHER_KEY}
+                        stroke="hsl(var(--border))"
+                        strokeDasharray="4 4"
+                        strokeWidth={1.5}
+                        dot={false}
+                        connectNulls
+                        stackId="time"
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -465,6 +522,12 @@ const Cats = () => {
                     </span>
                   );
                 })}
+                {chartMode === 'stacked' && (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-border" />
+                    Other: {(((hoverBucket as Record<string, number>)[OTHER_KEY] ?? 0)).toFixed(2)} h
+                  </span>
+                )}
               </div>
             )}
           </CardContent>

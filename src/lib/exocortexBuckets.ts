@@ -51,6 +51,7 @@ export function computeCategorySeries(
   buckets: TimeBucket[],
   events: ExocortexEvent[],
   categories: string[],
+  options?: { includeOther?: boolean },
 ): CategoryBucketPoint[] {
   if (events.length === 0 || categories.length === 0) return [];
 
@@ -90,6 +91,22 @@ export function computeCategorySeries(
       const point = points[b];
       const catKey = current.category;
       point[catKey] = ((point[catKey] as number | undefined) ?? 0) + hours;
+    }
+  }
+
+  if (options?.includeOther) {
+    for (let b = 0; b < bucketCount; b++) {
+      const bucket = buckets[b];
+      const point = points[b];
+      const bucketHours = (bucket.end.getTime() - bucket.start.getTime()) / (1000 * 60 * 60);
+
+      let selectedSum = 0;
+      for (const cat of categories) {
+        selectedSum += (point[cat] as number | undefined) ?? 0;
+      }
+
+      const other = Math.max(bucketHours - selectedSum, 0);
+      (point as Record<string, number>)["__other__"] = other;
     }
   }
 
