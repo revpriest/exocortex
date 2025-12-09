@@ -70,6 +70,25 @@ export interface EventSummary {
 }
 
 /**
+ * Category bucket interfaces used for time-aggregation analytics.
+ */
+export type IntervalOption = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface TimeBucket {
+  start: Date;
+  end: Date;
+  label: string;
+}
+
+export interface CategoryBucketPoint {
+  bucketLabel: string;
+  bucketStart: Date;
+  bucketEnd: Date;
+  // Dynamic category keys will be added at runtime with hour values.
+  [category: string]: string | number | Date;
+}
+
+/**
  * IndexedDB Configuration Constants
  *
  * These constants define our IndexedDB database setup:
@@ -481,6 +500,101 @@ export class ExocortexDB {
         } else {
           resolve();
         }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Merge categories across the entire database.
+   *
+   * Every event whose category matches any of the values in `fromCategories`
+   * will be rewritten so that its category becomes `toCategory`.
+   *
+   * This is an irreversible operation at the storage level, so callers
+   * should present a clear confirmation UI before invoking it.
+   */
+  async mergeCategories(fromCategories: string[], toCategory: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const normalizedTargets = new Set(fromCategories.map((c) => c.trim()));
+    const normalizedTo = toCategory.trim();
+
+    if (normalizedTargets.size === 0 || !normalizedTo) {
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('category');
+
+      // We scan all events for the involved categories in a single cursor
+      const request = index.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result as IDBCursorWithValue | null;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+
+        const event = cursor.value as ExocortexEvent;
+        const currentCategory = event.category.trim();
+
+        if (normalizedTargets.has(currentCategory)) {
+          const updated: ExocortexEvent = {
+            ...event,
+            category: normalizedTo,
+          };
+          cursor.update(updated);
+        }
+
+        cursor.continue();
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Rename a single category across the entire database.
+   *
+   * Every event whose category matches `fromCategory` (after trimming) will be
+   * updated so that its category becomes `toCategory`.
+   */
+  async renameCategory(fromCategory: string, toCategory: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const from = fromCategory.trim();
+    const to = toCategory.trim();
+    if (!from || !to || from === to) return;
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('category');
+
+      const request = index.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result as IDBCursorWithValue | null;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+
+        const event = cursor.value as ExocortexEvent;
+        if (event.category.trim() === from) {
+          const updated: ExocortexEvent = {
+            ...event,
+            category: to,
+          };
+          cursor.update(updated);
+        }
+
+        cursor.continue();
       };
 
       request.onerror = () => reject(request.error);

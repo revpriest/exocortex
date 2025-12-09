@@ -11,7 +11,7 @@ import { EventDialog } from './EventDialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { Brain, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus, Search as SearchIcon } from 'lucide-react';
+import { Brain, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus, Search as SearchIcon, Cat } from 'lucide-react';
 import { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
 import { useHueInit } from '@/hooks/useHueInit';
 
@@ -75,6 +75,10 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
 
   const handleStatsClick = () => {
     navigate('/stats');
+  };
+
+  const handleCatsClick = () => {
+    navigate('/cats');
   };
 
   const handleSummaryClick = () => {
@@ -331,7 +335,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
             </DialogContent>
           </Dialog>
 
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <button
               type="button"
               onClick={() => navigate('/about')}
@@ -349,7 +353,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
             </button>
 
             {/* View Toggle Buttons */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 sm:ml-auto justify-end">
               <Button
                 variant={currentView === 'grid' ? 'default' : 'outline'}
                 size="sm"
@@ -357,7 +361,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Grid"
               >
                 <Brain className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Grid</span>
+                <span className="hidden md:inline ml-2">Grid</span>
               </Button>
               <Button
                 variant={currentView === 'summary' ? 'default' : 'outline'}
@@ -366,16 +370,16 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Summary"
               >
                 <Squirrel className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Summary</span>
+                <span className="hidden md:inline ml-2">Summary</span>
               </Button>
               <Button
-                variant={currentView === 'search' ? 'default' : 'outline'}
+                variant={currentView === 'cats' ? 'default' : 'outline'}
                 size="sm"
-                onClick={handleSearchClick}
-                aria-label="Search"
+                onClick={handleCatsClick}
+                aria-label="Categories"
               >
-                <SearchIcon className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Search</span>
+                <Cat className="h-4 w-4" />
+                <span className="hidden md:inline ml-2">Cats</span>
               </Button>
               <Button
                 variant={currentView === 'stats' ? 'default' : 'outline'}
@@ -384,7 +388,16 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Stats"
               >
                 <BarChart3 className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Stats</span>
+                <span className="hidden md:inline ml-2">Stats</span>
+              </Button>
+              <Button
+                variant={currentView === 'search' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleSearchClick}
+                aria-label="Search"
+              >
+                <SearchIcon className="h-4 w-4" />
+                <span className="hidden md:inline ml-2">Search</span>
               </Button>
               <Button
                 variant={currentView === 'conf' ? 'default' : 'outline'}
@@ -393,7 +406,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
                 aria-label="Conf"
               >
                 <Settings className="h-4 w-4" />
-                <span className="hidden xs:inline sm:inline md:inline lg:inline xl:inline 2xl:inline ml-2">Conf</span>
+                <span className="hidden md:inline ml-2">Conf</span>
               </Button>
             </div>
           </div>
