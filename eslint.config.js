@@ -13,6 +13,7 @@ export default tseslint.config(
       "dist",
       "exoblog/**",
       "public/news/**",
+      "public/refresh.html",
     ],
   },
   {
