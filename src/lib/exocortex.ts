@@ -518,7 +518,7 @@ export class ExocortexDB {
   async mergeCategories(fromCategories: string[], toCategory: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const normalizedTargets = new Set(fromCategories.map((c) => c.trim().toLocaleLowerCase()));
+    const normalizedTargets = new Set(fromCategories.map((c) => c.trim()));
     const normalizedTo = toCategory.trim();
 
     if (normalizedTargets.size === 0 || !normalizedTo) {
@@ -541,9 +541,9 @@ export class ExocortexDB {
         }
 
         const event = cursor.value as ExocortexEvent;
-        const currentCategory = (event.category ?? '').trim();
+        const currentCategory = event.category.trim();
 
-        if (currentCategory && normalizedTargets.has(currentCategory.toLocaleLowerCase())) {
+        if (normalizedTargets.has(currentCategory)) {
           const updated: ExocortexEvent = {
             ...event,
             category: normalizedTo,
@@ -638,6 +638,8 @@ export class ExocortexDB {
           cursor.continue();
           return;
         }
+
+        const normalisedKey = trimmed.toLocaleLowerCase();
 
         // Headline-case: first character upper, rest lower.
         const canonical = `${trimmed.charAt(0).toLocaleUpperCase()}${trimmed
