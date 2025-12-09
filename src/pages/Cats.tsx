@@ -72,6 +72,15 @@ function isSleepCategory(name: string | null | undefined): boolean {
 
 const OTHER_KEY = '__other__';
 
+interface SimilarCategoryGroup {
+  /** The canonical, headline-cased category that similar entries will be merged into. */
+  canonical: string;
+  /** All raw category values (as they currently appear in the DB) that map to this canonical name. */
+  variants: string[];
+  /** Approximate number of events that would be touched by merging this group. */
+  estimatedEventCount: number;
+}
+
 const Cats = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
@@ -92,6 +101,9 @@ const Cats = () => {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>('lines');
   const [series, setSeries] = useState<CategoryBucketPoint[]>([]);
+  const [similarOpen, setSimilarOpen] = useState(false);
+  const [similarGroups, setSimilarGroups] = useState<SimilarCategoryGroup[]>([]);
+  const [isMergingSimilar, setIsMergingSimilar] = useState(false);
 
   const { config } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -211,6 +223,88 @@ const Cats = () => {
     };
   }, [db, renameOpen, selectedCategories]);
 
+  // When the "merge similar" dialog is opened, build a preview of all
+  // groups of categories that only differ by case or surrounding whitespace.
+  useEffect(() => {
+    if (!db || !similarOpen) {
+      setSimilarGroups([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        const all = await db.getAllEvents();
+        if (controller.signal.aborted) return;
+
+        const grouped = new Map<string, { canonical: string; variants: Map<string, number> }>();
+
+        for (const ev of all) {
+          const raw = ev.category ?? '';
+          const trimmed = raw.trim();
+          if (!trimmed) continue;
+
+          const key = trimmed.toLocaleLowerCase();
+          const canonical = `${trimmed.charAt(0).toLocaleUpperCase()}${trimmed
+            .slice(1)
+            .toLocaleLowerCase()}`;
+
+          let entry = grouped.get(key);
+          if (!entry) {
+            entry = { canonical, variants: new Map<string, number>() };
+            grouped.set(key, entry);
+          }
+
+          entry.canonical = canonical; // last write wins but all forms produce same canonical
+          const current = entry.variants.get(raw) ?? 0;
+          entry.variants.set(raw, current + 1);
+        }
+
+        const groups: SimilarCategoryGroup[] = [];
+        for (const { canonical, variants } of grouped.values()) {
+          if (variants.size <= 1) continue; // Nothing to merge, only one spelling
+
+          let total = 0;
+          const variantList: string[] = [];
+          for (const [name, count] of variants.entries()) {
+            variantList.push(name);
+            total += count;
+          }
+
+          // Only consider this a "similar" group if there are spellings that
+          // actually differ (ignoring leading/trailing whitespace and case).
+          const distinctNormalised = new Set(
+            variantList.map((v) => v.trim().toLocaleLowerCase()),
+          );
+          if (distinctNormalised.size <= 1) continue;
+
+          groups.push({
+            canonical,
+            variants: variantList.sort((a, b) => a.localeCompare(b)),
+            estimatedEventCount: total,
+          });
+        }
+
+        if (!controller.signal.aborted) {
+          // Sort groups alphabetically by canonical name for stable UI
+          groups.sort((a, b) => a.canonical.localeCompare(b.canonical));
+          setSimilarGroups(groups);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setSimilarGroups([]);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [db, similarOpen]);
+
   useEffect(() => {
     const run = async () => {
       if (!db || !startDate) {
@@ -266,6 +360,33 @@ const Cats = () => {
   };
 
   const showStackedLegendOther = chartMode === 'stacked' && selectedCategories.length > 0;
+
+  const handleMergeSimilarConfirm = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!db || isMergingSimilar || similarGroups.length === 0) return;
+
+    try {
+      setIsMergingSimilar(true);
+      await db.mergeSimilarCategories();
+
+      const all = await db.getAllEvents();
+      setEvents(all);
+
+      const catCounts = new Map<string, number>();
+      for (const ev of all) {
+        const key = ev.category.trim();
+        catCounts.set(key, (catCounts.get(key) ?? 0) + 1);
+      }
+      const sorted = Array.from(catCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([name]) => name);
+      setAvailableCategories(sorted);
+
+      setSimilarOpen(false);
+    } finally {
+      setIsMergingSimilar(false);
+    }
+  };
 
   return (
     <PageLayout
@@ -720,6 +841,28 @@ const Cats = () => {
                 </p>
               )}
             </div>
+
+            <div className="pt-3 border-t border-border/60">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Merge similar cats</div>
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
+                    Combine all categories whose names only differ by capitalisation or
+                    whitespace. The merged category name will use headline case, with leading
+                    and trailing spaces stripped.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!db}
+                  onClick={() => setSimilarOpen(true)}
+                >
+                  Merge Similar Cats
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -939,6 +1082,64 @@ const Cats = () => {
                 }}
               >
                 {isRenaming ? 'Renaming…' : 'Rename this category'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Merge similar cats dialog */}
+        <AlertDialog open={similarOpen} onOpenChange={setSimilarOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Merge similar cats</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will combine categories that only differ by capitalisation or
+                whitespace. Each group below will be merged into the headline-cased version
+                of its name. This operation is{' '}
+                <span className="font-semibold text-foreground">permanent</span> and cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="mt-3 max-h-64 overflow-y-auto space-y-3 pr-1 text-sm">
+              {similarGroups.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  No categories were found that only differ by capitalisation or whitespace.
+                </p>
+              ) : (
+                similarGroups.map((group) => (
+                  <div
+                    key={group.canonical}
+                    className="rounded-md border border-border/70 bg-secondary/40 px-3 py-2"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-semibold text-foreground">
+                          {group.canonical}
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          Will merge:{' '}
+                          <span className="font-medium text-foreground">
+                            {group.variants.join(', ')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        ~{group.estimatedEventCount} events
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isMergingSimilar}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!db || isMergingSimilar || similarGroups.length === 0}
+                onClick={handleMergeSimilarConfirm}
+              >
+                {isMergingSimilar ? 'Merging…' : 'Merge Similar Cats'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
