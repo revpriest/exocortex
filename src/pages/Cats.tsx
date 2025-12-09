@@ -245,9 +245,8 @@ const Cats = () => {
           const trimmed = raw.trim();
           if (!trimmed) continue;
 
-          const key = trimmed.toLocaleLowerCase();
+          const key = raw.toLocaleLowerCase();
           const canonical = `${trimmed.charAt(0).toLocaleUpperCase()}${trimmed
-            .slice(1)
             .toLocaleLowerCase()}`;
 
           let entry = grouped.get(key);
@@ -272,13 +271,9 @@ const Cats = () => {
             total += count;
           }
 
-          // Only consider this a "similar" group if there are spellings that
-          // actually differ (ignoring leading/trailing whitespace and case).
-          const distinctNormalised = new Set(
-            variantList.map((v) => v.trim().toLocaleLowerCase()),
-          );
-          if (distinctNormalised.size <= 1) continue;
-
+          // Treat any normalised key that has multiple raw spellings as a
+          // merge candidate — this is exactly the case of stray whitespace
+          // and weird capitalisation like "Slack" vs "slack ".
           groups.push({
             canonical,
             variants: variantList.sort((a, b) => a.localeCompare(b)),
