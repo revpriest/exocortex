@@ -16,7 +16,7 @@
  */
 
 // React hooks for state management and lifecycle
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // Import UI components from our component library
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -157,6 +157,33 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [startLoadedForEventId, setStartLoadedForEventId] = useState<string | null>(null);
 
+
+const calculateStartTime = useCallback(
+  async (currentEndTime: Date) => {
+    if (!open) return;
+
+    try {
+      const db = new ExocortexDB();
+      await db.init();
+
+      const startTimestamp = await getEventStartTime(
+        db,
+        currentEndTime.getTime()
+      );
+      if (startTimestamp !== null) {
+        setStartTime(new Date(startTimestamp));
+      } else {
+        setStartTime(null);
+      }
+    } catch (error) {
+      console.error('Failed to calculate start time:', error);
+      setStartTime(null);
+    }
+  },
+  [open] // plus any *non-stable* things you use inside, if there are any
+);
+
+
   // Reset form when dialog opens or editEvent changes
   useEffect(() => {
     if (open) {
@@ -178,7 +205,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
         calculateStartTime(new Date());
       }
     }
-  }, [open, editEvent, defaultValues]);
+  }, [open, editEvent, defaultValues, calculateStartTime]);
 
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -224,25 +251,6 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
     };
   }, [showDropdown]);
 
-  // Calculate start time from previous event using shared DB helper
-  const calculateStartTime = async (currentEndTime: Date) => {
-    if (!open) return;
-
-    try {
-      const db = new ExocortexDB();
-      await db.init();
-
-      const startTimestamp = await getEventStartTime(db, currentEndTime.getTime());
-      if (startTimestamp !== null) {
-        setStartTime(new Date(startTimestamp));
-      } else {
-        setStartTime(null);
-      }
-    } catch (error) {
-      console.error('Failed to calculate start time:', error);
-      setStartTime(null);
-    }
-  };
 
   // Recalculate start time when relevant identifiers change
   useEffect(() => {
@@ -259,7 +267,7 @@ export function EventDialog({ open, onOpenChange, onSubmit, onUpdate, onDelete, 
 
     // For new events, recompute whenever the end time changes
     void calculateStartTime(endTime);
-  }, [open, editEvent, endTime, startLoadedForEventId]);
+  }, [open, editEvent, endTime, startLoadedForEventId, calculateStartTime]);
 
   // Load recent unique categories from database
   const loadRecentCategories = async () => {
