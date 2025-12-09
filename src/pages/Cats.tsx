@@ -240,7 +240,11 @@ const Cats = () => {
         const all = await db.getAllEvents();
         if (controller.signal.aborted) return;
 
-        const grouped = new Map<string, { canonical: string; variants: Map<string, number> }>();
+        // key: normalised (trim().toLowerCase())
+        const grouped = new Map<
+          string,
+          { canonical: string; variants: Map<string, number> }
+        >();
 
         for (const ev of all) {
           const raw = ev.category ?? '';
@@ -248,9 +252,9 @@ const Cats = () => {
           if (!trimmed) continue;
 
           const key = trimmed.toLocaleLowerCase();
-          const canonical = `${trimmed.charAt(0).toLocaleUpperCase()}${trimmed
-            .slice(1)
-            .toLocaleLowerCase()}`;
+          const canonical =
+            trimmed.charAt(0).toLocaleUpperCase() +
+            trimmed.slice(1).toLocaleLowerCase();
 
           let entry = grouped.get(key);
           if (!entry) {
@@ -258,25 +262,27 @@ const Cats = () => {
             grouped.set(key, entry);
           }
 
-          entry.canonical = canonical; // last write wins but all forms produce same canonical
+          // Last canonical wins, but all trim/normalised forms produce the same canonical
+          entry.canonical = canonical;
+
           const current = entry.variants.get(raw) ?? 0;
           entry.variants.set(raw, current + 1);
         }
 
         const groups: SimilarCategoryGroup[] = [];
+
         for (const { canonical, variants } of grouped.values()) {
-          if (variants.size <= 1) continue; // Nothing to merge, only one spelling
+          // Only show keys that actually have multiple raw spellings
+          if (variants.size <= 1) continue;
 
           let total = 0;
           const variantList: string[] = [];
+
           for (const [name, count] of variants.entries()) {
             variantList.push(name);
             total += count;
           }
 
-          // We now explicitly *want* to treat categories that only differ by
-          // case/whitespace as merge candidates. As long as there is more than
-          // one raw variant, this is considered a group to merge.
           groups.push({
             canonical,
             variants: variantList.sort((a, b) => a.localeCompare(b)),
@@ -289,8 +295,9 @@ const Cats = () => {
           groups.sort((a, b) => a.canonical.localeCompare(b.canonical));
           setSimilarGroups(groups);
         }
-      } catch {
+      } catch (err) {
         if (!controller.signal.aborted) {
+          console.error('Failed to build similar category groups', err);
           setSimilarGroups([]);
         }
       }
