@@ -274,13 +274,9 @@ const Cats = () => {
             total += count;
           }
 
-          // Only consider this a "similar" group if there are spellings that
-          // actually differ (ignoring leading/trailing whitespace and case).
-          const distinctNormalised = new Set(
-            variantList.map((v) => v.trim().toLocaleLowerCase()),
-          );
-          if (distinctNormalised.size <= 1) continue;
-
+          // We now explicitly *want* to treat categories that only differ by
+          // case/whitespace as merge candidates. As long as there is more than
+          // one raw variant, this is considered a group to merge.
           groups.push({
             canonical,
             variants: variantList.sort((a, b) => a.localeCompare(b)),
