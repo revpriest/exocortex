@@ -639,8 +639,6 @@ export class ExocortexDB {
           return;
         }
 
-        const normalisedKey = trimmed.toLocaleLowerCase();
-
         // Headline-case: first character upper, rest lower.
         const canonical = `${trimmed.charAt(0).toLocaleUpperCase()}${trimmed
           .slice(1)
