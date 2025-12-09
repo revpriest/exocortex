@@ -38,6 +38,3 @@ since when Vibe Coding has dropped off a little.
 
 
 
-we 
-
-
