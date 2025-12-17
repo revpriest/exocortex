@@ -457,7 +457,12 @@ const calculateStartTime = useCallback(
               <Input
                 id="category"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  if (!showDropdown) {
+                    setShowDropdown(true);
+                  }
+                }}
                 placeholder="e.g., Work, Sleep, Exercise"
                 className={`${isMobile ? 'text-sm' : ''} bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10`}
               />
