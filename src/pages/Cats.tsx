@@ -2,7 +2,7 @@
  * Cats.tsx - Category Time Trends Page
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useSearchParams } from 'react-router-dom';
 import { PageLayout } from '@/components/PageLayout';
@@ -41,10 +41,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 const INTERVAL_OPTIONS: IntervalOption[] = ['daily', 'weekly', 'monthly', 'yearly'];
 
 type ChartMode = 'lines' | 'stacked';
+type CategorySortMode = 'common' | 'alphabetical' | 'recent';
+
+interface CategoryStats {
+  count: number;
+  lastUsed: number;
+}
 
 function getCategoryColor(
   category: string,
@@ -85,6 +92,7 @@ const Cats = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStats>>({});
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [interval, setInterval] = useState<IntervalOption>('daily');
   const [mergeOpen, setMergeOpen] = useState(false);
@@ -105,6 +113,11 @@ const Cats = () => {
   const [similarGroups, setSimilarGroups] = useState<SimilarCategoryGroup[]>([]);
   const [isMergingSimilar, setIsMergingSimilar] = useState(false);
 
+  const [sortMode, setSortMode] = useLocalStorage<CategorySortMode>(
+    'cats.sortMode',
+    'common',
+  );
+
   const { config } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -122,15 +135,32 @@ const Cats = () => {
       const allEvents = await database.getAllEvents();
       setEvents(allEvents);
 
-      const catMap = new Map<string, number>();
+      const statsMap = new Map<string, CategoryStats>();
       for (const ev of allEvents) {
         const key = ev.category.trim();
-        catMap.set(key, (catMap.get(key) ?? 0) + 1);
+        const existing = statsMap.get(key);
+        if (existing) {
+          statsMap.set(key, {
+            count: existing.count + 1,
+            lastUsed: Math.max(existing.lastUsed, ev.endTime),
+          });
+        } else {
+          statsMap.set(key, {
+            count: 1,
+            lastUsed: ev.endTime,
+          });
+        }
       }
-      const sortedCats = Array.from(catMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([name]) => name);
-      setAvailableCategories(sortedCats);
+
+      const cats = Array.from(statsMap.keys());
+      setAvailableCategories(cats);
+
+      const statsObj: Record<string, CategoryStats> = {};
+      for (const [name, st] of statsMap.entries()) {
+        statsObj[name] = st;
+      }
+      setCategoryStats(statsObj);
+
       // Default to nothing selected (user chooses)
       setSelectedCategories([]);
 
@@ -158,6 +188,32 @@ const Cats = () => {
 
     void init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sorted view of categories based on current sort mode
+  const displayCategories = useMemo(() => {
+    return [...availableCategories].sort((a, b) => {
+      const aStats = categoryStats[a];
+      const bStats = categoryStats[b];
+
+      if (!aStats && !bStats) return a.localeCompare(b);
+      if (!aStats) return 1;
+      if (!bStats) return -1;
+
+      switch (sortMode) {
+        case 'alphabetical':
+          return a.localeCompare(b);
+        case 'recent':
+          return bStats.lastUsed - aStats.lastUsed;
+        case 'common':
+        default: {
+          if (bStats.count !== aStats.count) {
+            return bStats.count - aStats.count;
+          }
+          return a.localeCompare(b);
+        }
+      }
+    });
+  }, [availableCategories, categoryStats, sortMode]);
 
   // Live preview count for merge: whenever the dialog is open and categories
   // change, estimate how many events will be touched.
@@ -393,20 +449,41 @@ const Cats = () => {
       <div className="space-y-6">
         <Card className="bg-gradient-to-r from-purple-900/60 via-sky-900/50 to-emerald-900/60 border-border shadow-lg shadow-purple-900/40">
           <CardHeader className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <Cat className="h-6 w-6 text-purple-200" />
-              <div>
-                <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
-                  Category Highlights
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Pick one or more categories to follow across time.
-                </p>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <Cat className="h-6 w-6 text-purple-200" />
+                <div>
+                  <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    Category Highlights
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Pick one or more categories to follow across time.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <Label
+                  htmlFor="category-sort"
+                  className="text-[11px] uppercase tracking-wide text-muted-foreground"
+                >
+                  Sort
+                </Label>
+                <select
+                  id="category-sort"
+                  className="bg-secondary/70 border border-border rounded-md px-2 py-1 text-xs text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as CategorySortMode)}
+                >
+                  <option value="common">Common</option>
+                  <option value="alphabetical">Alphabetical</option>
+                  <option value="recent">Recent</option>
+                </select>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2 mt-2">
-              {availableCategories.map((cat) => {
+              {displayCategories.map((cat) => {
                 const selected = selectedCategories.includes(cat);
                 const color = getCategoryColor(cat, config.colorOverrides);
                 return (
@@ -425,7 +502,7 @@ const Cats = () => {
                   </button>
                 );
               })}
-              {availableCategories.length === 0 && (
+              {displayCategories.length === 0 && (
                 <span className="text-xs text-muted-foreground italic">
                   No categories yet – add some events first.
                 </span>
