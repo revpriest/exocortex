@@ -47,6 +47,8 @@ import { CalendarWithYearNav } from '@/components/CalendarWithYearNav';
 const INTERVAL_OPTIONS: IntervalOption[] = ['daily', 'weekly', 'monthly', 'yearly'];
 const ZOOM_OPTIONS = [7, 10, 14, 21, 28, 35, 42, 50, 100, 200, 300, 500] as const;
 
+const SELECTED_CATS_KEY = 'cats.selectedCategories';
+
 type ZoomOption = (typeof ZOOM_OPTIONS)[number];
 
 type ChartMode = 'lines' | 'stacked';
@@ -112,7 +114,10 @@ const Cats = () => {
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStats>>({});
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useLocalStorage<string[]>(
+    SELECTED_CATS_KEY,
+    [],
+  );
   const [interval, setInterval] = useLocalStorage<IntervalOption>(
     'cats.interval',
     'daily',
@@ -210,8 +215,15 @@ const Cats = () => {
       }
       setCategoryStats(statsObj);
 
-      // Default to nothing selected (user chooses)
-      setSelectedCategories([]);
+      // If we have previously stored selections but some categories
+      // no longer exist (e.g. after a merge/rename/import), prune them.
+      if (selectedCategories.length > 0) {
+        const allowed = new Set(cats);
+        const pruned = selectedCategories.filter((c) => allowed.has(c));
+        if (pruned.length !== selectedCategories.length) {
+          setSelectedCategories(pruned);
+        }
+      }
 
       // Determine initial anchor date
       const dateParam = searchParams.get('date');
