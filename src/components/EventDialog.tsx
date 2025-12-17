@@ -275,31 +275,19 @@ const calculateStartTime = useCallback(
       const db = new ExocortexDB();
       await db.init();
 
-      // Get events from the last 30 days including today
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 29); // -29 to include 30 days total (today + 29 previous)
-
-      const days = await db.getEventsByDateRangeOnly(
-        startDate.toISOString().split('T')[0],
-        endDate.toISOString().split('T')[0]
-      );
+      // Load all events so the category list truly reflects everything in the DB
+      const allEvents = await db.getAllEvents();
 
       // Extract all categories and get unique ones, keeping most recent first
-      const allCategories = days.flatMap(day => day.events.map(event => event.category));
+      const allCategories = allEvents.map((event) => event.category);
 
       // Reverse to get most recent first, then get unique ones
       const reversedCategories = [...allCategories].reverse();
-      const uniqueCategories = [...new Set(reversedCategories)].slice(0, 12);
+      const uniqueCategories = [...new Set(reversedCategories)];
 
-      // Always include default categories along with existing ones
-      const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
-      const combinedCategories = [...uniqueCategories, ...defaultCategories];
-      const finalCategories = [...new Set(combinedCategories)].slice(0, 12); // Remove duplicates and limit to 12
-
-      setRecentCategories(finalCategories);
+      setRecentCategories(uniqueCategories);
     } catch {
-      // Add default categories even if there's an error
+      // Fallback: some sensible defaults if we can't read from the DB
       const defaultCategories = ['Work', 'Sleep', 'Exercise', 'Meal', 'Break', 'Study', 'Slack'];
       setRecentCategories(defaultCategories);
     }
