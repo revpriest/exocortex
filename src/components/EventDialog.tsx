@@ -311,6 +311,14 @@ const calculateStartTime = useCallback(
     setShowDropdown(false);
   };
 
+  // Filter recent categories based on current input, matching prefix (case-insensitive)
+  const filteredCategories =
+    category.trim().length === 0
+      ? recentCategories
+      : recentCategories.filter((cat) =>
+          cat.toLowerCase().startsWith(category.trim().toLowerCase())
+        );
+
   const handleSubmit = () => {
     if (!category.trim()) {
       setError('Please enter a category');
@@ -468,9 +476,9 @@ const calculateStartTime = useCallback(
               </Button>
 
               {/* Dropdown menu */}
-              {showDropdown && recentCategories.length > 0 && (
+              {showDropdown && filteredCategories.length > 0 && (
                 <div className={`absolute ${isMobile ? 'left-0 right-0 -ml-4 -mr-4' : 'left-0 right-0'} mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50 max-h-48 overflow-y-auto`}>
-                  {recentCategories.map((cat, index) => (
+                  {filteredCategories.map((cat, index) => (
                     <button
                       key={index}
                       type="button"
@@ -486,7 +494,7 @@ const calculateStartTime = useCallback(
                   ))}
                 </div>
               )}
-              {showDropdown && recentCategories.length === 0 && (
+              {showDropdown && filteredCategories.length === 0 && (
                 <div className={`absolute ${isMobile ? 'left-0 right-0 -ml-4 -mr-4' : 'left-0 right-0'} mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50`}>
                   <div className={`px-3 py-2 text-sm text-gray-400 ${isMobile ? 'px-4' : ''}`}>
                     No recent categories found
