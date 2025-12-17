@@ -10,7 +10,6 @@ import { ExocortexDB, ExocortexEvent, IntervalOption } from '@/lib/exocortex';
 import { DataExporter } from '@/lib/dataExport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/hooks/useAppContext';
 import { ColorOverride } from '@/contexts/AppContext';
@@ -42,6 +41,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CalendarWithYearNav } from '@/components/CalendarWithYearNav';
 
 const INTERVAL_OPTIONS: IntervalOption[] = ['daily', 'weekly', 'monthly', 'yearly'];
 const ZOOM_OPTIONS = [7, 10, 14, 21, 28, 35, 42, 50, 100, 200, 300, 500] as const;
@@ -125,8 +126,12 @@ const Cats = () => {
   const [renameValue, setRenameValue] = useState('');
   const [renamePreviewCount, setRenamePreviewCount] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [startDateString, setStartDateString] = useLocalStorage<string | null>(
+    'cats.startDate',
+    null,
+  );
+  const [startDate, setStartDateState] = useState<Date | undefined>(undefined);
+  const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   const [hoverBucket, setHoverBucket] = useState<CategoryBucketPoint | null>(null);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [chartMode, setChartMode] = useLocalStorage<ChartMode>('cats.chartMode', 'lines');
@@ -150,6 +155,25 @@ const Cats = () => {
     title: 'Categories - ExocortexLog',
     description: 'Visualize how much time you spend in each category over time.',
   });
+
+  // Keep derived Date in sync with persisted string
+  useEffect(() => {
+    if (startDateString) {
+      const parsed = new Date(`${startDateString}T00:00:00`);
+      if (!Number.isNaN(parsed.getTime())) {
+        setStartDateState(startOfDay(parsed));
+        return;
+      }
+    }
+    // Fallback to today until init() sets a better date
+    setStartDateState(startOfDay(new Date()));
+  }, [startDateString]);
+
+  const setStartDate = (date: Date) => {
+    const key = date.toISOString().split('T')[0];
+    setStartDateString(key);
+    setStartDateState(startOfDay(date));
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -194,7 +218,7 @@ const Cats = () => {
       if (dateParam) {
         const parsed = new Date(`${dateParam}T00:00:00`);
         if (!Number.isNaN(parsed.getTime())) {
-          setStartDate(startOfDay(parsed));
+          setStartDate(parsed);
           // Clear the param so re-renders don't keep re-applying it
           const params = new URLSearchParams(searchParams);
           params.delete('date');
@@ -203,11 +227,13 @@ const Cats = () => {
         }
       }
 
-      if (allEvents.length > 0) {
-        const first = allEvents[0].endTime;
-        setStartDate(startOfDay(new Date(first)));
-      } else {
-        setStartDate(startOfDay(new Date()));
+      if (!startDateString) {
+        if (allEvents.length > 0) {
+          const first = allEvents[0].endTime;
+          setStartDate(new Date(first));
+        } else {
+          setStartDate(new Date());
+        }
       }
     };
 
@@ -424,7 +450,7 @@ const Cats = () => {
     if (!startDate) return;
     const days = interval === 'daily' ? 7 : interval === 'weekly' ? 7 * 4 : interval === 'monthly' ? 30 * 6 : 365;
     const next = new Date(startDate.getTime() + direction * days * 24 * 60 * 60 * 1000);
-    setStartDate(startOfDay(next));
+    setStartDate(next);
   };
 
   const handleBucketClick = (bucket: CategoryBucketPoint) => {
@@ -550,25 +576,11 @@ const Cats = () => {
                   variant="outline"
                   size="sm"
                   className="bg-secondary/70 border-border text-secondary-foreground font-normal"
-                  onClick={() => setShowCalendar(!showCalendar)}
+                  onClick={() => setShowCalendarDialog(true)}
                 >
                   <CalendarIcon className="h-4 w-4 mr-2" />
                   {startDate ? format(startDate, 'MMM dd, yyyy') : 'Pick date'}
                 </Button>
-                {showCalendar && (
-                  <div className="mt-2 rounded-lg border border-border bg-popover shadow-xl p-2 z-40">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => {
-                        setShowCalendar(false);
-                        if (!date || !isValid(date)) return;
-                        setStartDate(startOfDay(date));
-                      }}
-                      initialFocus
-                    />
-                  </div>
-                )}
               </div>
 
               <div className="space-y-1">
@@ -1281,6 +1293,25 @@ const Cats = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Start date picker dialog with year navigation */}
+        <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
+          <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+            <DialogHeader>
+              <DialogTitle>Choose starting date</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 flex justify-center">
+              <CalendarWithYearNav
+                selectedDate={startDate ?? undefined}
+                onChange={(date) => {
+                  if (date && !isNaN(date.getTime())) {
+                    setStartDate(date);
+                  }
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </PageLayout>
   );
