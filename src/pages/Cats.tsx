@@ -51,6 +51,8 @@ type ZoomOption = (typeof ZOOM_OPTIONS)[number];
 type ChartMode = 'lines' | 'stacked';
 type CategorySortMode = 'common' | 'alphabetical' | 'recent';
 
+type IntervalUnitLabel = 'days' | 'weeks' | 'months' | 'years';
+
 interface CategoryStats {
   count: number;
   lastUsed: number;
@@ -91,14 +93,30 @@ interface SimilarCategoryGroup {
   estimatedEventCount: number;
 }
 
+const intervalUnitFor = (interval: IntervalOption): IntervalUnitLabel => {
+  switch (interval) {
+    case 'daily':
+      return 'days';
+    case 'weekly':
+      return 'weeks';
+    case 'monthly':
+      return 'months';
+    case 'yearly':
+      return 'years';
+  }
+};
+
 const Cats = () => {
   const [db, setDb] = useState<ExocortexDB | null>(null);
   const [events, setEvents] = useState<ExocortexEvent[]>([]);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStats>>({});
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [interval, setInterval] = useState<IntervalOption>('daily');
-  const [zoom, setZoom] = useState<ZoomOption>(28);
+  const [interval, setInterval] = useLocalStorage<IntervalOption>(
+    'cats.interval',
+    'daily',
+  );
+  const [zoom, setZoom] = useLocalStorage<ZoomOption>('cats.zoom', 28);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
@@ -111,7 +129,7 @@ const Cats = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [hoverBucket, setHoverBucket] = useState<CategoryBucketPoint | null>(null);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
-  const [chartMode, setChartMode] = useState<ChartMode>('lines');
+  const [chartMode, setChartMode] = useLocalStorage<ChartMode>('cats.chartMode', 'lines');
   const [series, setSeries] = useState<CategoryBucketPoint[]>([]);
   const [similarOpen, setSimilarOpen] = useState(false);
   const [similarGroups, setSimilarGroups] = useState<SimilarCategoryGroup[]>([]);
@@ -443,6 +461,8 @@ const Cats = () => {
     }
   };
 
+  const intervalUnit = intervalUnitFor(interval);
+
   return (
     <PageLayout
       db={db}
@@ -567,7 +587,7 @@ const Cats = () => {
                 >
                   {ZOOM_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
-                      {opt} intervals
+                      {opt} {intervalUnit}
                     </option>
                   ))}
                 </select>
