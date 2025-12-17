@@ -77,7 +77,7 @@ interface ExocortexGridProps {
  */
 export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db, skipDate}: ExocortexGridProps) {
   const { config } = useAppContext();
-  const [_error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [_currentDate, setCurrentDate] = useState(new Date());
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
@@ -903,10 +903,25 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
     return () => clearInterval(interval);
   }, [days, db, lastDayCheck]);
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64 px-4 text-center">
+        <div className="text-red-400 bg-red-900/20 border border-red-600 rounded-md px-4 py-3 text-sm max-w-xl">
+          <p className="font-medium mb-1">Database error</p>
+          <p className="mb-2 break-words">{error}</p>
+          <p className="text-xs text-red-200/80">
+            Open the Settings → Database Management page to clear and reinitialise the database. You may need to
+            import from a backup export afterwards.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading && days.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">Loading…</div>
       </div>
     );
   }

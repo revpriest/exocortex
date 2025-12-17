@@ -101,7 +101,7 @@ export interface CategoryBucketPoint {
  * - STORE_NAME: Name of the object store (like a table in SQL)
  */
 const DB_NAME = 'exocortex'; // Database name for our time tracking data
-const DB_VERSION = 1; // Database version (increment when schema changes)
+const DB_VERSION = 2; // Database version (increment when schema changes)
 const STORE_NAME = 'events'; // Object store name for storing events
 
 /**

@@ -28,7 +28,7 @@ import { Moon, Sun, RefreshCw, Database, Newspaper as NewsIcon, HardDrive, Downl
  * Provides database operations including import, export, test data generation,
  * and database clearing functionality.
  */
-const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
+const DBManagementSection = ({ db, dbError }: { db: ExocortexDB | null; dbError: string | null }) => {
   const [error, setError] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showTestConfirm, setShowTestConfirm] = useState(false);
@@ -149,12 +149,29 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
   };
 
   const handleClearAllData = async() => {
-    if (!db) return;
-
     try {
-      await db.clearAllEvents();
-      setError('All data has been cleared successfully');
-      setTimeout(() => setError(null), 3000);
+      if (db) {
+        await db.clearAllEvents();
+      } else {
+        // If the DB instance failed to initialise (e.g. version error), wipe the
+        // entire IndexedDB database so a fresh one can be created on reload.
+        await new Promise<void>((resolve, reject) => {
+          const request = indexedDB.deleteDatabase('exocortex');
+
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+          request.onblocked = () => {
+            console.warn('Database deletion is blocked – close other tabs using ExocortexLog and try again.');
+            resolve();
+          };
+        });
+      }
+
+      setError('All data has been cleared successfully. Reloading…');
+      setTimeout(() => {
+        setError(null);
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Failed to clear data:', error);
       setError('Failed to clear data. Please try again.');
@@ -258,6 +275,18 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
             {formatLastExportMessage()}
           </p>
 
+          {dbError && (
+            <div className="px-3 py-2 rounded-md text-sm bg-red-900/20 border border-red-600 text-red-400">
+              <p className="font-semibold mb-1">Database error</p>
+              <p className="mb-1 break-words">{dbError}</p>
+              <p className="text-xs text-red-200/80">
+                You can use <span className="font-semibold">Clear All</span> below to wipe the local database and
+                let ExocortexLog recreate it. This will permanently remove all locally stored events unless you
+                re-import from a backup export.
+              </p>
+            </div>
+          )}
+
           {/* Database overview */}
           <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm flex flex-col gap-2">
             {loadingSummary ? (
@@ -291,7 +320,7 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
           <Button
             variant="outline"
             onClick={handleExport}
-            disabled={!db}
+            disabled={!db && !dbError}
             className="w-full"
           >
             <Download className="h-4 w-4 mr-2" />
@@ -318,7 +347,7 @@ const DBManagementSection = ({ db }: { db: ExocortexDB | null }) => {
           <Button
             variant="outline"
             onClick={() => setShowClearConfirm(true)}
-            disabled={!db}
+            disabled={!db && !dbError}
             className="w-full bg-destructive border-destructive text-destructive-foreground"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -600,12 +629,21 @@ const ConfPage = () => {
   });
 
   const [db, setDb] = useState<ExocortexDB | null>(null);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
     const initDb = async () => {
-      const database = new ExocortexDB();
-      await database.init();
-      setDb(database);
+      try {
+        const database = new ExocortexDB();
+        await database.init();
+        setDb(database);
+        setDbError(null);
+      } catch (error) {
+        console.error('Failed to initialize database on settings page:', error);
+        const message = error instanceof Error ? error.message : 'Unknown database error.';
+        setDb(null);
+        setDbError(message);
+      }
     };
 
     void initDb();
@@ -630,7 +668,7 @@ const ConfPage = () => {
         </div>
 
         <div className="grid gap-6 md:grid-cols-1">
-          <DBManagementSection db={db} />
+          <DBManagementSection db={db} dbError={dbError} />
           <CacheResetSection />
         </div>
       </div>
