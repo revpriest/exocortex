@@ -64,10 +64,9 @@ const ROW_HEIGHT = 80; // Height of each day row in pixels - balanced for both m
 interface ExocortexGridProps {
   className?: string;
   refreshTrigger?: number;
-  setRefreshTrigger?: (number) => void;
-  skipDate?: Date | null;
+  setRefreshTrigger?: (number)=>void;
+  skipDate?: Date|null;
   db?: ExocortexDB | null;
-  dbError?: string | null;
 }
 
 /**
@@ -76,10 +75,9 @@ interface ExocortexGridProps {
  * This is the main component function that renders our time tracking grid.
  * It manages all state related to events, database operations, and UI interactions.
  */
-export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db, skipDate, dbError }: ExocortexGridProps) {
+export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db, skipDate}: ExocortexGridProps) {
   const { config } = useAppContext();
   const [error, setError] = useState<string | null>(null);
-  const effectiveError = error || dbError || null;
   const [_currentDate, setCurrentDate] = useState(new Date());
   const [lastDayCheck, setLastDayCheck] = useState(new Date());
 
@@ -192,7 +190,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
   //Initalize when days change
   useEffect(() => {
     const initDaysChange = async () => {
-      if (!loadingRef.current || !db || !gridRef.current || effectiveError) return;
+      if (!loadingRef.current || !db || !gridRef.current) return;
 
       observerRef.current = new IntersectionObserver(
         (entries) => {
@@ -291,7 +289,7 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
       console.error('Failed to initialize database:', error);
       setError('Failed to initialize database. Please refresh the page.');
     });
-  }, [loading, db, days, effectiveError]);
+  }, [loading, db, days]);
 
 
   // Refresh grid when refreshTrigger changes. Do not clobber a view
@@ -905,12 +903,12 @@ export function ExocortexGrid({ className, refreshTrigger, setRefreshTrigger, db
     return () => clearInterval(interval);
   }, [days, db, lastDayCheck]);
 
-  if (effectiveError) {
+  if (error) {
     return (
       <div className="flex items-center justify-center h-64 px-4 text-center">
         <div className="text-red-400 bg-red-900/20 border border-red-600 rounded-md px-4 py-3 text-sm max-w-xl">
           <p className="font-medium mb-1">Database error</p>
-          <p className="mb-2 break-words">{effectiveError}</p>
+          <p className="mb-2 break-words">{error}</p>
           <p className="text-xs text-red-200/80">
             Open the Settings → Database Management page to clear and reinitialise the database. You may need to
             import from a backup export afterwards.
