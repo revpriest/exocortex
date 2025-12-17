@@ -8,8 +8,8 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { EventDialog } from './EventDialog';
+import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CalendarWithYearNav } from '@/components/CalendarWithYearNav';
 import { useNavigate } from 'react-router-dom';
 import { Brain, BarChart3, Squirrel, Settings, ChevronUp, ChevronDown, CalendarIcon, Plus, Search as SearchIcon, Cat } from 'lucide-react';
 import { ExocortexEvent, ExocortexDB } from '@/lib/exocortex';
@@ -94,8 +94,66 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
     navigate('/conf');
   };
 
-  const handleCalendarChange = (date: Date | undefined) => {
-    setSelectedSkipDate(date);
+  // Custom calendar component with year navigation
+  const CalendarWithYearNav = () => {
+    const [currentMonth, setCurrentMonth] = useState(selectedSkipDate || new Date());
+
+    const handleYearUp = () => {
+      const newDate = new Date(currentMonth);
+      newDate.setFullYear(newDate.getFullYear() + 1);
+      setCurrentMonth(newDate);
+    };
+
+    const handleYearDown = () => {
+      const newDate = new Date(currentMonth);
+      newDate.setFullYear(newDate.getFullYear() - 1);
+      setCurrentMonth(newDate);
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Year navigation */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleYearDown}
+            className="bg-secondary border-border"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+          <div className="text-lg font-semibold">
+            {currentMonth.getFullYear()}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleYearUp}
+            className="bg-secondary border-border"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Calendar */}
+        <Calendar
+          mode="single"
+          selected={selectedSkipDate}
+          onSelect={(date) => {
+            setSelectedSkipDate(date);
+            if (date) setCurrentMonth(date);
+          }}
+          month={currentMonth}
+          onMonthChange={setCurrentMonth}
+          className="rounded-md border-border"
+          disabled={(date) => {
+            // Don't allow dates in the future
+            return date > new Date();
+          }}
+          initialFocus
+        />
+      </div>
+    );
   };
 
   /** Handle closing the event dialog **/
@@ -244,7 +302,7 @@ export function TitleNav({db, setSkipDate, triggerRefresh, title, explain, curre
               </DialogHeader>
               <div className="py-4">
                 <div className="flex justify-center">
-                  <CalendarWithYearNav selectedDate={selectedSkipDate} onChange={handleCalendarChange} />
+                  <CalendarWithYearNav />
                 </div>
               </div>
               <div className="flex justify-end space-x-2" >
