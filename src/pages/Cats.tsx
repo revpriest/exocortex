@@ -26,7 +26,7 @@ import {
   Area,
 } from 'recharts';
 import { CalendarIcon, ChevronLeft, ChevronRight, Cat } from 'lucide-react';
-import { format, startOfDay } from 'date-fns';
+import { format, isValid, startOfDay } from 'date-fns';
 import { computeBuckets, computeCategorySeries } from '@/lib/exocortexBuckets';
 import type { CategoryBucketPoint } from '@/lib/exocortex';
 import { DayOverviewDialog } from '@/components/DayOverviewDialog';
@@ -63,11 +63,13 @@ function getCategoryColor(
   category: string,
   overrides: ColorOverride[] | undefined,
 ): string {
+  // Reuse getEventColor hue logic: we only care about hue override
   const override = overrides?.find((o) => o.category.trim() === category.trim());
   const hue = override ? override.hue : Math.abs(hashString(category.trim())) % 360;
   return `hsl(${hue}, 80%, 55%)`;
 }
 
+// lightweight hash mirroring lib/hashString to avoid circular import
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -84,8 +86,11 @@ function isSleepCategory(name: string | null | undefined): boolean {
 const OTHER_KEY = '__other__';
 
 interface SimilarCategoryGroup {
+  /** The canonical, headline-cased category that similar entries will be merged into. */
   canonical: string;
+  /** All raw category values (as they currently appear in the DB) that map to this canonical name. */
   variants: string[];
+  /** Approximate number of events that would be touched by merging this group. */
   estimatedEventCount: number;
 }
 
@@ -108,7 +113,10 @@ const Cats = () => {
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStats>>({});
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [interval, setInterval] = useLocalStorage<IntervalOption>('cats.interval', 'daily');
+  const [interval, setInterval] = useLocalStorage<IntervalOption>(
+    'cats.interval',
+    'daily',
+  );
   const [zoom, setZoom] = useLocalStorage<ZoomOption>('cats.zoom', 28);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
@@ -132,7 +140,10 @@ const Cats = () => {
   const [similarGroups, setSimilarGroups] = useState<SimilarCategoryGroup[]>([]);
   const [isMergingSimilar, setIsMergingSimilar] = useState(false);
 
-  const [sortMode, setSortMode] = useLocalStorage<CategorySortMode>('cats.sortMode', 'common');
+  const [sortMode, setSortMode] = useLocalStorage<CategorySortMode>(
+    'cats.sortMode',
+    'common',
+  );
 
   const [isComputingSeries, setIsComputingSeries] = useState(false);
   const [seriesProgress, setSeriesProgress] = useState<number | null>(null);
@@ -145,6 +156,7 @@ const Cats = () => {
     description: 'Visualize how much time you spend in each category over time.',
   });
 
+  // Keep derived Date in sync with persisted string
   useEffect(() => {
     if (startDateString) {
       const parsed = new Date(`${startDateString}T00:00:00`);
@@ -153,6 +165,7 @@ const Cats = () => {
         return;
       }
     }
+    // Fallback to today until init() sets a better date
     setStartDateState(startOfDay(new Date()));
   }, [startDateString]);
 
@@ -197,23 +210,16 @@ const Cats = () => {
       }
       setCategoryStats(statsObj);
 
-      try {
-        const settings = await database.getSettings();
-        if (settings.catsSelectedCategories && settings.catsSelectedCategories.length > 0) {
-          setSelectedCategories(settings.catsSelectedCategories);
-        } else {
-          setSelectedCategories([]);
-        }
-      } catch (err) {
-        console.warn('[Cats] Failed to load settings, falling back to empty selection', err);
-        setSelectedCategories([]);
-      }
+      // Default to nothing selected (user chooses)
+      setSelectedCategories([]);
 
+      // Determine initial anchor date
       const dateParam = searchParams.get('date');
       if (dateParam) {
         const parsed = new Date(`${dateParam}T00:00:00`);
         if (!Number.isNaN(parsed.getTime())) {
           setStartDate(parsed);
+          // Clear the param so re-renders don't keep re-applying it
           const params = new URLSearchParams(searchParams);
           params.delete('date');
           setSearchParams(params, { replace: true });
@@ -234,11 +240,7 @@ const Cats = () => {
     void init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!db) return;
-    void db.updateSettings({ catsSelectedCategories: selectedCategories });
-  }, [db, selectedCategories]);
-
+  // Sorted view of categories based on current sort mode
   const displayCategories = useMemo(() => {
     return [...availableCategories].sort((a, b) => {
       const aStats = categoryStats[a];
@@ -264,6 +266,8 @@ const Cats = () => {
     });
   }, [availableCategories, categoryStats, sortMode]);
 
+  // Live preview count for merge: whenever the dialog is open and categories
+  // change, estimate how many events will be touched.
   useEffect(() => {
     if (!db || !mergeOpen || selectedCategories.length === 0) {
       setMergePreviewCount(null);
@@ -294,6 +298,8 @@ const Cats = () => {
     };
   }, [db, mergeOpen, selectedCategories]);
 
+  // Live preview count for rename: whenever the dialog is open and a single
+  // category is selected, estimate how many events will be renamed.
   useEffect(() => {
     if (!db || !renameOpen || selectedCategories.length !== 1) {
       setRenamePreviewCount(null);
@@ -324,6 +330,8 @@ const Cats = () => {
     };
   }, [db, renameOpen, selectedCategories]);
 
+  // When the "merge similar" dialog is opened, build a preview of all
+  // groups of categories that only differ by case or surrounding whitespace.
   useEffect(() => {
     if (!db || !similarOpen) {
       setSimilarGroups([]);
@@ -354,14 +362,14 @@ const Cats = () => {
             grouped.set(key, entry);
           }
 
-          entry.canonical = canonical;
+          entry.canonical = canonical; // last write wins but all forms produce same canonical
           const current = entry.variants.get(raw) ?? 0;
           entry.variants.set(raw, current + 1);
         }
 
         const groups: SimilarCategoryGroup[] = [];
         for (const { canonical, variants } of grouped.values()) {
-          if (variants.size <= 1) continue;
+          if (variants.size <= 1) continue; // Nothing to merge, only one spelling
 
           let total = 0;
           const variantList: string[] = [];
@@ -370,6 +378,9 @@ const Cats = () => {
             total += count;
           }
 
+          // Treat any normalised key that has multiple raw spellings as a
+          // merge candidate — this is exactly the case of stray whitespace
+          // and weird capitalisation like "Slack" vs "slack ".
           groups.push({
             canonical,
             variants: variantList.sort((a, b) => a.localeCompare(b)),
@@ -378,6 +389,7 @@ const Cats = () => {
         }
 
         if (!controller.signal.aborted) {
+          // Sort groups alphabetically by canonical name for stable UI
           groups.sort((a, b) => a.canonical.localeCompare(b.canonical));
           setSimilarGroups(groups);
         }
@@ -850,6 +862,7 @@ const Cats = () => {
               </div>
             )}
 
+            {/* Hover summary */}
             {hoverBucket && selectedCategories.length > 0 && !isComputingSeries && (
               <div className="mt-3 text-xs text-muted-foreground flex flex-wrap gap-3">
                 <span className="font-semibold text-foreground">
@@ -1016,7 +1029,270 @@ const Cats = () => {
         />
 
         {/* Merge categories dialog */}
-        {/* ... dialogs unchanged from previous version ... */}
+        <AlertDialog open={mergeOpen} onOpenChange={setMergeOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Merge categories</AlertDialogTitle>
+              <AlertDialogDescription>
+                Merging categories is <span className="font-semibold text-foreground">permanent</span>.
+                All diary entries whose category is currently{' '}
+                <span className="font-semibold">
+                  {selectedCategories.join(', ') || '—'}
+                </span>{' '}
+                will be changed so their category becomes the single value you pick below.
+              </AlertDialogDescription>
+              {selectedCategories.some((c) => isSleepCategory(c)) && mergeTarget &&
+                !isSleepCategory(mergeTarget) && (
+                  <p className="mt-2 text-[11px] text-amber-300/90">
+                    Warning: "Sleep" is a special category used for sleep/non-sleep
+                    calculations. Merging it into a different name will break those
+                    statistics. You can still do this if you really want to.
+                  </p>
+                )}
+            </AlertDialogHeader>
+
+            <div className="space-y-3 mt-2">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="merge-target"
+                  className="text-xs uppercase tracking-wide text-muted-foreground"
+                >
+                  Replace with
+                </Label>
+                <select
+                  id="merge-target"
+                  className="w-full bg-secondary/70 border border-border rounded-md px-3 py-1.5 text-sm text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 disabled:opacity-50"
+                  value={mergeTarget ?? ''}
+                  onChange={(e) => setMergeTarget(e.target.value || null)}
+                  disabled={isMerging}
+                >
+                  <option value="" disabled>
+                    Choose destination category
+                  </option>
+                  {selectedCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Every event currently filed under any of the selected categories will be
+                  rewritten to use the chosen destination category.
+                </p>
+                {mergePreviewCount != null && (
+                  <p className="text-[11px] text-muted-foreground">
+                    This will update{' '}
+                    <span className="font-semibold text-foreground">{mergePreviewCount}</span>{' '}
+                    events.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isMerging}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!db || !mergeTarget || isMerging}
+                onClick={async (event) => {
+                  event.preventDefault();
+                  if (!db || !mergeTarget) return;
+
+                  // Require at least two categories to be selected to make the
+                  // operation meaningful.
+                  if (selectedCategories.length < 2) {
+                    return;
+                  }
+
+                  try {
+                    setIsMerging(true);
+
+                    await db.mergeCategories(selectedCategories, mergeTarget);
+
+                    // Refresh local state so charts & chips update immediately
+                    const all = await db.getAllEvents();
+                    setEvents(all);
+
+                    const catCounts = new Map<string, number>();
+                    for (const ev of all) {
+                      const key = ev.category.trim();
+                      catCounts.set(key, (catCounts.get(key) ?? 0) + 1);
+                    }
+                    const sorted = Array.from(catCounts.entries())
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([name]) => name);
+                    setAvailableCategories(sorted);
+
+                    setSelectedCategories([mergeTarget]);
+                    setMergeOpen(false);
+                  } finally {
+                    setIsMerging(false);
+                  }
+                }}
+              >
+                {isMerging ? 'Merging…' : 'Merge these categories'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Rename category dialog */}
+        <AlertDialog open={renameOpen} onOpenChange={setRenameOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Rename category</AlertDialogTitle>
+              <AlertDialogDescription>
+                Renaming a category is{' '}
+                <span className="font-semibold text-foreground">permanent</span>. Every diary
+                entry currently using the selected category will be updated to use the new name
+                you type below.
+              </AlertDialogDescription>
+              {isSleepCategory(selectedCategories[0]) && !isSleepCategory(renameValue) && (
+                <p className="mt-2 text-[11px] text-amber-300/90">
+                  Warning: "Sleep" is a special category used for sleep/non-sleep calculations.
+                  Renaming it will break those statistics. You can still do this if you really
+                  want to.
+                </p>
+              )}
+            </AlertDialogHeader>
+
+            <div className="space-y-3 mt-2">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="rename-category"
+                  className="text-xs uppercase tracking-wide text-muted-foreground"
+                >
+                  New name
+                </Label>
+                <input
+                  id="rename-category"
+                  type="text"
+                  className="w-full bg-secondary/70 border border-border rounded-md px-3 py-1.5 text-sm text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 disabled:opacity-50"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  disabled={isRenaming}
+                  placeholder={selectedCategories[0] ?? ''}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  This will change the category name on every event that currently uses
+                  "{selectedCategories[0] ?? '—'}".
+                </p>
+                {renamePreviewCount != null && (
+                  <p className="text-[11px] text-muted-foreground">
+                    This will update{' '}
+                    <span className="font-semibold text-foreground">{renamePreviewCount}</span>{' '}
+                    events.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isRenaming}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={
+                  !db ||
+                  isRenaming ||
+                  selectedCategories.length !== 1 ||
+                  !renameValue.trim() ||
+                  renameValue.trim() === (selectedCategories[0]?.trim() ?? '')
+                }
+                onClick={async (event) => {
+                  event.preventDefault();
+                  if (!db || selectedCategories.length !== 1) return;
+
+                  const original = selectedCategories[0];
+                  const nextName = renameValue.trim();
+                  if (!nextName || nextName === original.trim()) return;
+
+                  try {
+                    setIsRenaming(true);
+
+                    await db.renameCategory(original, nextName);
+
+                    // Refresh events and categories
+                    const all = await db.getAllEvents();
+                    setEvents(all);
+
+                    const catCounts = new Map<string, number>();
+                    for (const ev of all) {
+                      const key = ev.category.trim();
+                      catCounts.set(key, (catCounts.get(key) ?? 0) + 1);
+                    }
+                    const sorted = Array.from(catCounts.entries())
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([name]) => name);
+                    setAvailableCategories(sorted);
+
+                    setSelectedCategories([nextName]);
+                    setRenameOpen(false);
+                  } finally {
+                    setIsRenaming(false);
+                  }
+                }}
+              >
+                {isRenaming ? 'Renaming…' : 'Rename this category'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Merge similar cats dialog */}
+        <AlertDialog open={similarOpen} onOpenChange={setSimilarOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Merge similar cats</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will combine categories that only differ by capitalisation or
+                whitespace. Each group below will be merged into the headline-cased version
+                of its name. This operation is{' '}
+                <span className="font-semibold text-foreground">permanent</span> and cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="mt-3 max-h-64 overflow-y-auto space-y-3 pr-1 text-sm">
+              {similarGroups.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  No categories were found that only differ by capitalisation or whitespace.
+                </p>
+              ) : (
+                similarGroups.map((group) => (
+                  <div
+                    key={group.canonical}
+                    className="rounded-md border border-border/70 bg-secondary/40 px-3 py-2"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-semibold text-foreground">
+                          {group.canonical}
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          Will merge:{' '}
+                          <span className="font-medium text-foreground">
+                            {group.variants.join(', ')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        ~{group.estimatedEventCount} events
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isMergingSimilar}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!db || isMergingSimilar || similarGroups.length === 0}
+                onClick={handleMergeSimilarConfirm}
+              >
+                {isMergingSimilar ? 'Merging…' : 'Merge Similar Cats'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Start date picker dialog with year navigation */}
         <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
