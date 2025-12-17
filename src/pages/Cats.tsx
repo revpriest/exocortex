@@ -44,6 +44,9 @@ import {
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 const INTERVAL_OPTIONS: IntervalOption[] = ['daily', 'weekly', 'monthly', 'yearly'];
+const ZOOM_OPTIONS = [7, 10, 14, 21, 28, 35, 42, 50, 100, 200, 300, 500] as const;
+
+type ZoomOption = (typeof ZOOM_OPTIONS)[number];
 
 type ChartMode = 'lines' | 'stacked';
 type CategorySortMode = 'common' | 'alphabetical' | 'recent';
@@ -95,6 +98,7 @@ const Cats = () => {
   const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStats>>({});
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [interval, setInterval] = useState<IntervalOption>('daily');
+  const [zoom, setZoom] = useState<ZoomOption>(28);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
@@ -363,7 +367,7 @@ const Cats = () => {
         return;
       }
 
-      const buckets = computeBuckets(startDate, interval, 120);
+      const buckets = computeBuckets(startDate, interval, zoom);
       if (buckets.length === 0) {
         setSeries([]);
         return;
@@ -382,7 +386,7 @@ const Cats = () => {
     };
 
     void run();
-  }, [db, events, interval, startDate, selectedCategories, chartMode]);
+  }, [db, events, interval, startDate, selectedCategories, chartMode, zoom]);
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) =>
@@ -549,6 +553,21 @@ const Cats = () => {
                   {INTERVAL_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Zoom</Label>
+                <select
+                  className="bg-secondary/70 border border-border rounded-md px-3 py-1.5 text-xs text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value) as ZoomOption)}
+                >
+                  {ZOOM_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt} intervals
                     </option>
                   ))}
                 </select>
