@@ -63,13 +63,11 @@ function getCategoryColor(
   category: string,
   overrides: ColorOverride[] | undefined,
 ): string {
-  // Reuse getEventColor hue logic: we only care about hue override
   const override = overrides?.find((o) => o.category.trim() === category.trim());
   const hue = override ? override.hue : Math.abs(hashString(category.trim())) % 360;
   return `hsl(${hue}, 80%, 55%)`;
 }
 
-// lightweight hash mirroring lib/hashString to avoid circular import
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -86,11 +84,8 @@ function isSleepCategory(name: string | null | undefined): boolean {
 const OTHER_KEY = '__other__';
 
 interface SimilarCategoryGroup {
-  /** The canonical, headline-cased category that similar entries will be merged into. */
   canonical: string;
-  /** All raw category values (as they currently appear in the DB) that map to this canonical name. */
   variants: string[];
-  /** Approximate number of events that would be touched by merging this group. */
   estimatedEventCount: number;
 }
 
@@ -113,10 +108,7 @@ const Cats = () => {
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStats>>({});
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [interval, setInterval] = useLocalStorage<IntervalOption>(
-    'cats.interval',
-    'daily',
-  );
+  const [interval, setInterval] = useLocalStorage<IntervalOption>('cats.interval', 'daily');
   const [zoom, setZoom] = useLocalStorage<ZoomOption>('cats.zoom', 28);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
@@ -140,10 +132,7 @@ const Cats = () => {
   const [similarGroups, setSimilarGroups] = useState<SimilarCategoryGroup[]>([]);
   const [isMergingSimilar, setIsMergingSimilar] = useState(false);
 
-  const [sortMode, setSortMode] = useLocalStorage<CategorySortMode>(
-    'cats.sortMode',
-    'common',
-  );
+  const [sortMode, setSortMode] = useLocalStorage<CategorySortMode>('cats.sortMode', 'common');
 
   const [isComputingSeries, setIsComputingSeries] = useState(false);
   const [seriesProgress, setSeriesProgress] = useState<number | null>(null);
@@ -156,7 +145,6 @@ const Cats = () => {
     description: 'Visualize how much time you spend in each category over time.',
   });
 
-  // Keep derived Date in sync with persisted string
   useEffect(() => {
     if (startDateString) {
       const parsed = new Date(`${startDateString}T00:00:00`);
@@ -165,7 +153,6 @@ const Cats = () => {
         return;
       }
     }
-    // Fallback to today until init() sets a better date
     setStartDateState(startOfDay(new Date()));
   }, [startDateString]);
 
@@ -210,7 +197,6 @@ const Cats = () => {
       }
       setCategoryStats(statsObj);
 
-      // Restore last-used category selection from DB if available
       try {
         const settings = await database.getSettings();
         if (settings.catsSelectedCategories && settings.catsSelectedCategories.length > 0) {
@@ -223,13 +209,11 @@ const Cats = () => {
         setSelectedCategories([]);
       }
 
-      // Determine initial anchor date
       const dateParam = searchParams.get('date');
       if (dateParam) {
         const parsed = new Date(`${dateParam}T00:00:00`);
         if (!Number.isNaN(parsed.getTime())) {
           setStartDate(parsed);
-          // Clear the param so re-renders don't keep re-applying it
           const params = new URLSearchParams(searchParams);
           params.delete('date');
           setSearchParams(params, { replace: true });
@@ -250,13 +234,11 @@ const Cats = () => {
     void init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist selectedCategories into DB whenever they change
   useEffect(() => {
     if (!db) return;
     void db.updateSettings({ catsSelectedCategories: selectedCategories });
   }, [db, selectedCategories]);
 
-  // Sorted view of categories based on current sort mode
   const displayCategories = useMemo(() => {
     return [...availableCategories].sort((a, b) => {
       const aStats = categoryStats[a];
@@ -282,8 +264,6 @@ const Cats = () => {
     });
   }, [availableCategories, categoryStats, sortMode]);
 
-  // Live preview count for merge: whenever the dialog is open and categories
-  // change, estimate how many events will be touched.
   useEffect(() => {
     if (!db || !mergeOpen || selectedCategories.length === 0) {
       setMergePreviewCount(null);
@@ -314,8 +294,6 @@ const Cats = () => {
     };
   }, [db, mergeOpen, selectedCategories]);
 
-  // Live preview count for rename: whenever the dialog is open and a single
-  // category is selected, estimate how many events will be renamed.
   useEffect(() => {
     if (!db || !renameOpen || selectedCategories.length !== 1) {
       setRenamePreviewCount(null);
@@ -346,8 +324,6 @@ const Cats = () => {
     };
   }, [db, renameOpen, selectedCategories]);
 
-  // When the "merge similar" dialog is opened, build a preview of all
-  // groups of categories that only differ by case or surrounding whitespace.
   useEffect(() => {
     if (!db || !similarOpen) {
       setSimilarGroups([]);
@@ -378,14 +354,14 @@ const Cats = () => {
             grouped.set(key, entry);
           }
 
-          entry.canonical = canonical; // last write wins but all forms produce same canonical
+          entry.canonical = canonical;
           const current = entry.variants.get(raw) ?? 0;
           entry.variants.set(raw, current + 1);
         }
 
         const groups: SimilarCategoryGroup[] = [];
         for (const { canonical, variants } of grouped.values()) {
-          if (variants.size <= 1) continue; // Nothing to merge, only one spelling
+          if (variants.size <= 1) continue;
 
           let total = 0;
           const variantList: string[] = [];
@@ -394,9 +370,6 @@ const Cats = () => {
             total += count;
           }
 
-          // Treat any normalised key that has multiple raw spellings as a
-          // merge candidate — this is exactly the case of stray whitespace
-          // and weird capitalisation like "Slack" vs "slack ".
           groups.push({
             canonical,
             variants: variantList.sort((a, b) => a.localeCompare(b)),
@@ -405,7 +378,6 @@ const Cats = () => {
         }
 
         if (!controller.signal.aborted) {
-          // Sort groups alphabetically by canonical name for stable UI
           groups.sort((a, b) => a.canonical.localeCompare(b.canonical));
           setSimilarGroups(groups);
         }
@@ -520,7 +492,551 @@ const Cats = () => {
       explain="Category time trends"
       currentView="cats"
     >
-      {/* ...rest of JSX unchanged from previous commit... */}
+      <div className="space-y-6">
+        <Card className="bg-gradient-to-r from-purple-900/60 via-sky-900/50 to-emerald-900/60 border-border shadow-lg shadow-purple-900/40">
+          <CardHeader className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <Cat className="h-6 w-6 text-purple-200" />
+                <div>
+                  <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    Category Highlights
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Pick one or more categories to follow across time.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <Label
+                  htmlFor="category-sort"
+                  className="text-[11px] uppercase tracking-wide text-muted-foreground"
+                >
+                  Sort
+                </Label>
+                <select
+                  id="category-sort"
+                  className="bg-secondary/70 border border-border rounded-md px-2 py-1 text-xs text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as CategorySortMode)}
+                >
+                  <option value="common">Common</option>
+                  <option value="alphabetical">Alphabetical</option>
+                  <option value="recent">Recent</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              {displayCategories.map((cat) => {
+                const selected = selectedCategories.includes(cat);
+                const color = getCategoryColor(cat, config.colorOverrides);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleCategoryToggle(cat)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all shadow-sm backdrop-blur-sm ${
+                      selected
+                        ? 'border-transparent text-black'
+                        : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                    style={selected ? { background: color } : { background: 'rgba(15,23,42,0.6)' }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+              {displayCategories.length === 0 && (
+                <span className="text-xs text-muted-foreground italic">
+                  No categories yet – add some events first.
+                </span>
+              )}
+            </div>
+          </CardHeader>
+
+          <CardContent className="pt-2 border-t border-border/60 mt-2">
+            <div className="flex flex-wrap gap-4 items-end justify-between">
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Start at</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-secondary/70 border-border text-secondary-foreground font-normal"
+                  onClick={() => setShowCalendarDialog(true)}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {startDate ? format(startDate, 'MMM dd, yyyy') : 'Pick date'}
+                </Button>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Interval</Label>
+                <select
+                  className="bg-secondary/70 border border-border rounded-md px-3 py-1.5 text-xs text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                  value={interval}
+                  onChange={(e) => setInterval(e.target.value as IntervalOption)}
+                >
+                  {INTERVAL_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Zoom</Label>
+                <select
+                  className="bg-secondary/70 border border-border rounded-md px-3 py-1.5 text-xs text-secondary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value) as ZoomOption)}
+                >
+                  {ZOOM_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt} {intervalUnit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mode</Label>
+                <div className="inline-flex rounded-md border border-border bg-secondary/70 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setChartMode('lines')}
+                    className={`px-3 py-1 rounded-sm transition-colors ${
+                      chartMode === 'lines'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-secondary-foreground hover:bg-secondary/60'
+                    }`}
+                    aria-pressed={chartMode === 'lines'}
+                  >
+                    Separate lines
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartMode('stacked')}
+                    className={`px-3 py-1 rounded-sm transition-colors ${
+                      chartMode === 'stacked'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-secondary-foreground hover:bg-secondary/60'
+                    }`}
+                    aria-pressed={chartMode === 'stacked'}
+                  >
+                    Stacked totals
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 ml-auto justify-end">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleShift(-1)}
+                  disabled={!startDate}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleShift(1)}
+                  disabled={!startDate}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/80 border-border shadow-md">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              Time spent per category
+              <span className="text-[11px] font-normal text-muted-foreground">
+                (hours per {interval})
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isComputingSeries ? (
+              <div className="h-64 flex flex-col items-center justify-center gap-3 text-muted-foreground text-sm text-center">
+                <div className="h-8 w-8 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                <div>
+                  <div>Compiling category history…</div>
+                  <div className="text-xs text-muted-foreground/80 mt-1">
+                    This can take a moment for large timelines.
+                  </div>
+                </div>
+                {seriesProgress != null && (
+                  <div className="w-48 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-150"
+                      style={{ width: `${Math.max(0, Math.min(100, seriesProgress))}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : series.length > 0 && selectedCategories.length > 0 ? (
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  {chartMode === 'lines' ? (
+                    <LineChart
+                      data={series}
+                      margin={{ top: 10, right: 16, bottom: 24, left: 0 }}
+                      onClick={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) return;
+                        const point = series.find((p) => p.bucketLabel === activeLabel);
+                        if (point) {
+                          handleBucketClick(point);
+                        }
+                      }}
+                      onMouseMove={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) {
+                          setHoverBucket(null);
+                          return;
+                        }
+                        const point = series.find((p) => p.bucketLabel === activeLabel) || null;
+                        setHoverBucket(point);
+                      }}
+                      onMouseLeave={() => setHoverBucket(null)}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="bucketLabel"
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        label={{
+                          value: 'Hours',
+                          angle: -90,
+                          position: 'insideLeft',
+                          fill: 'hsl(var(--muted-foreground))',
+                          offset: 10,
+                        }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '0.5rem',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(2)} h`,
+                          name === OTHER_KEY ? 'Other' : name,
+                        ]}
+                      />
+                      <Legend
+                        wrapperStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value) => (value === OTHER_KEY ? 'Other' : (value as string))}
+                      />
+                      {selectedCategories.map((cat) => (
+                        <Line
+                          key={cat}
+                          type="monotone"
+                          dataKey={cat}
+                          name={cat}
+                          stroke={getCategoryColor(cat, config.colorOverrides)}
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls
+                        />
+                      ))}
+                    </LineChart>
+                  ) : (
+                    <AreaChart
+                      data={series}
+                      margin={{ top: 10, right: 16, bottom: 24, left: 0 }}
+                      onClick={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) return;
+                        const point = series.find((p) => p.bucketLabel === activeLabel);
+                        if (point) {
+                          handleBucketClick(point);
+                        }
+                      }}
+                      onMouseMove={(state) => {
+                        const activeLabel = state?.activeLabel as string | undefined;
+                        if (!activeLabel) {
+                          setHoverBucket(null);
+                          return;
+                        }
+                        const point = series.find((p) => p.bucketLabel === activeLabel) || null;
+                        setHoverBucket(point);
+                      }}
+                      onMouseLeave={() => setHoverBucket(null)}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="bucketLabel"
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        label={{
+                          value: 'Hours',
+                          angle: -90,
+                          position: 'insideLeft',
+                          fill: 'hsl(var(--muted-foreground))',
+                          offset: 10,
+                        }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '0.5rem',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(2)} h`,
+                          name === OTHER_KEY ? 'Other' : name,
+                        ]}
+                      />
+                      <Legend
+                        wrapperStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(value) => (value === OTHER_KEY ? 'Other' : (value as string))}
+                      />
+                      {selectedCategories.map((cat) => (
+                        <Area
+                          key={cat}
+                          type="monotone"
+                          dataKey={cat}
+                          name={cat}
+                          stackId="time"
+                          stroke={getCategoryColor(cat, config.colorOverrides)}
+                          fill={getCategoryColor(cat, config.colorOverrides)}
+                          fillOpacity={0.5}
+                        />
+                      ))}
+                      {showStackedLegendOther && (
+                        <Area
+                          type="monotone"
+                          dataKey={OTHER_KEY}
+                          name={OTHER_KEY}
+                          stackId="time"
+                          stroke="hsl(var(--border))"
+                          fill="hsl(var(--border))"
+                          fillOpacity={0.3}
+                        />
+                      )}
+                    </AreaChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground text-sm text-center">
+                Choose one or more categories above to see how your time weaves between them.
+              </div>
+            )}
+
+            {hoverBucket && selectedCategories.length > 0 && !isComputingSeries && (
+              <div className="mt-3 text-xs text-muted-foreground flex flex-wrap gap-3">
+                <span className="font-semibold text-foreground">
+                  {hoverBucket.bucketLabel} total:
+                </span>
+                {selectedCategories.map((cat) => {
+                  const value = (hoverBucket[cat] as number | undefined) ?? 0;
+                  return (
+                    <span key={cat} className="flex items-center gap-1">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ backgroundColor: getCategoryColor(cat, config.colorOverrides) }}
+                      />
+                      {cat}: {value.toFixed(2)} h
+                    </span>
+                  );
+                })}
+                {chartMode === 'stacked' && (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-border" />
+                    Other: {(((hoverBucket as Record<string, number>)[OTHER_KEY] ?? 0)).toFixed(2)} h
+                  </span>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Management / category tools card */}
+        <Card className="bg-card/80 border-border shadow-md">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              Management
+              <span className="text-[11px] font-normal text-muted-foreground">
+                Tools for tidying up your categories
+              </span>
+            </CardTitle>
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Export database first</div>
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
+                    We strongly recommend exporting a backup of your data before editing
+                    categories, mistakes happen. These actions are serious with no undo. Backups matter.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!db}
+                  onClick={async () => {
+                    if (!db) return;
+                    try {
+                      await DataExporter.exportDatabase(db);
+                    } catch (error) {
+                      console.error('Quick export failed from Cats page:', error);
+                    }
+                  }}
+                  className="whitespace-nowrap"
+                >
+                  Export backup now
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Merge categories</div>
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
+                    Combine two or more existing categories into a single one. Every event tagged
+                    with any of the selected categories will be updated to use the destination
+                    category you choose.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={selectedCategories.length < 2}
+                  onClick={() => {
+                    setMergeTarget(selectedCategories[0] ?? null);
+                    setMergePreviewCount(null);
+                    setMergeOpen(true);
+                  }}
+                >
+                  Open merge dialog
+                </Button>
+              </div>
+              {selectedCategories.length < 2 && (
+                <p className="mt-2 text-[11px] text-amber-300/80">
+                  Select at least two categories above to perform a merge.
+                </p>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Rename category</div>
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
+                    Give a single category a new name. Every event currently using that category
+                    will be updated to use the new name.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={selectedCategories.length !== 1}
+                  onClick={() => {
+                    setRenameValue(selectedCategories[0] ?? '');
+                    setRenamePreviewCount(null);
+                    setRenameOpen(true);
+                  }}
+                >
+                  Rename selected category
+                </Button>
+              </div>
+              {selectedCategories.length !== 1 && (
+                <p className="mt-2 text-[11px] text-amber-300/80">
+                  Select exactly one category above to enable renaming.
+                </p>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-border/60">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium text-foreground">Merge similar cats</div>
+                  <p className="text-[11px] text-muted-foreground max-w-xl mt-1">
+                    Combine all categories whose names only differ by capitalisation or
+                    whitespace. The merged category name will use headline case, with leading
+                    and trailing spaces stripped.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!db}
+                  onClick={() => setSimilarOpen(true)}
+                >
+                  Merge Similar Cats
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <DayOverviewDialog
+          open={!!selectedDateKey}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedDateKey(null);
+            }
+          }}
+          dateKey={selectedDateKey}
+          db={db}
+          onPrevDay={() => handleShiftSelectedDay(-1)}
+          onNextDay={() => handleShiftSelectedDay(1)}
+        />
+
+        {/* Merge categories dialog */}
+        {/* ... dialogs unchanged from previous version ... */}
+
+        {/* Start date picker dialog with year navigation */}
+        <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
+          <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+            <DialogHeader>
+              <DialogTitle>Choose starting date</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 flex justify-center">
+              <CalendarWithYearNav
+                selectedDate={startDate ?? undefined}
+                onChange={(date) => {
+                  if (date && !isNaN(date.getTime())) {
+                    setStartDate(date);
+                  }
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </PageLayout>
   );
 };
