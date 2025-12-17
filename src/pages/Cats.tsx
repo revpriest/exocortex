@@ -140,6 +140,9 @@ const Cats = () => {
     'common',
   );
 
+  const [isComputingSeries, setIsComputingSeries] = useState(false);
+  const [seriesProgress, setSeriesProgress] = useState<number | null>(null);
+
   const { config } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -396,11 +399,16 @@ const Cats = () => {
       const filteredEvents = events.filter((e) => e.endTime >= firstStart && e.endTime <= lastEnd);
       const includeOther = chartMode === 'stacked';
 
+      setIsComputingSeries(true);
+      setSeriesProgress(0);
+
       const newSeries = await computeCategorySeries(db, buckets, filteredEvents, selectedCategories, {
         includeOther,
       });
 
       setSeries(newSeries);
+      setIsComputingSeries(false);
+      setSeriesProgress(null);
     };
 
     void run();
@@ -657,7 +665,25 @@ const Cats = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {series.length > 0 && selectedCategories.length > 0 ? (
+            {isComputingSeries ? (
+              <div className="h-64 flex flex-col items-center justify-center gap-3 text-muted-foreground text-sm text-center">
+                <div className="h-8 w-8 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                <div>
+                  <div>Compiling category history…</div>
+                  <div className="text-xs text-muted-foreground/80 mt-1">
+                    This can take a moment for large timelines.
+                  </div>
+                </div>
+                {seriesProgress != null && (
+                  <div className="w-48 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-150"
+                      style={{ width: `${Math.max(0, Math.min(100, seriesProgress))}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : series.length > 0 && selectedCategories.length > 0 ? (
               <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   {chartMode === 'lines' ? (
@@ -825,7 +851,7 @@ const Cats = () => {
             )}
 
             {/* Hover summary */}
-            {hoverBucket && selectedCategories.length > 0 && (
+            {hoverBucket && selectedCategories.length > 0 && !isComputingSeries && (
               <div className="mt-3 text-xs text-muted-foreground flex flex-wrap gap-3">
                 <span className="font-semibold text-foreground">
                   {hoverBucket.bucketLabel} total:
