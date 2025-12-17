@@ -89,6 +89,18 @@ export interface CategoryBucketPoint {
 }
 
 /**
+ * App-wide configuration snapshot stored inside IndexedDB.
+ *
+ * This lets us persist view-specific preferences (like Cats selections)
+ * alongside event data instead of only in localStorage, so they survive
+ * SPA navigation and future storage refactors.
+ */
+export interface ExocortexSettings {
+  /** Most recently used categories on the Cats page (in display order). */
+  catsSelectedCategories?: string[];
+}
+
+/**
  * IndexedDB Configuration Constants
  *
  * These constants define our IndexedDB database setup:
@@ -101,8 +113,9 @@ export interface CategoryBucketPoint {
  * - STORE_NAME: Name of the object store (like a table in SQL)
  */
 const DB_NAME = 'exocortex'; // Database name for our time tracking data
-const DB_VERSION = 1; // Database version (increment when schema changes)
+const DB_VERSION = 2; // Database version (increment when schema changes)
 const STORE_NAME = 'events'; // Object store name for storing events
+const SETTINGS_STORE = 'settings'; // Object store for app-level settings
 
 /**
  * ExocortexDB Class
@@ -120,15 +133,19 @@ export class ExocortexDB {
   /** Database instance (null until initialized) */
   private db: IDBDatabase | null = null;
 
+  /** Helper to get a transaction, ensuring init() has run. */
+  private getDb(): IDBDatabase {
+    if (!this.db) throw new Error('Database not initialized');
+    return this.db;
+  }
+
   /**
    * Initialize Database
    *
-   * Sets up the IndexedDB database and creates the object store
-   * if it doesn't exist yet.
+   * Sets up the IndexedDB database and creates the object stores
+   * if they don't exist yet.
    *
    * This method must be called before any other database operations.
-   *
-   * @returns Promise that resolves when database is ready
    */
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -150,40 +167,65 @@ export class ExocortexDB {
        * This event fires when:
        * 1. Database doesn't exist yet (first time)
        * 2. Database version number is higher than existing
-       *
-       * This is where we define our "table schema":
-       * - Create object store (like a table)
-       * - Create indexes for efficient querying
        */
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // Create the events store if it doesn't exist
+        // Existing events store
         if (!db.objectStoreNames.contains(STORE_NAME)) {
-          /**
-           * Create Object Store
-           *
-           * This is like creating a table in a SQL database.
-           *
-           * - keyPath: 'id' means the 'id' field is the primary key
-           * - autoIncrement: false because we generate our own UUIDs
-           */
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-
-          /**
-           * Create Indexes for Efficient Querying
-           *
-           * Indexes are like indexes in SQL - they make queries faster.
-           *
-           * endTime index: Allows us to efficiently query events by time
-           * category index: Allows us to efficiently filter by activity type
-           *
-           * unique: false means multiple events can have the same endTime or category
-           */
           store.createIndex('endTime', 'endTime', { unique: false });
           store.createIndex('category', 'category', { unique: false });
+        } else {
+          // In case older versions were missing indexes, ensure they exist.
+          const store = (event.currentTarget as IDBOpenDBRequest).transaction?.objectStore(STORE_NAME);
+          if (store) {
+            if (!store.indexNames.contains('endTime')) {
+              store.createIndex('endTime', 'endTime', { unique: false });
+            }
+            if (!store.indexNames.contains('category')) {
+              store.createIndex('category', 'category', { unique: false });
+            }
+          }
+        }
+
+        // New settings store (version 2+)
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+          db.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
         }
       };
+    });
+  }
+
+  /** Load a small settings object from the settings store. */
+  async getSettings(): Promise<ExocortexSettings> {
+    const db = this.getDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([SETTINGS_STORE], 'readonly');
+      const store = tx.objectStore(SETTINGS_STORE);
+      const request = store.get('app');
+
+      request.onsuccess = () => {
+        const value = request.result?.value as ExocortexSettings | undefined;
+        resolve(value ?? {});
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /** Persist a partial settings update, shallow-merging into existing value. */
+  async updateSettings(patch: Partial<ExocortexSettings>): Promise<void> {
+    const db = this.getDb();
+    const current = await this.getSettings();
+    const next: ExocortexSettings = { ...current, ...patch };
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([SETTINGS_STORE], 'readwrite');
+      const store = tx.objectStore(SETTINGS_STORE);
+      const request = store.put({ key: 'app', value: next });
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
     });
   }
 
@@ -192,20 +234,15 @@ export class ExocortexDB {
    *
    * Adds a new event to the database.
    * Generates a UUID for the event ID automatically.
-   *
-   * @param event - Event data without an id field
-   * @returns Promise that resolves to the generated event ID
    */
   async addEvent(event: Omit<ExocortexEvent, 'id'>): Promise<string> {
-    // Ensure database is initialized
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
-    // Generate unique identifier for the event
     const id = crypto.randomUUID();
     const fullEvent: ExocortexEvent = { id, ...event };
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
       console.log('Adding to store ', fullEvent);
@@ -217,7 +254,7 @@ export class ExocortexDB {
   }
 
   async getEventsByDate(date: string): Promise<ExocortexEvent[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -226,7 +263,7 @@ export class ExocortexDB {
     endOfDay.setHours(23, 59, 59, 999);
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
@@ -252,7 +289,7 @@ export class ExocortexDB {
   }
 
   async getEventsByDateRangeOnly(startDate: string, endDate: string): Promise<DayEvents[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     let start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
@@ -261,15 +298,13 @@ export class ExocortexDB {
     end.setHours(23, 59, 59, 999);
 
     if (start > end) {
-      // Swap them if they're the wrong way around.
       const t = end;
       end = start;
       start = t;
     }
 
-    // Single query to get all events for the date range
     const events: ExocortexEvent[] = await new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
@@ -293,7 +328,6 @@ export class ExocortexDB {
       request.onerror = () => reject(request.error);
     });
 
-    // Group events by date - ONLY include dates that have events
     const eventsByDate = new Map<string, ExocortexEvent[]>();
 
     events.forEach((event) => {
@@ -304,7 +338,6 @@ export class ExocortexDB {
       eventsByDate.get(dateStr)!.push(event);
     });
 
-    // Create DayEvents array ONLY with dates that have events
     const days: DayEvents[] = [];
     for (const [dateStr, dayEvents] of eventsByDate) {
       days.push({ date: dateStr, events: dayEvents });
@@ -314,10 +347,10 @@ export class ExocortexDB {
   }
 
   async eventsExist(): Promise<boolean> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     return new Promise((resolve, _reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
@@ -337,10 +370,10 @@ export class ExocortexDB {
   }
 
   async getLatestEvent(): Promise<ExocortexEvent | null> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
@@ -355,15 +388,11 @@ export class ExocortexDB {
     });
   }
 
-  /**
-   * Get a summary of all events in the database, including total count and
-   * the earliest and latest endTime values.
-   */
   async getEventSummary(): Promise<EventSummary> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
@@ -396,14 +425,11 @@ export class ExocortexDB {
     });
   }
 
-  /**
-   * Get all events in the database, ordered by endTime index.
-   */
   async getAllEvents(): Promise<ExocortexEvent[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
@@ -425,12 +451,12 @@ export class ExocortexDB {
   }
 
   async updateEvent(id: string, updates: Omit<ExocortexEvent, 'id'>): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     const updatedEvent: ExocortexEvent = { id, ...updates };
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
       const request = store.put(updatedEvent);
@@ -441,10 +467,10 @@ export class ExocortexDB {
   }
 
   async deleteEvent(id: string): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
       const request = store.delete(id);
@@ -455,10 +481,10 @@ export class ExocortexDB {
   }
 
   async clearAllEvents(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
       const request = store.clear();
@@ -468,13 +494,8 @@ export class ExocortexDB {
     });
   }
 
-  /**
-   * Delete all events for a specific calendar day.
-   *
-   * The date string must be in ISO format YYYY-MM-DD.
-   */
   async clearEventsForDate(date: string): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -483,7 +504,7 @@ export class ExocortexDB {
     endOfDay.setHours(23, 59, 59, 999);
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('endTime');
 
@@ -506,17 +527,8 @@ export class ExocortexDB {
     });
   }
 
-  /**
-   * Merge categories across the entire database.
-   *
-   * Every event whose category matches any of the values in `fromCategories`
-   * will be rewritten so that its category becomes `toCategory`.
-   *
-   * This is an irreversible operation at the storage level, so callers
-   * should present a clear confirmation UI before invoking it.
-   */
   async mergeCategories(fromCategories: string[], toCategory: string): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     const normalizedTargets = new Set(fromCategories.map((c) => c.trim()));
     const normalizedTo = toCategory.trim();
@@ -526,11 +538,10 @@ export class ExocortexDB {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('category');
 
-      // We scan all events for the involved categories in a single cursor
       const request = index.openCursor();
 
       request.onsuccess = () => {
@@ -558,21 +569,15 @@ export class ExocortexDB {
     });
   }
 
-  /**
-   * Rename a single category across the entire database.
-   *
-   * Every event whose category matches `fromCategory` (after trimming) will be
-   * updated so that its category becomes `toCategory`.
-   */
   async renameCategory(fromCategory: string, toCategory: string): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     const from = fromCategory.trim();
     const to = toCategory.trim();
     if (!from || !to || from === to) return;
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('category');
 
@@ -601,22 +606,11 @@ export class ExocortexDB {
     });
   }
 
-  /**
-   * Merge all categories that are effectively the same name but differ only in
-   * case or surrounding whitespace.
-   *
-   * For example: "work", " Work ", and "WORK" will all be merged into
-   * "Work". The headline-case form (first letter uppercase, rest lowercase)
-   * is used as the canonical category name.
-   *
-   * This scans all events once and rewrites any that are using a non-canonical
-   * variant.
-   */
   async mergeSimilarCategories(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = this.getDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('category');
 
@@ -633,13 +627,11 @@ export class ExocortexDB {
         const rawCategory = event.category ?? '';
         const trimmed = rawCategory.trim();
 
-        // If the category is empty after trimming, skip it entirely.
         if (!trimmed) {
           cursor.continue();
           return;
         }
 
-        // Headline-case: first character upper, rest lower.
         const canonical = `${trimmed.charAt(0).toLocaleUpperCase()}${trimmed
           .slice(1)
           .toLocaleLowerCase()}`;
@@ -845,7 +837,6 @@ export function getEventColor(
   event: ExocortexEvent,
   colorOverrides?: { category: string; hue: number }[],
 ): string {
-  // Find custom hue for this category if it exists
   const override = colorOverrides?.find(
     (override) => override.category.trim() === event.category.trim(),
   );
@@ -863,12 +854,6 @@ export function formatTime(timestamp: number): string {
   });
 }
 
-/**
- * Normalize an event timestamp into a human-readable local date string.
- *
- * This is used anywhere we want to display the calendar date for an event
- * in a consistent way, regardless of how the time is shown elsewhere.
- */
 export function formatEventDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString(undefined, {
     weekday: 'short',
@@ -878,16 +863,7 @@ export function formatEventDate(timestamp: number): string {
   });
 }
 
-/**
- * Compute the logical start time of an event by finding the previous event in the DB.
- *
- * This helper is used anywhere we want to show an accurate start time (search rows,
- * summary rows, edit dialog) without duplicating the "find previous event" logic.
- *
- * Returns a Unix timestamp in ms, or null if there is no prior event.
- */
 export async function getEventStartTime(db: ExocortexDB, endTime: number): Promise<number | null> {
-  // Get all events from the same day and previous day to find the previous event
   const currentEnd = new Date(endTime);
   const currentDay = currentEnd.toISOString().split('T')[0];
   const previousDay = new Date(currentEnd);
@@ -899,12 +875,10 @@ export async function getEventStartTime(db: ExocortexDB, endTime: number): Promi
     db.getEventsByDate(previousDayStr),
   ]);
 
-  // Combine events from both days and sort by end time
   const allEvents = [...previousDayEvents, ...currentDayEvents].sort(
     (a, b) => a.endTime - b.endTime,
   );
 
-  // Find the previous event (the one that ends just before this endTime)
   const previousEvent = allEvents
     .filter((event) => event.endTime < endTime)
     .sort((a, b) => b.endTime - a.endTime)[0];
