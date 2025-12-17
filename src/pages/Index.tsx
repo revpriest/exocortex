@@ -22,7 +22,7 @@ import { NewUserWelcomeDialog } from '../components/NewUserWelcomeDialog';
 const Index = () => {
   // Database instance for storing and retrieving events
   const [db, setDb] = useState<ExocortexDB | null>(null);
-  const [_error, setError] = useState<string | null>(null);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   //So Welcome dialog can link to /about we need to navigate
   const navigate = useNavigate();
@@ -45,23 +45,27 @@ const Index = () => {
   useEffect(() => {
     const initAll = async () => {
       console.log('[Index] Initialising DB for grid page');
-      const db = new ExocortexDB();
-      await db.init();
-      console.log('[Index] DB initialised');
-      setDb(db);
+      try {
+        const database = new ExocortexDB();
+        await database.init();
+        console.log('[Index] DB initialised');
+        setDb(database);
+        setDbError(null);
 
-      // If we already saw a ?date= param before DB was ready, ensure
-      // ExocortexGrid sees the skipDate value after it mounts.
-      if (hasAppliedInitialSkip && skipDate) {
-        console.log('[Index] Applying previously captured skipDate to grid after DB init', skipDate.toISOString());
+        // If we already saw a ?date= param before DB was ready, ensure
+        // ExocortexGrid sees the skipDate value after it mounts.
+        if (hasAppliedInitialSkip && skipDate) {
+          console.log('[Index] Applying previously captured skipDate to grid after DB init', skipDate.toISOString());
+        }
+      } catch (error) {
+        console.error('Failed to initialize database on main page:', error);
+        const message = error instanceof Error ? error.message : 'Unknown database error.';
+        setDb(null);
+        setDbError(message);
       }
     };
 
-    // Execute initialization and handle any errors
-    initAll().catch((error) => {
-      console.error('Failed to initialize database:', error);
-      setError('Failed to initialize database. Please refresh the page.');
-    });
+    void initAll();
   }, [hasAppliedInitialSkip, skipDate]); // re-run if we captured a skip before DB init
 
   // Initialise skipDate from ?date=YYYY-MM-DD when first loading
@@ -117,10 +121,10 @@ const Index = () => {
   useEffect(() => {
     const checkDatabaseEmpty = async () => {
       try {
-        const db = new ExocortexDB();
-        await db.init();
+        const database = new ExocortexDB();
+        await database.init();
 
-        const hasEvents = await db.eventsExist();
+        const hasEvents = await database.eventsExist();
 
         // Show welcome dialog if no events found in the last week (truly empty database)
         if (!hasEvents) {
@@ -131,7 +135,7 @@ const Index = () => {
       }
     };
 
-    checkDatabaseEmpty();
+    void checkDatabaseEmpty();
   }, [currentView]); // Dependency on currentView
 
   /**
@@ -139,10 +143,10 @@ const Index = () => {
    */
   const handleWelcomeGenerateTestData = async () => {
     if (db != null) {
-      const t = await db.generateTestData();
-      setError(t);
+      await db.generateTestData();
+      setDbError(null);
     } else {
-      setError('No DB');
+      setDbError('Database is not available.');
     }
   };
 
@@ -184,6 +188,7 @@ const Index = () => {
       <ExocortexGrid
         skipDate={skipDate}
         db={db}
+        dbError={dbError}
         className="w-full"
         refreshTrigger={forceGridRefresh}
         setRefreshTrigger={setForceGridRefresh}
