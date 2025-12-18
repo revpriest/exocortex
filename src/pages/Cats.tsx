@@ -2,7 +2,7 @@
  * Cats.tsx - Category Time Trends Page
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useSearchParams } from 'react-router-dom';
 import { PageLayout } from '@/components/PageLayout';
@@ -26,7 +26,7 @@ import {
   Area,
 } from 'recharts';
 import { CalendarIcon, ChevronLeft, ChevronRight, Cat } from 'lucide-react';
-import { format, isValid, startOfDay } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { computeBuckets, computeCategorySeries } from '@/lib/exocortexBuckets';
 import type { CategoryBucketPoint } from '@/lib/exocortex';
 import { DayOverviewDialog } from '@/components/DayOverviewDialog';
@@ -107,6 +107,36 @@ const intervalUnitFor = (interval: IntervalOption): IntervalUnitLabel => {
     case 'yearly':
       return 'years';
   }
+};
+
+const effectiveTodayForInterval = (
+  latestEndTime: number,
+  interval: IntervalOption,
+  zoom: ZoomOption,
+): Date => {
+  // Treat "today" as the latest event's day at local midnight
+  const last = startOfDay(new Date(latestEndTime));
+
+  let spanDays: number;
+  switch (interval) {
+    case 'daily':
+      spanDays = zoom;
+      break;
+    case 'weekly':
+      spanDays = zoom * 7;
+      break;
+    case 'monthly':
+      // Approximate months as 30 days for windowing purposes
+      spanDays = zoom * 30;
+      break;
+    case 'yearly':
+      spanDays = zoom * 365;
+      break;
+  }
+
+  const start = new Date(last);
+  start.setDate(start.getDate() - (spanDays - 1));
+  return startOfDay(start);
 };
 
 const Cats = () => {
@@ -509,6 +539,16 @@ const Cats = () => {
 
   const intervalUnit = intervalUnitFor(interval);
 
+  // When the title is clicked, recentre the chart so the last bucket
+  // corresponds to "today" (i.e. the latest event's date), keeping the
+  // current interval + zoom window size.
+  const handleScrollToTodayForCats = useCallback(() => {
+    if (!events.length) return;
+    const latestEndTime = Math.max(...events.map((e) => e.endTime));
+    const newStart = effectiveTodayForInterval(latestEndTime, interval, zoom);
+    setStartDate(newStart);
+  }, [events, interval, zoom]);
+
   return (
     <PageLayout
       db={db}
@@ -675,6 +715,19 @@ const Cats = () => {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                className="h-7 px-2 text-[11px] bg-secondary/60 border-border hover:bg-secondary/80"
+                disabled={!events.length}
+                onClick={handleScrollToTodayForCats}
+              >
+                Jump to today&apos;s end
+              </Button>
             </div>
           </CardContent>
         </Card>
