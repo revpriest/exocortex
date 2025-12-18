@@ -635,6 +635,19 @@ const Cats = () => {
                 </Button>
               </div>
 
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="h-7 px-2 text-[11px] bg-secondary/60 border-border hover:bg-secondary/80"
+                  disabled={!events.length}
+                  onClick={handleScrollToTodayForCats}
+                >
+                  Jump to today&apos;s end
+                </Button>
+              </div>
+
               <div className="space-y-1">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">Interval</Label>
                 <select
@@ -715,19 +728,6 @@ const Cats = () => {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <Button
-                type="button"
-                variant="outline"
-                size="xs"
-                className="h-7 px-2 text-[11px] bg-secondary/60 border-border hover:bg-secondary/80"
-                disabled={!events.length}
-                onClick={handleScrollToTodayForCats}
-              >
-                Jump to today&apos;s end
-              </Button>
             </div>
           </CardContent>
         </Card>
