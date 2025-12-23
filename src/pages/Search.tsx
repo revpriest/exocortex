@@ -159,16 +159,8 @@ const SearchPage: React.FC = () => {
       await dbInstance.init();
       setDb(dbInstance);
 
-      const to = new Date();
-      to.setHours(23, 59, 59, 999);
-      const from = new Date(to);
-      from.setFullYear(from.getFullYear() - 3);
-      from.setHours(0, 0, 0, 0);
-      const days: DayEvents[] = await dbInstance.getEventsByDateRangeOnly(
-        from.toISOString().split('T')[0],
-        to.toISOString().split('T')[0],
-      );
-      const allEvents = days.flatMap((d) => d.events).sort((a, b) => b.endTime - a.endTime);
+      // Load all events in the database (no artificial time cutoff)
+      const allEvents = (await dbInstance.getAllEvents()).sort((a, b) => b.endTime - a.endTime);
       setEvents(allEvents);
     };
     initDb().catch((err) => console.error('Failed to initialise DB for search', err));
@@ -188,47 +180,30 @@ const SearchPage: React.FC = () => {
     if (!open) setEditingEvent(null);
   };
 
+  const reloadAllEvents = async (database: ExocortexDB) => {
+    const allEvents = (await database.getAllEvents()).sort((a, b) => b.endTime - a.endTime);
+    setEvents(allEvents);
+  };
+
   const handleUpdateEvent = async (id: string, eventData: Omit<ExocortexEvent, 'id'>) => {
     if (!db) return;
     await db.updateEvent(id, eventData);
     setEditingEvent(null);
-
-    const to = new Date();
-    to.setHours(23, 59, 59, 999);
-    const from = new Date(to);
-    from.setFullYear(from.getFullYear() - 3);
-    from.setHours(0, 0, 0, 0);
-    const days: DayEvents[] = await db.getEventsByDateRangeOnly(
-      from.toISOString().split('T')[0],
-      to.toISOString().split('T')[0],
-    );
-    const allEvents = days.flatMap((d) => d.events).sort((a, b) => b.endTime - a.endTime);
-    setEvents(allEvents);
+    await reloadAllEvents(db);
   };
 
   const handleDeleteEvent = async (id: string) => {
     if (!db) return;
     await db.deleteEvent(id);
     setEditingEvent(null);
-
-    const to = new Date();
-    to.setHours(23, 59, 59, 999);
-    const from = new Date(to);
-    from.setFullYear(from.getFullYear() - 3);
-    from.setHours(0, 0, 0, 0);
-    const days: DayEvents[] = await db.getEventsByDateRangeOnly(
-      from.toISOString().split('T')[0],
-      to.toISOString().split('T')[0],
-    );
-    const allEvents = days.flatMap((d) => d.events).sort((a, b) => b.endTime - a.endTime);
-    setEvents(allEvents);
+    await reloadAllEvents(db);
   };
 
   return (
     <PageLayout
       db={db}
       title="Search"
-      explain="Search for events by notes or category. Results are shown from the last few years."
+      explain="Search for events by notes or category across your entire history."
       currentView="search"
     >
       <div className="max-w-3xl mx-auto mt-4 space-y-4">
